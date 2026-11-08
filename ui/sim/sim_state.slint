@@ -19,6 +19,19 @@ export struct Corner {
     slip: float,
     has-temp: bool,
     has-brake: bool,
+    slip-color: color,
+    brake-pct: float,
+}
+
+export struct TrailDot {
+    x: float,
+    y: float,
+    alpha: float,
+}
+
+export struct DynoBar {
+    h: float,
+    active: bool,
 }
 
 export struct SimRow {
@@ -156,6 +169,27 @@ export struct SimData {
     bias-needle: string,
 
     map-note: string,
+
+    rpm-trace: string,
+    rpm-angle: float,
+    speed-angle: float,
+    boost-arc: string,
+    heading-deg: float,
+    has-wind-dir: bool,
+    wind-deg: float,
+    fuel-per-lap: string,
+    fuel-to-add: string,
+    fuel-laps-num: float,
+    drift-score: string,
+    drifting: bool,
+    peak-lat-g: string,
+    stint-time: string,
+    stint-pct: float,
+    tach9-angle: float,
+    brake-front: string,
+    brake-rear: string,
+    brake-front-needle: string,
+    brake-rear-needle: string,
 }
 
 export global Sim {
@@ -172,5 +206,9 @@ export global Sim {
     in property <string> dial-track;
     in property <[string]> setup-lines;
     in property <string> game-name;
+    in property <[TrailDot]> g-trail;
+    in property <[float]> eq-bars;
+    in property <[DynoBar]> dyno;
+    in property <[SimRow]> lap-list;
     in-out property <int> layout: 0;
 }

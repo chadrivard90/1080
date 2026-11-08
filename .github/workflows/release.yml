@@ -58,6 +58,9 @@ jobs:
           rustup update stable --no-self-update || true
           cargo --version
 
+      - name: Fetch fonts
+        run: bash scripts/fetch-fonts.sh
+
       - name: Test
         run: cargo test --release
 

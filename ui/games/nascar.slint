@@ -1,303 +1,329 @@
-// NASCAR 26 - "Spotter & Strategy Station". TV-broadcast look: bold blue, red and yellow
-// blocks, heavy italic type.
-// Tabs: SPOTTER (radar + relative + pit strategy), GAUGES, ORDER, MAP.
+// NASCAR 26 - "Spotter & Strategy". TV broadcast HUD: clean white, racing blue #0033A0, red
+// #DA291C, metallic banners with heavy 3D drop shadows, Anton / Bebas Neue type.
+// Pages: THE PACK (radar, speed, gear, RPM), THE DRAFT (pylon, map, caution), PIT BOX.
 
-import { Sim, SimData } from "../sim/sim_state.slint";
-import { DashShell, Tile, ShiftLights, Dial, RowItem, CornerTile } from "../sim/sim_widgets.slint";
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, ShiftLights, RowItem } from "../sim/sim_widgets.slint";
+import { Fonts } from "../kit.slint";
 import { TrackMap } from "../map.slint";
-import { HBar, VBar } from "../common.slint";
 
 global NascarTheme {
-    out property <color> navy: #071433;
-    out property <color> blue: #0d2a73;
-    out property <color> panel: #10265e;
-    out property <color> red: #d6001c;
+    out property <color> blue: #0033a0;
+    out property <color> deep: #001a57;
+    out property <color> red: #da291c;
     out property <color> yellow: #ffd400;
-    out property <color> white: #ffffff;
-    out property <color> dim: #9fb3e0;
+    out property <color> paper: #f4f5f8;
+    out property <color> ink: #0b1430;
 }
 
-// Side radar block: lights solid yellow with a car alongside, flashes with two.
-component RadarSide inherits Rectangle {
+// Metallic broadcast banner with a hard offset shadow.
+component Banner inherits Rectangle {
+    in property <brush> fill: @linear-gradient(180deg, #ffffff 0%, #d4d9e2 55%, #f7f8fb 100%);
+    min-height: 0px;
+    preferred-height: 0px;
+    min-width: 0px;
+    preferred-width: 100px;
+    background: root.fill;
+    border-radius: 6px;
+    border-width: 3px;
+    border-color: NascarTheme.ink;
+    drop-shadow-offset-x: 8px;
+    drop-shadow-offset-y: 10px;
+    drop-shadow-color: #0b143088;
+    drop-shadow-blur: 0px;
+}
+
+// Blind-spot radar strip on the screen edge.
+component RadarEdge inherits Rectangle {
     in property <int> cars;
     in property <string> side;
-    border-radius: 18px;
-    background: root.cars == 0 ? NascarTheme.panel : (root.cars >= 2 && Sim.data.blink ? #ff8a00 : NascarTheme.yellow);
-    border-width: 6px;
-    border-color: root.cars > 0 ? #ffffff : #1d3d8f;
+    border-radius: 10px;
+    background: root.cars == 0 ? #dfe3ea : (root.cars >= 2 ? #ff8a00 : NascarTheme.yellow);
+    opacity: root.cars > 0 && !Sim.data.blink ? 0.55 : 1.0;
+    border-width: 4px;
+    border-color: NascarTheme.ink;
+    drop-shadow-offset-x: 6px;
+    drop-shadow-offset-y: 8px;
+    drop-shadow-color: #0b143066;
     VerticalLayout {
         alignment: center;
-        spacing: 6px;
-        Text {
-            text: root.cars == 0 ? "CLEAR" : (root.cars >= 2 ? "2 CARS" : "CAR");
-            color: root.cars == 0 ? NascarTheme.dim : #000000;
-            font-size: 58px;
-            font-weight: 900;
-            font-italic: true;
+        spacing: 10px;
+        for ch in ["C", "A", "R"] : Text {
+            text: root.cars == 0 ? "" : ch;
+            color: NascarTheme.ink;
+            font-family: Fonts.anton;
+            font-size: 72px;
             horizontal-alignment: center;
         }
         Text {
-            text: root.side;
-            color: root.cars == 0 ? NascarTheme.dim : #000000;
-            font-size: 40px;
-            font-weight: 900;
-            font-italic: true;
+            text: root.cars >= 2 ? "x2" : root.side;
+            color: root.cars == 0 ? #9aa3b5 : NascarTheme.ink;
+            font-family: Fonts.anton;
+            font-size: 48px;
             horizontal-alignment: center;
         }
     }
 }
 
-component NascarSpotter inherits Rectangle {
+component PackPage inherits Rectangle {
     property <SimData> d: Sim.data;
-    VerticalLayout {
+    HorizontalLayout {
         padding: 16px;
-        spacing: 14px;
-
-        // Radar
-        HorizontalLayout {
-            height: 500px;
-            spacing: 14px;
-            RadarSide { width: 300px; cars: root.d.spotter-left; side: "LEFT"; }
-            Rectangle {
-                horizontal-stretch: 1;
-                border-radius: 18px;
-                background: NascarTheme.blue;
-                // Top-down stock car.
-                Path {
-                    x: (parent.width - 170px) / 2;
-                    y: 40px;
-                    width: 170px;
-                    height: 330px;
-                    viewbox-width: 170;
-                    viewbox-height: 330;
-                    commands: "M 30 20 Q 85 -6 140 20 L 158 90 L 160 290 Q 85 340 10 290 L 12 90 Z";
-                    fill: #e8ecf8;
-                    stroke: #000000;
-                    stroke-width: 3px;
-                }
-                Path {
-                    x: (parent.width - 170px) / 2;
-                    y: 40px;
-                    width: 170px;
-                    height: 330px;
-                    viewbox-width: 170;
-                    viewbox-height: 330;
-                    commands: "M 34 100 L 136 100 L 128 150 L 42 150 Z M 40 220 L 130 220 L 134 262 L 36 262 Z";
-                    fill: #10265e;
-                }
-                Text {
-                    y: 380px;
-                    width: parent.width;
-                    height: 120px;
-                    text: root.d.pos-text;
-                    color: NascarTheme.white;
-                    font-size: 92px;
-                    font-weight: 900;
-                    font-italic: true;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
+        spacing: 16px;
+        RadarEdge { width: 130px; cars: root.d.spotter-left; side: "L"; }
+        VerticalLayout {
+            spacing: 26px;
+            // Speedometer
+            Banner {
+                vertical-stretch: 5;
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "\{root.d.speed}"; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 280px; horizontal-alignment: center; }
+                    Text { text: root.d.speed-unit; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 60px; letter-spacing: 10px; horizontal-alignment: center; }
                 }
             }
-            RadarSide { width: 300px; cars: root.d.spotter-right; side: "RIGHT"; }
-        }
-
-        // Relative leaderboard (3 ahead / you / 3 behind)
-        Rectangle {
-            height: 620px;
-            background: NascarTheme.navy;
-            border-radius: 18px;
-            VerticalLayout {
-                padding: 12px;
-                spacing: 6px;
-                HorizontalLayout {
-                    height: 44px;
-                    Rectangle {
-                        width: 260px;
-                        background: NascarTheme.red;
-                        Text { width: parent.width; height: parent.height; text: "RELATIVE"; color: #ffffff; font-size: 30px; font-weight: 900; font-italic: true; horizontal-alignment: center; vertical-alignment: center; }
-                    }
-                    Text { horizontal-stretch: 1; text: "GAP (S)  "; color: NascarTheme.dim; font-size: 24px; font-weight: 900; horizontal-alignment: right; vertical-alignment: center; }
-                }
-                for entry in Sim.relative : RowItem {
-                    height: 70px;
-                    item: entry;
-                    bg: NascarTheme.panel;
-                    player-bg: NascarTheme.red;
-                    dim: NascarTheme.dim;
-                    pit-color: NascarTheme.yellow;
-                    font-size: 34px;
-                    italic: true;
-                }
-                Rectangle { vertical-stretch: 1; }
-            }
-        }
-
-        // Pit strategy
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 14px;
-            Tile {
-                title: "FUEL - LAPS LEFT";
-                value: root.d.fuel-laps;
-                sub: root.d.fuel;
-                bg: NascarTheme.blue;
-                title-color: NascarTheme.yellow;
-                value-size: 96px;
-                italic: true;
-            }
-            CornerTile {
-                label: "RF TIRE";
-                c: root.d.fr;
-                bg: NascarTheme.blue;
-                dim: NascarTheme.dim;
-                show-detail: true;
-            }
-            VerticalLayout {
-                horizontal-stretch: 1;
-                preferred-width: 100px;
-                spacing: 14px;
-                Tile { title: "LAST"; value: root.d.last-lap; bg: NascarTheme.blue; title-color: NascarTheme.yellow; value-size: 50px; italic: true; }
-                Tile { title: "BEST"; value: root.d.best-lap; bg: NascarTheme.blue; title-color: NascarTheme.yellow; value-size: 50px; italic: true; }
-            }
-        }
-    }
-}
-
-component GaugeBar inherits Rectangle {
-    in property <string> title;
-    in property <string> value;
-    in property <float> pct;
-    in property <bool> warn;
-    preferred-width: 100px;
-    min-width: 0px;
-    background: NascarTheme.blue;
-    border-radius: 16px;
-    VerticalLayout {
-        padding: 14px;
-        spacing: 8px;
-        Text { text: root.title; color: NascarTheme.yellow; font-size: 24px; font-weight: 900; font-italic: true; horizontal-alignment: center; }
-        Text { vertical-stretch: 1; text: root.value; color: root.warn ? #ff4a4a : #ffffff; font-size: 56px; font-weight: 900; font-italic: true; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
-        HBar { height: 18px; value: root.pct; fill: root.warn ? #ff4a4a : NascarTheme.yellow; track: NascarTheme.navy; }
-    }
-}
-
-component NascarGauges inherits Rectangle {
-    property <SimData> d: Sim.data;
-    VerticalLayout {
-        padding: 16px;
-        spacing: 14px;
-        ShiftLights { height: 80px; low: #22c55e; mid: NascarTheme.yellow; high: NascarTheme.red; flash: NascarTheme.red; off: NascarTheme.navy; }
-        HorizontalLayout {
-            height: 700px;
-            spacing: 14px;
-            Dial {
-                horizontal-stretch: 2;
-                ticks: Sim.tach-ticks;
-                labels: Sim.tach-labels;
-                arc: root.d.rpm-arc;
-                needle: root.d.rpm-needle;
-                value: "\{root.d.rpm}";
-                unit: "RPM";
-                face: NascarTheme.navy;
-                rim: NascarTheme.yellow;
-                arc-color: NascarTheme.red;
-                track-color: NascarTheme.blue;
-                needle-color: NascarTheme.yellow;
-                label-color: #ffffff;
-                tick-color: #ffffff;
-                value-size: 58px;
-            }
-            VerticalLayout {
-                width: 300px;
-                spacing: 14px;
-                Tile { title: "GEAR"; value: root.d.gear; bg: NascarTheme.red; title-color: #ffffff; value-size: 180px; italic: true; }
-                Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: NascarTheme.blue; title-color: NascarTheme.yellow; value-size: 96px; italic: true; }
-            }
-        }
-        HorizontalLayout {
-            height: 240px;
-            spacing: 14px;
-            GaugeBar { title: "WATER"; value: root.d.has-water ? root.d.water : "--"; pct: root.d.water-pct; warn: root.d.water-pct > 0.85; }
-            GaugeBar { title: "OIL TEMP"; value: root.d.oil-temp; pct: root.d.oil-temp-pct; warn: root.d.oil-temp-pct > 0.9; }
-            GaugeBar { title: "OIL PRESS"; value: root.d.oil-press; pct: root.d.oil-press-pct; warn: root.d.has-oil && root.d.oil-press-pct < 0.15; }
-            GaugeBar { title: "FUEL"; value: root.d.fuel; pct: root.d.fuel-pct; warn: root.d.fuel-pct < 0.1 && root.d.has-fuel; }
-        }
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 14px;
-            Tile { title: "POSITION"; value: root.d.pos-text; bg: NascarTheme.blue; title-color: NascarTheme.yellow; value-size: 72px; italic: true; }
-            Tile { title: "INCIDENTS"; value: root.d.incidents != "" ? root.d.incidents : "--"; bg: NascarTheme.blue; title-color: NascarTheme.yellow; value-size: 72px; italic: true; }
+            // Gear + position
             HorizontalLayout {
-                width: 160px;
-                spacing: 12px;
-                VBar { value: root.d.throttle; fill: #22c55e; track: NascarTheme.navy; }
-                VBar { value: root.d.brake; fill: NascarTheme.red; track: NascarTheme.navy; }
+                vertical-stretch: 5;
+                min-height: 0px;
+                preferred-height: 0px;
+                spacing: 24px;
+                Banner {
+                    fill: @linear-gradient(180deg, #1d4fc4 0%, #0033a0 60%, #001a57 100%);
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: "GEAR"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 6px; horizontal-alignment: center; }
+                        Text { text: root.d.gear; color: #ffffff; font-family: Fonts.anton; font-size: 300px; horizontal-alignment: center; }
+                    }
+                }
+                Banner {
+                    fill: @linear-gradient(180deg, #f0473a 0%, #da291c 60%, #8f150c 100%);
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: "POS"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 6px; horizontal-alignment: center; }
+                        Text { text: root.d.position > 0 ? "\{root.d.position}" : "--"; color: #ffffff; font-family: Fonts.anton; font-size: 200px; horizontal-alignment: center; }
+                        Text { text: root.d.lap-text; color: #ffffffcc; font-family: Fonts.bebas; font-size: 40px; horizontal-alignment: center; }
+                    }
+                }
+            }
+            // RPM light bar
+            Banner {
+                vertical-stretch: 2;
+                fill: NascarTheme.ink;
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 6px;
+                    ShiftLights { vertical-stretch: 1; low: #22c55e; mid: NascarTheme.yellow; high: NascarTheme.red; flash: NascarTheme.red; off: #1a2440; radius: 6px; gap: 6px; }
+                    Text { text: "\{root.d.rpm} RPM"; color: #ffffff; font-family: Fonts.bebas; font-size: 40px; letter-spacing: 4px; horizontal-alignment: center; }
+                }
             }
         }
+        RadarEdge { width: 130px; cars: root.d.spotter-right; side: "R"; }
     }
 }
 
-component NascarOrder inherits Rectangle {
+component DraftPage inherits Rectangle {
+    property <SimData> d: Sim.data;
+    property <bool> caution: root.d.banner-text == "CAUTION" || root.d.banner-text == "YELLOW FLAG";
     VerticalLayout {
-        padding: 14px;
-        spacing: 5px;
+        padding: 20px;
+        spacing: 22px;
+        // The pylon: 3 ahead, you, 3 behind.
+        Banner {
+            vertical-stretch: 8;
+            fill: NascarTheme.ink;
+            VerticalLayout {
+                padding: 10px;
+                spacing: 6px;
+                Rectangle {
+                    height: 64px;
+                    background: NascarTheme.red;
+                    Text { width: parent.width; height: parent.height; text: "THE PYLON  ·  RELATIVE"; color: #ffffff; font-family: Fonts.bebas; font-size: 46px; letter-spacing: 4px; horizontal-alignment: center; vertical-alignment: center; }
+                }
+                for r[i] in Sim.relative : RowItem {
+                    vertical-stretch: 1;
+                    item: r;
+                    bg: i == 1 || i == 3 || i == 5 ? #dde2ea : NascarTheme.paper;
+                    player-bg: NascarTheme.blue;
+                    player-text: #ffffff;
+                    text-color: NascarTheme.ink;
+                    dim: #5b6680;
+                    pit-color: NascarTheme.red;
+                    font: Fonts.bebas;
+                    font-size: 48px;
+                    radius: 2px;
+                }
+            }
+        }
+        // Map + gaps
         HorizontalLayout {
-            height: 56px;
-            Rectangle {
-                width: 320px;
-                background: NascarTheme.red;
-                Text { width: parent.width; height: parent.height; text: "RUNNING ORDER"; color: #ffffff; font-size: 32px; font-weight: 900; font-italic: true; horizontal-alignment: center; vertical-alignment: center; }
+            vertical-stretch: 5;
+            min-height: 0px;
+            preferred-height: 0px;
+            spacing: 22px;
+            Banner {
+                horizontal-stretch: 3;
+                fill: @linear-gradient(180deg, #0a2a7a 0%, #001a57 100%);
+                TrackMap {
+                    width: parent.width;
+                    height: parent.height;
+                    path: Sim.map-path;
+                    dots: Sim.map-dots;
+                    note: Sim.data.map-note;
+                    track-color: #e8ecf8;
+                    track-edge: #000000;
+                    player-color: NascarTheme.red;
+                    car-color: NascarTheme.yellow;
+                    note-color: #c9d3ee;
+                    line-width: 20px;
+                    dot-size: 34px;
+                }
             }
-            Rectangle {
-                horizontal-stretch: 1;
-                background: NascarTheme.yellow;
-                Text { width: parent.width - 20px; height: parent.height; text: Sim.data.lap-text; color: #000000; font-size: 32px; font-weight: 900; font-italic: true; horizontal-alignment: right; vertical-alignment: center; }
+            Banner {
+                horizontal-stretch: 2;
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "CAR AHEAD"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.gap-ahead; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 90px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "BEHIND  " + root.d.gap-behind; color: #5b6680; font-family: Fonts.bebas; font-size: 36px; horizontal-alignment: center; overflow: elide; }
+                }
             }
         }
-        for entry in Sim.standings : RowItem {
-            height: 60px;
-            item: entry;
-            bg: NascarTheme.blue;
-            player-bg: NascarTheme.red;
-            dim: NascarTheme.dim;
-            pit-color: NascarTheme.yellow;
-            font-size: 30px;
-            italic: true;
+        // Full-width caution flag
+        Rectangle {
+            vertical-stretch: 3;
+            min-height: 0px;
+            preferred-height: 0px;
+            border-radius: 6px;
+            background: root.caution ? (Sim.data.blink ? NascarTheme.yellow : #ffe866) : #1f7a35;
+            border-width: 4px;
+            border-color: NascarTheme.ink;
+            drop-shadow-offset-x: 8px;
+            drop-shadow-offset-y: 10px;
+            drop-shadow-color: #0b143088;
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.caution ? "CAUTION" : "GREEN FLAG";
+                color: root.caution ? NascarTheme.ink : #ffffff;
+                font-family: Fonts.anton;
+                font-size: 150px;
+                letter-spacing: 14px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
         }
-        Rectangle { vertical-stretch: 1; }
     }
 }
 
-component NascarMap inherits Rectangle {
-    background: NascarTheme.navy;
-    TrackMap {
-        width: parent.width;
-        height: parent.height;
-        path: Sim.map-path;
-        dots: Sim.map-dots;
-        note: Sim.data.map-note;
-        track-color: #e8ecf8;
-        track-edge: NascarTheme.blue;
-        player-color: NascarTheme.red;
-        car-color: NascarTheme.yellow;
-        line-width: 22px;
+component WearBar inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    min-height: 0px;
+    preferred-height: 0px;
+    HorizontalLayout {
+        spacing: 20px;
+        Text { width: 120px; text: root.label; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 72px; vertical-alignment: center; }
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            border-radius: 6px;
+            background: #dfe3ea;
+            border-width: 4px;
+            border-color: NascarTheme.ink;
+            clip: true;
+            Rectangle {
+                x: 0px;
+                height: parent.height;
+                width: parent.width * (1.0 - root.c.wear-pct);
+                background: root.c.wear-pct > 0.6 ? @linear-gradient(90deg, #8f150c 0%, #da291c 100%)
+                    : (root.c.wear-pct > 0.35 ? @linear-gradient(90deg, #c79a00 0%, #ffd400 100%) : @linear-gradient(90deg, #00237a 0%, #1d4fc4 100%));
+                animate width { duration: 200ms; easing: ease-out; }
+            }
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.c.wear != "" ? root.c.wear + " WORN" : "--";
+                color: #ffffff;
+                font-family: Fonts.anton;
+                font-size: 60px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component PitPage inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 24px;
+        spacing: 30px;
+        Banner {
+            vertical-stretch: 6;
+            fill: @linear-gradient(180deg, #1d4fc4 0%, #0033a0 60%, #001a57 100%);
+            VerticalLayout {
+                alignment: center;
+                Text { text: "FUEL - LAPS REMAINING"; color: NascarTheme.yellow; font-family: Fonts.bebas; font-size: 54px; letter-spacing: 6px; horizontal-alignment: center; }
+                Text { text: root.d.fuel-laps; color: #ffffff; font-family: Fonts.anton; font-size: 300px; horizontal-alignment: center; }
+                Text { text: root.d.fuel + "   ·   ADD " + root.d.fuel-to-add; color: #ffffffcc; font-family: Fonts.bebas; font-size: 48px; horizontal-alignment: center; }
+            }
+        }
+        Banner {
+            vertical-stretch: 5;
+            VerticalLayout {
+                padding: 24px;
+                spacing: 24px;
+                Text { text: "RIGHT-SIDE TIRE WEAR"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 50px; letter-spacing: 6px; horizontal-alignment: center; }
+                WearBar { vertical-stretch: 1; label: "RF"; c: root.d.fr; }
+                WearBar { vertical-stretch: 1; label: "RR"; c: root.d.rr; }
+            }
+        }
+        HorizontalLayout {
+            vertical-stretch: 3;
+            min-height: 0px;
+            preferred-height: 0px;
+            spacing: 24px;
+            Banner {
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "TRACK TEMP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.track-temp; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 130px; horizontal-alignment: center; }
+                }
+            }
+            Banner {
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "BEST LAP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.best-lap; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 90px; horizontal-alignment: center; overflow: elide; }
+                }
+            }
+        }
     }
 }
 
 export component NascarDash inherits DashShell {
-    background: NascarTheme.navy;
-    brand: "NASCAR";
-    tabs: ["SPOTTER", "GAUGES", "ORDER", "MAP"];
+    background: NascarTheme.paper;
+    tabs: [
+        { label: "THE PACK", icon: @image-url("../img/icons/radar.svg") },
+        { label: "THE DRAFT", icon: @image-url("../img/icons/list.svg") },
+        { label: "PIT BOX", icon: @image-url("../img/icons/fuel.svg") }
+    ];
     accent: NascarTheme.red;
-    status-bg: NascarTheme.blue;
-    nav-bg: NascarTheme.navy;
-    nav-idle: NascarTheme.blue;
-    toast-idle: #050c22;
-    toast-idle-text: NascarTheme.dim;
-    italic: true;
+    dock-bg: NascarTheme.deep;
+    dock-idle: NascarTheme.blue;
+    dock-text: #ffffff;
+    pill-idle: #0a2a7a;
+    pill-idle-text: #c9d3ee;
+    font: Fonts.bebas;
+    radius: 6px;
 
-    if Sim.layout == 0 : NascarSpotter { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : NascarGauges { width: parent.width; height: parent.height; }
-    if Sim.layout == 2 : NascarOrder { width: parent.width; height: parent.height; }
-    if Sim.layout >= 3 : NascarMap { width: parent.width; height: parent.height; }
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: @linear-gradient(180deg, #ffffff 0%, #e9ecf2 100%);
+    }
+    if Sim.layout == 0 : PackPage { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : DraftPage { width: parent.width; height: parent.height; }
+    if Sim.layout >= 2 : PitPage { width: parent.width; height: parent.height; }
 }

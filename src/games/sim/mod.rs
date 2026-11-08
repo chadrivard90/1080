@@ -276,6 +276,8 @@ pub struct SimState {
     pub track_c: Option<f32>,
     pub rain_pct: Option<f32>,
     pub wind_ms: Option<f32>,
+    /// Direction the wind blows towards, degrees (0 = +Z / north).
+    pub wind_deg: Option<f32>,
 
     pub g_lat: f32,
     pub g_long: f32,
@@ -313,7 +315,7 @@ pub struct SimState {
     prev_position: u32,
     fuel_lap: i32,
     fuel_at_lap_start: Option<f32>,
-    fuel_per_lap: Option<f32>,
+    pub fuel_per_lap: Option<f32>,
 }
 
 impl SimState {
@@ -374,6 +376,7 @@ impl SimState {
             track_c: None,
             rain_pct: None,
             wind_ms: None,
+            wind_deg: None,
             g_lat: 0.0,
             g_long: 0.0,
             yaw: 0.0,

@@ -50,6 +50,7 @@ impl F1Session {
         let models = view::Models::new(map_orient);
         let f1 = ui.global::<crate::F1>();
         f1.set_map_dots(ModelRc::from(models.map_dots.clone()));
+        f1.set_relative(ModelRc::from(models.relative.clone()));
         f1.set_standings(ModelRc::from(models.standings.clone()));
         f1.set_laps(ModelRc::from(models.laps.clone()));
         f1.set_forecast(ModelRc::from(models.forecast.clone()));

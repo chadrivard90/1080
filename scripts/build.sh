@@ -17,6 +17,7 @@ if [ "$mem_kb" -lt 3000000 ]; then
     JOBS=(-j 2)
 fi
 
+bash "$REPO_DIR/scripts/fetch-fonts.sh"
 echo "==> Building Race Dash (release)"
 cargo build --release "${JOBS[@]}"
 echo "==> Build finished: $REPO_DIR/target/release/race-dash"

@@ -173,7 +173,8 @@ pub fn run(shared: Arc<Mutex<SimState>>, stop: Arc<AtomicBool>) {
         st.air_c = Some(21.0);
         st.track_c = Some(29.0 + 3.0 * (t * 0.01).sin());
         st.rain_pct = Some(if (t % 120.0) < 60.0 { 5.0 } else { 45.0 + 20.0 * (t * 0.1).sin() });
-        st.wind_ms = Some(4.0);
+        st.wind_ms = Some(4.0 + 2.0 * (t * 0.07).sin());
+        st.wind_deg = Some((t * 4.0) % 360.0);
         st.incidents = Some(2);
         st.flag = if (t % 60.0) > 40.0 && (t % 60.0) < 46.0 {
             if game == Game::Nascar { Flag::Caution } else { Flag::Yellow }

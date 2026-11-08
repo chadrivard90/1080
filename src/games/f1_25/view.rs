@@ -19,6 +19,7 @@ pub struct Models {
     pub laps: Rc<VecModel<LapRow>>,
     pub forecast: Rc<VecModel<ForecastRow>>,
     pub map_dots: Rc<VecModel<MapDot>>,
+    pub relative: Rc<VecModel<StandingRow>>,
     pub map_orient: Rc<Cell<u8>>,
     map_version: Cell<u64>,
     map_orient_built: Cell<u8>,
@@ -31,6 +32,7 @@ impl Models {
             laps: Rc::new(VecModel::default()),
             forecast: Rc::new(VecModel::default()),
             map_dots: Rc::new(VecModel::default()),
+            relative: Rc::new(VecModel::default()),
             map_orient,
             map_version: Cell::new(u64::MAX),
             map_orient_built: Cell::new(255),
@@ -95,6 +97,43 @@ fn unit(v: f32) -> f32 {
     }
 }
 
+/// RPM sweep arc in a 1000 x 600 view box: centre (500, 560), radius 440, 190..350 degrees.
+fn rpm_sweep(frac: f32) -> String {
+    let frac = unit(frac);
+    if frac < 0.005 {
+        return String::new();
+    }
+    let pt = |deg: f32| {
+        let a = deg.to_radians();
+        (500.0 + 440.0 * a.cos(), 560.0 + 440.0 * a.sin())
+    };
+    let (x0, y0) = pt(190.0);
+    let (x1, y1) = pt(190.0 + 160.0 * frac);
+    format!("M {x0:.1} {y0:.1} A 440 440 0 0 1 {x1:.1} {y1:.1}")
+}
+
+/// Green -> red -> purple through the rev range; blue flash at the limiter.
+fn rpm_color(frac: f32, limiter: bool, blink: bool) -> slint::Color {
+    if limiter {
+        return if blink { hex(0x2F7BFF) } else { hex(0x0C1430) };
+    }
+    let mix = |a: u32, b: u32, t: f32| {
+        let t = t.clamp(0.0, 1.0);
+        let ch = |s: u32| -> u8 {
+            let (ca, cb) = (((a >> s) & 0xFF) as f32, ((b >> s) & 0xFF) as f32);
+            (ca + (cb - ca) * t) as u8
+        };
+        slint::Color::from_rgb_u8(ch(16), ch(8), ch(0))
+    };
+    if frac < 0.7 {
+        hex(0x00D26A)
+    } else if frac < 0.9 {
+        mix(0x00D26A, 0xFF1E1E, (frac - 0.7) / 0.2)
+    } else {
+        mix(0xFF1E1E, 0xB545FF, (frac - 0.9) / 0.1)
+    }
+}
+
 fn part(pct: u8) -> Part {
     Part { pct: pct as i32, color: lookup::damage_color(pct) }
 }
@@ -106,7 +145,13 @@ pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) 
     let data = build_data(st, blink);
     let is_race = data.is_race;
     f1.set_data(data);
-    sync_model(&models.standings, build_standings(st, is_race));
+    let standings = build_standings(st, is_race);
+    // Relative: two cars ahead, you, two behind.
+    let me = standings.iter().position(|r| r.player).unwrap_or(0);
+    let from = me.saturating_sub(2);
+    let to = (me + 3).min(standings.len());
+    sync_model(&models.relative, standings[from..to].to_vec());
+    sync_model(&models.standings, standings);
     sync_model(&models.laps, build_laps(st));
     sync_model(&models.forecast, build_forecast(st));
     apply_map(&f1, st, models);
@@ -224,6 +269,9 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
     let bits = tel.rev_bits & 0x7FFF;
     d.rev_count = bits.count_ones() as i32;
     d.rev_max = bits == 0x7FFF || tel.rev_pct >= 100;
+    d.rpm_arc = rpm_sweep(d.rpm_pct).into();
+    d.rpm_track = rpm_sweep(1.0).into();
+    d.rpm_color = rpm_color(d.rpm_pct, d.rev_max, blink);
     d.throttle = unit(tel.throttle);
     d.brake = unit(tel.brake);
     d.steer = if tel.steer.is_finite() { tel.steer.clamp(-1.0, 1.0) } else { 0.0 };
@@ -274,6 +322,7 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
             surface_color: lookup::tyre_surface_color(surface),
             inner_color: lookup::tyre_inner_color(inner),
             brake_color: lookup::brake_temp_color(brake),
+            brake_pct: unit(brake / 1100.0),
             ..Default::default()
         }
     };

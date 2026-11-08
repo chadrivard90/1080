@@ -1,0 +1,185 @@
+// Shared building blocks for every dash: fonts, the bottom navigation dock, the flag frame,
+// and a few small graphic helpers.
+//
+// Screen layout for every game: dashboard area on top (stretches), dock fixed at the bottom.
+// Pop-ups and flag alerts appear in the dock's centre "pill" so they never cover data.
+
+import { AppState } from "globals.slint";
+
+// Font family names (the .ttf files are imported in app.slint).
+export global Fonts {
+    out property <string> titillium: "Titillium Web";
+    out property <string> mono: "Share Tech Mono";
+    out property <string> russo: "Russo One";
+    out property <string> anton: "Anton";
+    out property <string> bebas: "Bebas Neue";
+    out property <string> marker: "Permanent Marker";
+}
+
+export struct TabDef {
+    label: string,
+    icon: image,
+}
+
+component TabButton inherits Rectangle {
+    in property <TabDef> tab;
+    in property <bool> active;
+    in property <color> accent;
+    in property <color> idle;
+    in property <color> text-color;
+    in property <color> active-text;
+    in property <string> font;
+    in property <length> radius;
+    callback clicked;
+    border-radius: root.radius;
+    background: touch.pressed ? root.accent.darker(0.3) : (root.active ? root.accent : root.idle);
+    border-width: 2px;
+    border-color: root.active ? root.accent.brighter(0.4) : root.accent.transparentize(0.6);
+    drop-shadow-blur: root.active ? 18px : 0px;
+    drop-shadow-color: root.accent.transparentize(0.4);
+    VerticalLayout {
+        padding: 8px;
+        spacing: 4px;
+        alignment: center;
+        Image {
+            height: 44px;
+            source: root.tab.icon;
+            colorize: root.active ? root.active-text : root.text-color;
+            image-fit: contain;
+        }
+        Text {
+            text: root.tab.label;
+            color: root.active ? root.active-text : root.text-color;
+            font-family: root.font;
+            font-size: 24px;
+            font-weight: 800;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+    touch := TouchArea { clicked => { root.clicked(); } }
+}
+
+// Bottom dock: 3 page tabs, a status / pop-up pill, and the return-to-menu button.
+export component Dock inherits Rectangle {
+    in property <[TabDef]> tabs;
+    in property <int> active;
+    in property <color> bg: #0b0b0f;
+    in property <color> accent: #e10600;
+    in property <color> idle: #1d1d24;
+    in property <color> text-color: #c8cad2;
+    in property <color> active-text: #ffffff;
+    in property <string> font;
+    in property <length> radius: 16px;
+    in property <string> pill-text;
+    in property <color> pill-color: #1d1d24;
+    in property <color> pill-text-color: #8d8da3;
+    in property <bool> pill-alert;
+    in property <bool> blink;
+    callback select(int);
+
+    background: root.bg;
+    Rectangle { x: 0px; y: 0px; width: parent.width; height: 3px; background: root.accent; }
+    HorizontalLayout {
+        padding: 12px;
+        padding-top: 14px;
+        spacing: 12px;
+        for t[i] in root.tabs : TabButton {
+            width: 196px;
+            tab: t;
+            active: root.active == i;
+            accent: root.accent;
+            idle: root.idle;
+            text-color: root.text-color;
+            active-text: root.active-text;
+            font: root.font;
+            radius: root.radius;
+            clicked => { root.select(i); }
+        }
+        // Pop-up / flag / status pill.
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            border-radius: root.radius;
+            background: root.pill-color;
+            opacity: root.pill-alert && !root.blink ? 0.7 : 1.0;
+            clip: true;
+            Text {
+                x: 12px;
+                width: parent.width - 24px;
+                height: parent.height;
+                text: root.pill-text;
+                color: root.pill-text-color;
+                font-family: root.font;
+                font-size: root.pill-alert ? 32px : 24px;
+                font-weight: 900;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                wrap: word-wrap;
+                overflow: elide;
+            }
+        }
+        // Return to menu.
+        Rectangle {
+            width: 150px;
+            border-radius: root.radius;
+            background: menu-touch.pressed ? #7a0a0a : #3a1214;
+            border-width: 2px;
+            border-color: #c8323a;
+            VerticalLayout {
+                padding: 8px;
+                spacing: 4px;
+                alignment: center;
+                Image { height: 40px; source: @image-url("img/icons/menu.svg"); colorize: #ff6b6b; image-fit: contain; }
+                Text { text: "MENU"; color: #ffb3b3; font-family: root.font; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+            }
+            menu-touch := TouchArea { clicked => { AppState.go-home(); } }
+        }
+    }
+}
+
+// Thick coloured frame around the dashboard area while a flag is out (peripheral cue).
+export component FlagFrame inherits Rectangle {
+    in property <bool> active;
+    in property <color> flag-color;
+    in property <bool> blink;
+    background: transparent;
+    border-width: root.active ? 16px : 0px;
+    border-color: root.active && root.blink ? root.flag-color : root.flag-color.transparentize(0.35);
+}
+
+// Monospace readout with dim "8888" segments behind the live value (digits never jump).
+export component GhostText inherits Rectangle {
+    in property <string> text;
+    in property <string> ghost: "888.8";
+    in property <color> color-on: #ffffff;
+    in property <color> color-off: #222222;
+    in property <length> size: 72px;
+    in property <string> font: Fonts.mono;
+    in property <TextHorizontalAlignment> align: center;
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.ghost;
+        color: root.color-off;
+        font-family: root.font;
+        font-size: root.size;
+        horizontal-alignment: root.align;
+        vertical-alignment: center;
+    }
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        color: root.color-on;
+        font-family: root.font;
+        font-size: root.size;
+        horizontal-alignment: root.align;
+        vertical-alignment: center;
+    }
+}
+
+// Background texture filling its parent.
+export component Texture inherits Image {
+    image-fit: cover;
+}

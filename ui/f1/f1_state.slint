@@ -13,6 +13,7 @@ export struct Tyre {
     surface-color: color,
     inner-color: color,
     brake-color: color,
+    brake-pct: float,
 }
 
 export struct Part {
@@ -76,6 +77,9 @@ export struct F1Data {
     rpm-pct: float,
     rev-count: int,
     rev-max: bool,
+    rpm-arc: string,
+    rpm-track: string,
+    rpm-color: color,
     throttle: float,
     brake: float,
     steer: float,
@@ -205,7 +209,8 @@ export global F1 {
     in property <string> map-path;
     in property <[MapDot]> map-dots;
     in property <string> map-note;
-    // Selected layout tab: 0 mfd, 1 race, 2 timing, 3 car, 4 tower, 5 strategy, 6 map.
+    in property <[StandingRow]> relative;
+    // Selected page: 0 wheel, 1 engineer, 2 strategist.
     in-out property <int> layout: 0;
 }
 

@@ -1,315 +1,306 @@
-// Forza Horizon 6 - "The Festival Cruiser". Music-festival look: glassmorphism panels over a
-// neon gradient, hot pink / yellow accents, stylised italic type.
-// Tabs: CRUISE (huge speedo, drift + G, road-trip stats), DRIFT, MAP (open-world trail), CAR.
+// Forza Horizon 6 - "The Festival Cruiser". Vibrant neon festival: pink -> yellow -> mint
+// gradient with light streaks that drift as you turn, frosted panels, Permanent Marker headers.
+// Pages: CRUISE (speedo, RPM equalizer, car card), DRIFT ZONE, EXPLORER (compass, map, stats).
+// FH6 telemetry has no music metadata, so the bottom card shows the car you're driving.
 
-import { Sim, SimData, Corner } from "../sim/sim_state.slint";
-import { DashShell, Tile, Dial, GMeter } from "../sim/sim_widgets.slint";
+import { Sim, SimData } from "../sim/sim_state.slint";
+import { DashShell } from "../sim/sim_widgets.slint";
+import { Fonts } from "../kit.slint";
 import { TrackMap } from "../map.slint";
-import { HBar } from "../common.slint";
 
-global Fh6Theme {
-    out property <brush> sky: @linear-gradient(160deg, #1a0b2e 0%, #3a0d52 45%, #7a1050 80%, #ff2d87 120%);
-    out property <color> glass: #ffffff14;
-    out property <color> glass-edge: #ffffff38;
+global FestTheme {
+    out property <brush> sky: @linear-gradient(155deg, #ff2d87 0%, #ff7a59 30%, #ffe14d 60%, #3dffc5 100%);
+    out property <color> frost: #1a0b2e8c;
+    out property <color> frost-edge: #ffffff66;
     out property <color> pink: #ff2d87;
     out property <color> yellow: #ffe14d;
-    out property <color> cyan: #36f1ff;
+    out property <color> mint: #3dffc5;
     out property <color> text: #ffffff;
-    out property <color> dim: #e6c9f0;
+    out property <color> dim: #ffe6f2;
 }
 
-component Glass inherits Rectangle {
-    background: Fh6Theme.glass;
-    border-radius: 28px;
+component Frost inherits Rectangle {
+    in property <string> title;
+    min-height: 0px;
+    preferred-height: 0px;
+    min-width: 0px;
+    preferred-width: 100px;
+    background: FestTheme.frost;
+    border-radius: 34px;
     border-width: 2px;
-    border-color: Fh6Theme.glass-edge;
-    drop-shadow-blur: 24px;
-    drop-shadow-color: #00000055;
-}
-
-// Compass strip: heading marks slide past a centre pointer.
-component CompassStrip inherits Glass {
+    border-color: FestTheme.frost-edge;
+    drop-shadow-blur: 30px;
+    drop-shadow-color: #3a005a55;
     clip: true;
-    for m in Sim.compass : Text {
-        x: root.width * m.x - 50px;
-        y: m.major ? 18px : 30px;
-        width: 100px;
-        height: 50px;
-        text: m.label;
-        color: m.major ? Fh6Theme.yellow : Fh6Theme.dim;
-        font-size: m.major ? 40px : 22px;
-        font-weight: 900;
-        font-italic: true;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-    }
-    Path {
-        x: root.width / 2 - 16px;
-        y: root.height - 26px;
-        width: 32px;
-        height: 22px;
-        viewbox-width: 32;
-        viewbox-height: 22;
-        commands: "M 0 22 L 16 0 L 32 22 Z";
-        fill: Fh6Theme.pink;
+    if root.title != "" : Text {
+        x: 28px;
+        y: 10px;
+        text: root.title;
+        color: FestTheme.yellow;
+        font-family: Fonts.marker;
+        font-size: 36px;
     }
 }
 
-component Fh6Cruise inherits Rectangle {
+component FestCruise inherits Rectangle {
     property <SimData> d: Sim.data;
     VerticalLayout {
-        padding: 18px;
-        spacing: 16px;
-        // Massive speedometer
-        Glass {
-            height: 720px;
-            Dial {
+        padding: 22px;
+        spacing: 22px;
+        // Stylised speedometer
+        Frost {
+            vertical-stretch: 8;
+            Rectangle {
+                property <length> side: min(self.width, self.height) * 1.02;
                 width: parent.width;
-                height: parent.height - 30px;
-                y: 15px;
-                ticks: Sim.speed-ticks;
-                labels: Sim.speed-labels;
-                arc: root.d.speed-arc;
-                needle: "";
-                value: "\{root.d.speed}";
-                unit: root.d.speed-unit + "    GEAR " + root.d.gear;
-                show-face: false;
-                track-color: #ffffff22;
-                arc-color: Fh6Theme.pink;
-                tick-color: #ffffffaa;
-                label-color: Fh6Theme.dim;
-                needle-color: Fh6Theme.pink;
-                value-color: Fh6Theme.text;
-                unit-color: Fh6Theme.yellow;
-                value-size: 190px;
-                arc-width: 30px;
-                label-size: 26px;
-            }
-        }
-        // Drift + lateral G
-        HorizontalLayout {
-            height: 330px;
-            spacing: 16px;
-            Glass {
-                preferred-width: 100px;
-                Dial {
+                height: parent.height;
+                Path {
+                    x: (parent.width - parent.side) / 2;
+                    y: (parent.height - parent.side) / 2 + 40px;
+                    width: parent.side;
+                    height: parent.side;
+                    viewbox-width: 200;
+                    viewbox-height: 200;
+                    commands: Sim.dial-track;
+                    stroke: #ffffff26;
+                    stroke-width: 44px;
+                    fill: transparent;
+                }
+                if root.d.speed-arc != "" : Path {
+                    x: (parent.width - parent.side) / 2;
+                    y: (parent.height - parent.side) / 2 + 40px;
+                    width: parent.side;
+                    height: parent.side;
+                    viewbox-width: 200;
+                    viewbox-height: 200;
+                    commands: root.d.speed-arc;
+                    stroke: @linear-gradient(90deg, #3dffc5 0%, #ffe14d 50%, #ff2d87 100%);
+                    stroke-width: 44px;
+                    fill: transparent;
+                }
+                VerticalLayout {
                     width: parent.width;
-                    height: parent.height - 20px;
-                    y: 10px;
-                    ticks: "";
-                    labels: [];
-                    arc: "";
-                    needle: root.d.drift-needle;
-                    value: root.d.drift-text;
-                    unit: "DRIFT ANGLE";
-                    show-face: false;
-                    track-color: #ffffff22;
-                    needle-color: Fh6Theme.yellow;
-                    value-color: Fh6Theme.text;
-                    unit-color: Fh6Theme.dim;
-                    value-size: 54px;
-                    arc-width: 14px;
+                    height: parent.height;
+                    alignment: center;
+                    spacing: 0px;
+                    Text { text: "\{root.d.speed}"; color: FestTheme.text; font-family: Fonts.russo; font-size: 270px; font-italic: true; horizontal-alignment: center; }
+                    Text { text: root.d.speed-unit; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 72px; horizontal-alignment: center; }
                 }
             }
-            Glass {
-                preferred-width: 100px;
-                GMeter { width: parent.width; height: parent.height - 30px; y: 15px; lat: root.d.g-lat; long: root.d.g-long; ring: #ffffff40; dot: Fh6Theme.pink; face: #00000033; }
+        }
+        // RPM DJ equalizer
+        Frost {
+            vertical-stretch: 4;
+            title: "RPM";
+            HorizontalLayout {
+                padding: 26px;
+                padding-top: 60px;
+                spacing: 8px;
+                for h[i] in Sim.eq-bars : Rectangle {
+                    preferred-width: 10px;
+                    Rectangle {
+                        x: 0px;
+                        width: parent.width;
+                        height: parent.height * h;
+                        y: parent.height - self.height;
+                        border-radius: 8px;
+                        background: i < 8 ? FestTheme.mint : (i < 15 ? FestTheme.yellow : FestTheme.pink);
+                        opacity: h > 0.1 ? 1.0 : 0.35;
+                        drop-shadow-blur: h > 0.1 ? 14px : 0px;
+                        drop-shadow-color: i < 8 ? FestTheme.mint : (i < 15 ? FestTheme.yellow : FestTheme.pink);
+                        animate height { duration: 90ms; }
+                    }
+                }
             }
         }
-        CompassStrip { height: 110px; }
-        // Road-trip stats
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 16px;
-            Tile { title: "TOP SPEED"; value: root.d.max-speed; sub: root.d.speed-unit; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
-            Tile { title: "ELEVATION"; value: root.d.elevation; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
-            Tile { title: "HEADING"; value: root.d.heading; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 44px; italic: true; radius: 28px; }
+        // Car card (media-player style)
+        Frost {
+            vertical-stretch: 3;
+            HorizontalLayout {
+                padding: 24px;
+                spacing: 24px;
+                Rectangle {
+                    width: 200px;
+                    border-radius: 24px;
+                    background: @linear-gradient(135deg, #ff2d87 0%, #ffe14d 100%);
+                    Image { width: parent.width * 0.6; height: parent.height * 0.8; x: parent.width * 0.2; y: parent.height * 0.1; source: @image-url("../img/car_drift.svg"); image-fit: contain; }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Text { text: "NOW DRIVING"; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 34px; }
+                    Text { text: root.d.car-info; color: FestTheme.text; font-family: Fonts.russo; font-size: 56px; overflow: elide; }
+                    Text { text: "GEAR " + root.d.gear + "   ·   \{root.d.rpm} RPM"; color: FestTheme.dim; font-family: Fonts.russo; font-size: 30px; overflow: elide; }
+                }
+            }
         }
     }
 }
 
-component SlipBar inherits Rectangle {
-    in property <string> label;
-    in property <Corner> c;
-    preferred-width: 100px;
-    min-width: 0px;
-    background: Fh6Theme.glass;
-    border-radius: 22px;
-    border-width: 2px;
-    border-color: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.glass-edge;
-    VerticalLayout {
-        padding: 14px;
-        spacing: 8px;
-        Text { text: root.label; color: Fh6Theme.yellow; font-size: 26px; font-weight: 900; font-italic: true; horizontal-alignment: center; }
-        Text { vertical-stretch: 1; text: root.c.slip > 1.0 ? "SLIDE" : "GRIP"; color: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.cyan; font-size: 40px; font-weight: 900; font-italic: true; horizontal-alignment: center; vertical-alignment: center; }
-        HBar { height: 18px; value: min(1.0, root.c.slip * 0.5); fill: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.cyan; track: #00000040; }
-    }
-}
-
-component Fh6Drift inherits Rectangle {
+component FestDrift inherits Rectangle {
     property <SimData> d: Sim.data;
     VerticalLayout {
-        padding: 18px;
-        spacing: 16px;
-        Glass {
-            height: 800px;
-            Dial {
-                width: parent.width;
-                height: parent.height - 30px;
-                y: 15px;
-                ticks: Sim.speed-ticks;
-                labels: [];
-                arc: "";
-                needle: root.d.drift-needle;
-                value: root.d.drift-text;
-                unit: "DRIFT ANGLE  (-60° ... +60°)";
-                show-face: false;
-                track-color: #ffffff22;
-                tick-color: #ffffff66;
-                needle-color: Fh6Theme.pink;
-                value-color: Fh6Theme.text;
-                unit-color: Fh6Theme.dim;
-                value-size: 150px;
-                arc-width: 20px;
+        padding: 22px;
+        spacing: 22px;
+        // Top-down car rotated by the drift angle.
+        Frost {
+            vertical-stretch: 8;
+            title: "DRIFT ZONE";
+            Rectangle {
+                property <length> side: min(self.width, self.height) - 80px;
+                x: (parent.width - self.side) / 2;
+                y: (parent.height - self.side) / 2 + 20px;
+                width: self.side;
+                height: self.side;
+                border-radius: self.side / 2;
+                background: @radial-gradient(circle, #ffffff22 0%, #ffffff05 70%);
+                border-width: 3px;
+                border-color: #ffffff55;
+                // Direction of travel.
+                Image { x: parent.width / 2 - 40px; y: 6px; width: 80px; height: 80px; source: @image-url("../img/arrow.svg"); colorize: FestTheme.mint; }
+                Image {
+                    x: parent.width * 0.25;
+                    y: parent.height * 0.12;
+                    width: parent.width * 0.5;
+                    height: parent.height * 0.76;
+                    source: @image-url("../img/car_drift.svg");
+                    image-fit: contain;
+                    rotation-angle: root.d.drift-deg * 1deg;
+                    animate rotation-angle { duration: 80ms; }
+                }
+            }
+            Text {
+                x: parent.width - 260px;
+                y: 20px;
+                width: 230px;
+                text: root.d.drift-text;
+                color: FestTheme.text;
+                font-family: Fonts.russo;
+                font-size: 80px;
+                font-italic: true;
+                horizontal-alignment: right;
+            }
+        }
+        // Drift score
+        Frost {
+            vertical-stretch: 3;
+            border-color: root.d.drifting ? FestTheme.pink : FestTheme.frost-edge;
+            drop-shadow-color: root.d.drifting ? FestTheme.pink : #3a005a55;
+            HorizontalLayout {
+                padding: 24px;
+                Text { text: root.d.drifting ? "DRIFT!" : "SCORE"; color: root.d.drifting ? FestTheme.pink : FestTheme.yellow; font-family: Fonts.marker; font-size: 64px; vertical-alignment: center; }
+                Text { horizontal-stretch: 1; text: root.d.drift-score; color: FestTheme.text; font-family: Fonts.russo; font-size: 130px; font-italic: true; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
             }
         }
         HorizontalLayout {
-            height: 230px;
-            spacing: 16px;
-            Tile { title: "YAW RATE"; value: root.d.yaw-rate; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
-            Tile { title: "LATERAL G"; value: root.d.g-text; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
-            Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
-        }
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 12px;
-            SlipBar { label: "FL"; c: root.d.fl; }
-            SlipBar { label: "FR"; c: root.d.fr; }
-            SlipBar { label: "RL"; c: root.d.rl; }
-            SlipBar { label: "RR"; c: root.d.rr; }
+            vertical-stretch: 3;
+            min-height: 0px;
+            preferred-height: 0px;
+            spacing: 22px;
+            Frost {
+                title: "PEAK LATERAL G";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.peak-lat-g; color: FestTheme.text; font-family: Fonts.russo; font-size: 84px; horizontal-alignment: center; vertical-alignment: center; }
+            }
+            Frost {
+                title: "LIVE G";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.g-text; color: FestTheme.mint; font-family: Fonts.russo; font-size: 84px; horizontal-alignment: center; vertical-alignment: center; }
+            }
         }
     }
 }
 
-component Fh6Map inherits Rectangle {
+component FestExplorer inherits Rectangle {
     property <SimData> d: Sim.data;
     VerticalLayout {
-        padding: 18px;
-        spacing: 16px;
-        CompassStrip { height: 110px; }
-        Glass {
-            vertical-stretch: 1;
+        padding: 22px;
+        spacing: 22px;
+        // Scrolling compass tape
+        Frost {
+            vertical-stretch: 2;
+            Image {
+                property <length> tape: parent.width * 4;
+                x: parent.width / 2 - (root.d.heading-deg + 180) / 720 * self.tape;
+                y: parent.height - 70px;
+                width: self.tape;
+                height: 60px;
+                source: @image-url("../img/compass_tape.svg");
+                image-fit: fill;
+            }
+            for m in Sim.compass : Text {
+                x: parent.width * m.x - 60px;
+                y: 14px;
+                width: 120px;
+                height: 60px;
+                text: m.label;
+                color: m.major ? FestTheme.yellow : #ffffffaa;
+                font-family: m.major ? Fonts.marker : Fonts.russo;
+                font-size: m.major ? 44px : 24px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            Rectangle { x: parent.width / 2 - 3px; y: 0px; width: 6px; height: parent.height; background: FestTheme.pink; }
+        }
+        // Map trail
+        Frost {
+            vertical-stretch: 8;
+            title: "EXPLORER  ·  " + root.d.heading;
             TrackMap {
                 width: parent.width;
                 height: parent.height;
                 path: Sim.map-path;
                 dots: Sim.map-dots;
                 note: Sim.data.map-note;
-                track-color: Fh6Theme.yellow;
-                track-edge: #00000066;
-                player-color: Fh6Theme.pink;
-                line-width: 10px;
-                note-color: Fh6Theme.dim;
+                track-color: FestTheme.yellow;
+                track-edge: #3a005a;
+                player-color: FestTheme.pink;
+                note-color: FestTheme.dim;
+                line-width: 12px;
+                dot-size: 40px;
             }
         }
         HorizontalLayout {
-            height: 170px;
-            spacing: 16px;
-            Tile { title: "DISTANCE"; value: root.d.distance; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
-            Tile { title: "ELEVATION"; value: root.d.elevation; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
-        }
-    }
-}
-
-component Fh6Car inherits Rectangle {
-    property <SimData> d: Sim.data;
-    VerticalLayout {
-        padding: 18px;
-        spacing: 16px;
-        HorizontalLayout {
-            height: 560px;
-            spacing: 16px;
-            Glass {
-                preferred-width: 100px;
-                Dial {
-                    width: parent.width;
-                    height: parent.height - 30px;
-                    y: 15px;
-                    ticks: Sim.tach-ticks;
-                    labels: Sim.tach-labels;
-                    arc: root.d.rpm-arc;
-                    needle: root.d.rpm-needle;
-                    value: root.d.gear;
-                    unit: "RPM x1000";
-                    show-face: false;
-                    track-color: #ffffff22;
-                    arc-color: Fh6Theme.pink;
-                    tick-color: #ffffffaa;
-                    label-color: Fh6Theme.dim;
-                    needle-color: Fh6Theme.yellow;
-                    value-size: 90px;
-                    arc-width: 18px;
-                }
+            vertical-stretch: 3;
+            min-height: 0px;
+            preferred-height: 0px;
+            spacing: 22px;
+            Frost {
+                title: "TOP SPEED";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.max-speed + " " + root.d.speed-unit; color: FestTheme.text; font-family: Fonts.russo; font-size: 64px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
             }
-            Glass {
-                preferred-width: 100px;
-                Dial {
-                    width: parent.width;
-                    height: parent.height - 30px;
-                    y: 15px;
-                    ticks: Sim.speed-ticks;
-                    labels: [];
-                    arc: "";
-                    needle: root.d.boost-needle;
-                    value: root.d.has-boost ? root.d.boost : "--";
-                    unit: "BOOST";
-                    show-face: false;
-                    track-color: #ffffff22;
-                    tick-color: #ffffff66;
-                    needle-color: Fh6Theme.cyan;
-                    value-size: 44px;
-                    arc-width: 18px;
-                }
+            Frost {
+                title: "ELEVATION";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.elevation; color: FestTheme.mint; font-family: Fonts.russo; font-size: 64px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
             }
-        }
-        HorizontalLayout {
-            height: 260px;
-            spacing: 16px;
-            Tile { title: "POWER"; value: root.d.power; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
-            Tile { title: "TORQUE"; value: root.d.torque; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
-        }
-        HorizontalLayout {
-            height: 260px;
-            spacing: 16px;
-            Tile { title: "CLASS / PI"; value: root.d.car-info; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
-            Tile { title: "FUEL"; value: root.d.fuel; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
-        }
-        HorizontalLayout {
-            vertical-stretch: 1;
-            spacing: 16px;
-            Tile { title: "TYRE FL"; value: root.d.fl.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.fl.temp-color; value-size: 48px; radius: 28px; }
-            Tile { title: "TYRE FR"; value: root.d.fr.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.fr.temp-color; value-size: 48px; radius: 28px; }
-            Tile { title: "TYRE RL"; value: root.d.rl.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.rl.temp-color; value-size: 48px; radius: 28px; }
-            Tile { title: "TYRE RR"; value: root.d.rr.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.rr.temp-color; value-size: 48px; radius: 28px; }
         }
     }
 }
 
 export component Fh6Dash inherits DashShell {
-    background: Fh6Theme.sky;
-    brand: "FORZA HORIZON 6";
-    tabs: ["CRUISE", "DRIFT", "MAP", "CAR"];
-    accent: Fh6Theme.pink;
-    status-bg: #1a0b2ecc;
-    nav-bg: #12081f;
-    nav-idle: #2a1240;
-    toast-idle: #12081f;
-    toast-idle-text: Fh6Theme.dim;
-    italic: true;
-    nav-radius: 28px;
+    background: #2a0632;
+    tabs: [
+        { label: "CRUISE", icon: @image-url("../img/icons/music.svg") },
+        { label: "DRIFT", icon: @image-url("../img/icons/drift.svg") },
+        { label: "EXPLORER", icon: @image-url("../img/icons/compass.svg") }
+    ];
+    accent: FestTheme.pink;
+    dock-bg: #1a0b2e;
+    dock-idle: #33124d;
+    dock-text: #ffe6f2;
+    pill-idle: #2a0e45;
+    pill-idle-text: FestTheme.dim;
+    font: Fonts.russo;
+    radius: 30px;
 
-    if Sim.layout == 0 : Fh6Cruise { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : Fh6Drift { width: parent.width; height: parent.height; }
-    if Sim.layout == 2 : Fh6Map { width: parent.width; height: parent.height; }
-    if Sim.layout >= 3 : Fh6Car { width: parent.width; height: parent.height; }
+    Rectangle { width: parent.width; height: parent.height; background: FestTheme.sky; }
+    // Light streaks drift with your heading.
+    Image {
+        x: -200px - (Sim.data.heading-deg / 360) * 400px;
+        width: parent.width + 400px;
+        height: parent.height;
+        source: @image-url("../img/festival.svg");
+        image-fit: fill;
+    }
+    if Sim.layout == 0 : FestCruise { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : FestDrift { width: parent.width; height: parent.height; }
+    if Sim.layout >= 2 : FestExplorer { width: parent.width; height: parent.height; }
 }

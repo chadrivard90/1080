@@ -4,3 +4,4 @@
 /.cargo-home
 /.rustup-home
 *.log
+/fonts/*.ttf

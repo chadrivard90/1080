@@ -227,6 +227,8 @@ fn game_state(st: &mut SimState, b: &[u8]) {
     let rain = u8_at(b, 18) as f32 / 255.0 * 100.0;
     st.rain_pct = Some(rain);
     st.wind_ms = Some(i8_at(b, 20).max(0) as f32);
+    let (wx, wy) = (i8_at(b, 21) as f32, i8_at(b, 22) as f32);
+    st.wind_deg = (wx != 0.0 || wy != 0.0).then(|| wx.atan2(wy).to_degrees());
     let weather = if u8_at(b, 19) > 0 {
         "SNOW"
     } else if rain > 60.0 {

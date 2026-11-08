@@ -66,7 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let key = game_key(game);
             let (layout, orient) = {
                 let cfg = config.borrow();
-                (cfg.layout(key), cfg.map_orient(key))
+                // Every dash has 3 pages now; older configs may hold a higher tab index.
+                (cfg.layout(key).clamp(0, 2), cfg.map_orient(key))
             };
             map_orient.set(orient);
             current_game.set(game);

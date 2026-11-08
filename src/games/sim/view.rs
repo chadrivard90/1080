@@ -1,13 +1,15 @@
 //! `SimState` -> Slint `SimData` + models. All formatting and colour choices live here.
 
 use std::cell::Cell;
+use std::collections::VecDeque;
+use std::fmt::Write as _;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use slint::{Color, ComponentHandle as _, Model as _, ModelRc, SharedString, VecModel};
 
 use super::{dials, Flag, Game, SimState, Tone};
-use crate::{CompassMark, DialLabel, MapDot, SimData, SimRow};
+use crate::{CompassMark, DialLabel, DynoBar, MapDot, SimData, SimRow, TrailDot};
 use crate::games::map::MapCar;
 
 type UiCorner = crate::Corner;
@@ -83,6 +85,13 @@ fn brake_color(c: f32) -> Color {
     })
 }
 
+/// Dark grey at full grip blending to cyan as the tyre slides.
+fn slip_color(slip: f32) -> Color {
+    let t = unit(slip);
+    let lerp = |a: u8, b: u8| (a as f32 + (b as f32 - a as f32) * t) as u8;
+    Color::from_rgb_u8(lerp(0x2B, 0x00), lerp(0x2E, 0xE5), lerp(0x33, 0xFF))
+}
+
 fn pressure_color(psi: f32, window: Option<(f32, f32)>) -> Color {
     match window {
         None => hex(0xFFFFFF),
@@ -116,6 +125,24 @@ pub struct Renderer {
     map_path: SharedString,
     tach_max_k: u32,
     started: Instant,
+
+    // History for traces / trails / records (UI side, sampled on a clock).
+    trail: Rc<VecModel<TrailDot>>,
+    eq: Rc<VecModel<f32>>,
+    dyno: Rc<VecModel<DynoBar>>,
+    laps: Rc<VecModel<SimRow>>,
+    rpm_hist: VecDeque<f32>,
+    g_hist: VecDeque<(f32, f32)>,
+    last_sample: Instant,
+    last_tick: Instant,
+    dyno_bins: [f32; 30],
+    lap_times: Vec<(i32, f32)>,
+    last_lap_seen: i32,
+    drift_score: f32,
+    drift_idle: f32,
+    peak_lat: f32,
+    stint_start: Instant,
+    was_in_pit: bool,
 }
 
 impl Renderer {
@@ -135,6 +162,22 @@ impl Renderer {
             map_path: SharedString::default(),
             tach_max_k: 0,
             started: Instant::now(),
+            trail: Rc::new(VecModel::default()),
+            eq: Rc::new(VecModel::from(vec![0.0f32; 20])),
+            dyno: Rc::new(VecModel::default()),
+            laps: Rc::new(VecModel::default()),
+            rpm_hist: VecDeque::with_capacity(60),
+            g_hist: VecDeque::with_capacity(8),
+            last_sample: Instant::now(),
+            last_tick: Instant::now(),
+            dyno_bins: [0.0; 30],
+            lap_times: Vec::new(),
+            last_lap_seen: 0,
+            drift_score: 0.0,
+            drift_idle: 0.0,
+            peak_lat: 0.0,
+            stint_start: Instant::now(),
+            was_in_pit: false,
         };
         let sim = ui.global::<crate::Sim>();
         sim.set_standings(ModelRc::from(r.standings.clone()));
@@ -143,6 +186,10 @@ impl Renderer {
         sim.set_compass(ModelRc::from(r.compass.clone()));
         sim.set_tach_labels(ModelRc::from(r.tach_labels.clone()));
         sim.set_speed_labels(ModelRc::from(r.speed_labels.clone()));
+        sim.set_g_trail(ModelRc::from(r.trail.clone()));
+        sim.set_eq_bars(ModelRc::from(r.eq.clone()));
+        sim.set_dyno(ModelRc::from(r.dyno.clone()));
+        sim.set_lap_list(ModelRc::from(r.laps.clone()));
         // Speedometer: 0..300 km/h or 0..200 mph in 10 steps.
         let top = if imperial { 200 } else { 300 };
         sim.set_speed_ticks(dials::ticks(10).into());
@@ -176,13 +223,144 @@ impl Renderer {
             self.tach_labels.set_vec(labels);
         }
 
-        let data = self.build_data(st, now, max_k);
+        let mut data = self.build_data(st, now, max_k);
+        self.update_history(st, now, &mut data);
         sim.set_data(data);
 
         sync(&self.standings, self.build_standings(st));
         sync(&self.relative, self.build_relative(st));
         sync(&self.compass, build_compass(st.yaw));
         self.update_map(&sim, st, now);
+    }
+
+    /// Rolling histories and records: RPM trace, G trail, equalizer, dyno, laps, drift, stint.
+    fn update_history(&mut self, st: &SimState, now: Instant, d: &mut SimData) {
+        let dt = now.duration_since(self.last_tick).as_secs_f32().min(0.2);
+        self.last_tick = now;
+        let fresh = st.last_packet.is_some_and(|t| now.duration_since(t) < Duration::from_secs(2));
+
+        // Sample traces every 100 ms.
+        if now.duration_since(self.last_sample) >= Duration::from_millis(100) && fresh {
+            self.last_sample = now;
+            self.rpm_hist.push_back(d.rpm_pct);
+            if self.rpm_hist.len() > 50 {
+                self.rpm_hist.pop_front();
+            }
+            self.g_hist.push_front((d.g_lat, d.g_long));
+            self.g_hist.truncate(6);
+            // Dyno: best power seen in each RPM bin.
+            if let Some(kw) = st.power_kw {
+                let bin = ((d.rpm_pct * 29.0).round() as usize).min(29);
+                if kw > self.dyno_bins[bin] {
+                    self.dyno_bins[bin] = kw;
+                }
+            }
+        }
+        // RPM trace path (view box 1000 x 300).
+        let mut trace = String::with_capacity(600);
+        let n = self.rpm_hist.len();
+        for (i, v) in self.rpm_hist.iter().enumerate() {
+            let x = if n > 1 { i as f32 * 1000.0 / 49.0 } else { 0.0 };
+            let y = 290.0 - v.clamp(0.0, 1.0) * 280.0;
+            let _ = write!(trace, "{}{:.0} {:.0} ", if i == 0 { "M " } else { "L " }, x, y);
+        }
+        d.rpm_trace = trace.into();
+
+        // G trail (oldest first so the newest draws on top).
+        let max_g = 3.0;
+        let trail: Vec<TrailDot> = self
+            .g_hist
+            .iter()
+            .enumerate()
+            .skip(1)
+            .rev()
+            .map(|(i, (x, y))| TrailDot {
+                x: (x / max_g).clamp(-1.0, 1.0),
+                y: (y / max_g).clamp(-1.0, 1.0),
+                alpha: 0.7 - i as f32 * 0.12,
+            })
+            .collect();
+        sync(&self.trail, trail);
+
+        // RPM equalizer: 20 bars, lit up to the RPM, with a little bounce.
+        let t = now.duration_since(self.started).as_secs_f32();
+        let lit = d.rpm_pct * 20.0;
+        let bars: Vec<f32> = (0..20)
+            .map(|i| {
+                let i = i as f32;
+                if i < lit {
+                    (0.35 + 0.65 * (i + 1.0) / 20.0 + 0.08 * (t * 9.0 + i).sin()).clamp(0.1, 1.0)
+                } else {
+                    0.06
+                }
+            })
+            .collect();
+        sync(&self.eq, bars);
+
+        // Dyno bars normalised to the best power seen.
+        let peak = self.dyno_bins.iter().cloned().fold(1.0f32, f32::max);
+        let active = ((d.rpm_pct * 29.0).round() as usize).min(29);
+        let dyno: Vec<DynoBar> =
+            self.dyno_bins.iter().enumerate().map(|(i, p)| DynoBar { h: p / peak, active: i == active }).collect();
+        sync(&self.dyno, dyno);
+
+        // Lap history (newest first).
+        if st.lap != self.last_lap_seen {
+            if st.lap > self.last_lap_seen && self.last_lap_seen > 0 {
+                if let Some(last) = st.last_lap_s {
+                    self.lap_times.push((st.lap - 1, last));
+                }
+            }
+            if st.lap < self.last_lap_seen {
+                self.lap_times.clear();
+            }
+            self.last_lap_seen = st.lap;
+        }
+        let best = self.lap_times.iter().map(|l| l.1).fold(f32::MAX, f32::min);
+        let rows: Vec<SimRow> = self
+            .lap_times
+            .iter()
+            .rev()
+            .take(8)
+            .map(|&(lap, time)| SimRow {
+                pos: lap,
+                name: fmt_lap(time).into(),
+                gap: if time <= best + 0.0005 { "BEST".to_string() } else { fmt_gap(time - best) }.into(),
+                player: time <= best + 0.0005,
+                ..Default::default()
+            })
+            .collect();
+        sync(&self.laps, rows);
+
+        // Drift score: builds while sliding fast, banks after 2 s of grip.
+        let sliding = st.drift_deg.abs() > 10.0 && st.speed_ms > 8.0;
+        if sliding {
+            self.drift_score += st.drift_deg.abs() * st.speed_ms * dt * 0.8;
+            self.drift_idle = 0.0;
+        } else {
+            self.drift_idle += dt;
+            if self.drift_idle > 2.0 {
+                self.drift_score = 0.0;
+            }
+        }
+        d.drift_score = format!("{}", self.drift_score as u32).into();
+        d.drifting = sliding;
+        self.peak_lat = self.peak_lat.max(st.g_lat.abs());
+        d.peak_lat_g = format!("{:.2} G", self.peak_lat).into();
+
+        // Stint timer restarts when leaving the pits.
+        if self.was_in_pit && !st.in_pit {
+            self.stint_start = now;
+        }
+        self.was_in_pit = st.in_pit;
+        let stint = now.duration_since(self.stint_start).as_secs();
+        d.stint_time = format!("{}:{:02}:{:02}", stint / 3600, (stint % 3600) / 60, stint % 60).into();
+        let session_left = st.time_left_s.unwrap_or(0.0);
+        d.stint_pct = if session_left > 0.0 {
+            (session_left / (session_left + stint as f32)).clamp(0.0, 1.0)
+        } else {
+            1.0
+        };
     }
 
     fn update_map(&mut self, sim: &crate::Sim<'_>, st: &SimState, now: Instant) {
@@ -339,6 +517,8 @@ impl Renderer {
                 brake_color: c.brake_c.map_or(hex(0x5A5A66), brake_color),
                 susp: unit(c.susp.unwrap_or(0.0)),
                 slip: c.slip.unwrap_or(0.0).clamp(0.0, 2.0),
+                slip_color: slip_color(c.slip.unwrap_or(0.0)),
+                brake_pct: unit(c.brake_c.unwrap_or(0.0) / 1000.0),
                 has_temp: main.is_some(),
                 has_brake: c.brake_c.is_some(),
                 ..Default::default()
@@ -471,6 +651,56 @@ impl Renderer {
         let bias_frac = st.brake_bias.map_or(0.5, |b| unit((b - 40.0) / 30.0));
         d.bias_pct = bias_frac;
         d.bias_needle = dials::needle(bias_frac).into();
+        // Image needles rotate about their centre: -135 deg (min) .. +135 deg (max).
+        d.rpm_angle = -135.0 + 270.0 * rpm_frac.clamp(0.0, 1.0);
+        d.speed_angle = -135.0 + 270.0 * unit(speed / speed_top);
+        // Fixed 0..9000 rpm scale for the printed analog dial face, with engine shake.
+        let shake = if st.game == Game::Dr2 {
+            let t = now.duration_since(self.started).as_secs_f32();
+            (t * 90.0).sin() * 1.2 * (0.3 + st.throttle)
+        } else {
+            0.0
+        };
+        d.tach9_angle = -135.0 + 270.0 * unit(st.rpm / 9000.0) + shake;
+        // Front / rear brake gauges (0..1000 C).
+        let avg = |a: usize, b: usize| match (st.corners[a].brake_c, st.corners[b].brake_c) {
+            (Some(x), Some(y)) => Some((x + y) / 2.0),
+            (Some(x), None) | (None, Some(x)) => Some(x),
+            _ => None,
+        };
+        let bf = avg(0, 1);
+        let br = avg(2, 3);
+        d.brake_front = bf.map_or_else(|| "--".to_string(), temp).into();
+        d.brake_rear = br.map_or_else(|| "--".to_string(), temp).into();
+        d.brake_front_needle = dials::needle(unit(bf.unwrap_or(0.0) / 1000.0)).into();
+        d.brake_rear_needle = dials::needle(unit(br.unwrap_or(0.0) / 1000.0)).into();
+        d.boost_arc = dials::arc(d.boost_pct).into();
+        d.heading_deg = st.yaw.to_degrees().rem_euclid(360.0);
+        d.has_wind_dir = st.wind_deg.is_some();
+        d.wind_deg = st.wind_deg.unwrap_or(0.0);
+        // Fuel: per-lap use and what to add to finish.
+        if let Some(per_lap) = st.fuel_per_lap {
+            d.fuel_per_lap = if imp { format!("{:.2} gal", per_lap * 0.264_172) } else { format!("{:.2} L", per_lap) }.into();
+            let laps_left = match (st.total_laps, st.lap) {
+                (Some(total), lap) if total > 0 => (total - lap + 1).max(0) as f32,
+                _ => 0.0,
+            };
+            let need = laps_left * per_lap - st.fuel_l.unwrap_or(0.0);
+            d.fuel_to_add = if laps_left <= 0.0 {
+                "--".to_string()
+            } else if need <= 0.0 {
+                "NONE".to_string()
+            } else if imp {
+                format!("+{:.1} gal", need * 0.264_172)
+            } else {
+                format!("+{:.1} L", need)
+            }
+            .into();
+        } else {
+            d.fuel_per_lap = "--".into();
+            d.fuel_to_add = "--".into();
+        }
+        d.fuel_laps_num = st.fuel_laps.unwrap_or(-1.0);
 
         // --- alerts ----------------------------------------------------------------------
         let (banner, bg, fg): (&str, u32, u32) = match st.flag {

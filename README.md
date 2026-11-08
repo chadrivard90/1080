@@ -3,24 +3,25 @@
 A sim racing telemetry dashboard for a **Raspberry Pi** with a **1080x1920 portrait touch screen**, written in **Rust + Slint**.
 
 - **Title screen** (racing themed): pick a game, see the IP address to send telemetry to, turn demo mode on or off, exit.
-- **One themed dash per game**, with a **nav bar** at the bottom for switching layouts and a **HOME** button.
-- Every game has a **MAP** tab showing the track and car positions.
-- A dedicated **pop-up strip** above the nav bar shows events (fastest lap, penalties, position changes…) without covering any data.
+- **One themed dash per game** with three pages, original artwork (	ools/gen-art.js) and per-game fonts (scripts/fetch-fonts.sh).
+- Every game shows a **track map** with car positions on one of its pages.
+- Pop-up events (fastest lap, penalties, position changes…) appear in the dock, never over the data.
 - Two desktop icons: **Race Dash** (launch) and **Update Race Dash** (download the latest build from GitHub).
 
 ## Games
 
-| Game | Dash theme | Tabs | Telemetry source |
+| Game | Dash theme | Pages | Telemetry source |
 |---|---|---|---|
-| **F1 25** | Halo MFD: dark grey, neon purple/green/red | MFD, RACE, TIMING, CAR, TOWER, STRAT, MAP | UDP 20777, format 2025 |
-| **NASCAR 26** | Spotter & Strategy Station: TV-broadcast blue/red/yellow | SPOTTER, GAUGES, ORDER, MAP | **PC bridge** (iRacing-engine shared memory) |
-| **Assetto Corsa EVO** | MoTeC Engineer: black, white/red/blue monospace | ENGINEER, TYRES, MAP | **PC bridge** (shared memory) |
-| **Automobilista 2** | Endurance Weather Board: graphite + teal, flag panels | WEATHER, TIMING, TYRES, MAP | UDP 5606, Project CARS 2 format |
-| **DiRT Rally 2.0** | Group B Analog: matte black, cream dials, LCD timer | ANALOG, STAGE, MAP | UDP 20777, extradata 3 |
-| **EA SPORTS WRC** | Stage Navigator: gritty dark, cyan/magenta angles | STAGE, VEHICLE, INPUTS, MAP | UDP 20777, default "wrc" structure |
-| **Forza Motorsport** | Apex Tracker: slate, magenta→cyan, rounded | APEX, TYRES, TIMING, MAP | UDP 20440, "Car Dash" format |
-| **Forza Horizon 6** | Festival Cruiser: neon glass panels | CRUISE, DRIFT, MAP, CAR | UDP 20440 |
+| **F1 25** | Halo MFD: carbon fibre, recessed MFD panels, neon RPM sweep | WHEEL, ENGINEER, STRATEGY | UDP 20777, format 2025 |
+| **NASCAR 26** | Spotter & Strategy: white / racing blue / red broadcast banners | THE PACK, THE DRAFT, PIT BOX | **PC bridge** (iRacing-engine shared memory) |
+| **Assetto Corsa EVO** | MoTeC C127: pure black, ghost-segment monospace digits | DASH, THE RIG, PIT BOX | **PC bridge** (shared memory) |
+| **Automobilista 2** | Endurance Weather Board: navy blueprint HUD, crosshair panels | DASH, WEATHER, STRATEGY | UDP 5606, Project CARS 2 format |
+| **DiRT Rally 2.0** | Group B Analog: grunge, printed tach + shaking needle, green LCD | TACH, SURVIVAL, PHYSICS | UDP 20777, extradata 3 |
+| **EA SPORTS WRC** | Stage Navigator: chopped magenta panels, shaking handbrake alert | STAGE, SERVICE, SPLITS | UDP 20777, default "wrc" structure |
+| **Forza Motorsport** | Turn 10 Telemetry: slate glass, gradient arcs, G trail, dyno | THE APEX, PHYSICS, THE DYNO | UDP 20440, "Car Dash" format |
+| **Forza Horizon 6** | Festival Cruiser: neon gradient, RPM equalizer, drift zone | CRUISE, DRIFT, EXPLORER | UDP 20440 |
 
+Every dash has a **dock** along the bottom: three page buttons, a centre **pill** that shows flags and pop-up events (so nothing covers the dash), and a red **MENU** button. While a flag is out, the whole screen edge also glows in the flag colour. Page heights scale with the screen, so nothing gets pushed off the top.
 Design briefs for each theme are in [docs/game-themes.md](docs/game-themes.md).
 
 ### Track maps
