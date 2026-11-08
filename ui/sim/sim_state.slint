@@ -1,0 +1,176 @@
+// Data pushed from Rust (src/games/sim/view.rs) for every game except F1 25.
+// Fields a game doesn't send arrive empty ("" / "--") or with has-* = false.
+
+import { MapDot } from "../map.slint";
+
+export struct Corner {
+    temp: string,
+    temp-color: color,
+    inner: string,
+    inner-color: color,
+    detail: string,
+    pressure: string,
+    pressure-color: color,
+    wear: string,
+    wear-pct: float,
+    brake: string,
+    brake-color: color,
+    susp: float,
+    slip: float,
+    has-temp: bool,
+    has-brake: bool,
+}
+
+export struct SimRow {
+    pos: int,
+    name: string,
+    gap: string,
+    detail: string,
+    player: bool,
+    in-pit: bool,
+}
+
+export struct CompassMark {
+    x: float,
+    label: string,
+    major: bool,
+}
+
+export struct DialLabel {
+    x: float,
+    y: float,
+    text: string,
+}
+
+export struct SimData {
+    connected: bool,
+    status-text: string,
+    blink: bool,
+
+    speed: int,
+    speed-unit: string,
+    gear: string,
+    rpm: int,
+    rpm-pct: float,
+    rev-count: int,
+    shift: bool,
+    throttle: float,
+    brake: float,
+    clutch: float,
+    handbrake: float,
+    steer: float,
+
+    has-boost: bool,
+    boost: string,
+    boost-pct: float,
+    has-fuel: bool,
+    fuel: string,
+    fuel-pct: float,
+    fuel-laps: string,
+    has-water: bool,
+    water: string,
+    water-pct: float,
+    has-oil: bool,
+    oil-temp: string,
+    oil-press: string,
+    oil-press-pct: float,
+    oil-temp-pct: float,
+    tc-active: bool,
+    abs-active: bool,
+    tc-level: string,
+    abs-level: string,
+    brake-bias: string,
+    bias-pct: float,
+    pit-limiter: bool,
+
+    fl: Corner,
+    fr: Corner,
+    rl: Corner,
+    rr: Corner,
+    temp-unit: string,
+
+    position: int,
+    num-cars: int,
+    pos-text: string,
+    lap-text: string,
+    current-lap: string,
+    last-lap: string,
+    best-lap: string,
+    has-delta: bool,
+    delta: float,
+    delta-text: string,
+    lap-invalid: bool,
+    session-name: string,
+    track-name: string,
+    time-left: string,
+
+    has-stage: bool,
+    stage-progress: float,
+    stage-pct: string,
+    stage-text: string,
+    stage-time: string,
+
+    gap-ahead: string,
+    gap-behind: string,
+    gap-ahead-s: float,
+    gap-behind-s: float,
+    spotter-left: int,
+    spotter-right: int,
+
+    weather: string,
+    air-temp: string,
+    track-temp: string,
+    rain-pct: int,
+    wind: string,
+
+    g-lat: float,
+    g-long: float,
+    g-text: string,
+    drift-deg: float,
+    drift-text: string,
+    yaw-rate: string,
+    heading: string,
+    elevation: string,
+    max-speed: string,
+    distance: string,
+    power: string,
+    torque: string,
+    car-info: string,
+    in-pit: bool,
+    pit-text: string,
+    incidents: string,
+
+    banner-text: string,
+    banner-color: color,
+    banner-text-color: color,
+    event-text: string,
+    event-color: color,
+    event-text-color: color,
+
+    rpm-needle: string,
+    rpm-arc: string,
+    speed-needle: string,
+    speed-arc: string,
+    drift-needle: string,
+    boost-needle: string,
+    bias-needle: string,
+
+    map-note: string,
+}
+
+export global Sim {
+    in property <SimData> data;
+    in property <[SimRow]> standings;
+    in property <[SimRow]> relative;
+    in property <[MapDot]> map-dots;
+    in property <string> map-path;
+    in property <[CompassMark]> compass;
+    in property <[DialLabel]> tach-labels;
+    in property <[DialLabel]> speed-labels;
+    in property <string> tach-ticks;
+    in property <string> speed-ticks;
+    in property <string> dial-track;
+    in property <[string]> setup-lines;
+    in property <string> game-name;
+    in-out property <int> layout: 0;
+}

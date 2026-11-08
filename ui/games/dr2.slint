@@ -1,0 +1,270 @@
+// DiRT Rally 2.0 - "The Group B Analog". 80s rally car instrument panel: textured matte black,
+// off-white dials with yellow needles, a big tachometer that shakes with the engine, and a
+// retro LCD stage timer.
+// DR2 sends no water temp / oil pressure, so the survival row shows what it does send:
+// speed, brake temperatures and suspension travel.
+// Tabs: ANALOG, STAGE, MAP.
+
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, Tile, Dial } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+import { HBar, VBar } from "../common.slint";
+
+global Dr2Theme {
+    out property <color> bg: #111110;
+    out property <color> plate: #1a1a18;
+    out property <color> face: #0d0d0c;
+    out property <color> cream: #efe7cf;
+    out property <color> yellow: #f5c400;
+    out property <color> red: #e03a1e;
+    out property <color> dim: #8a8573;
+    out property <color> lcd-bg: #9aa77a;
+    out property <color> lcd-ink: #1d2410;
+    out property <string> lcd-font: "DejaVu Sans Mono";
+}
+
+// Retro LCD panel.
+component Lcd inherits Rectangle {
+    in property <string> text;
+    in property <string> label;
+    in property <length> size: 120px;
+    background: Dr2Theme.lcd-bg;
+    border-radius: 10px;
+    border-width: 8px;
+    border-color: #2b2b26;
+    VerticalLayout {
+        padding: 14px;
+        Text { text: root.label; color: #4a5636; font-size: 22px; font-weight: 900; font-family: Dr2Theme.lcd-font; }
+        Text {
+            vertical-stretch: 1;
+            text: root.text;
+            color: Dr2Theme.lcd-ink;
+            font-size: root.size;
+            font-weight: 700;
+            font-family: Dr2Theme.lcd-font;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Brake temperature mini gauge.
+component BrakeGauge inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: Dr2Theme.plate;
+    border-radius: 12px;
+    border-width: 3px;
+    border-color: #2b2b26;
+    VerticalLayout {
+        padding: 10px;
+        alignment: center;
+        Text { text: root.label; color: Dr2Theme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+        Text {
+            text: root.c.has-brake ? root.c.brake : "--";
+            color: root.c.has-brake ? root.c.brake-color : Dr2Theme.dim;
+            font-size: 46px;
+            font-weight: 900;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+component Dr2Analog inherits Rectangle {
+    property <SimData> d: Sim.data;
+    // Matte texture: faint diagonal stripes.
+    Path {
+        width: parent.width;
+        height: parent.height;
+        viewbox-width: 100;
+        viewbox-height: 100;
+        commands: "M 0 10 L 10 0 M 0 30 L 30 0 M 0 50 L 50 0 M 0 70 L 70 0 M 0 90 L 90 0 M 10 100 L 100 10 M 30 100 L 100 30 M 50 100 L 100 50 M 70 100 L 100 70 M 90 100 L 100 90";
+        stroke: #ffffff06;
+        stroke-width: 2px;
+        fill: transparent;
+    }
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        // Big tachometer
+        Rectangle {
+            height: 820px;
+            Dial {
+                width: parent.width;
+                height: parent.height;
+                ticks: Sim.tach-ticks;
+                labels: Sim.tach-labels;
+                arc: "";
+                needle: root.d.rpm-needle;
+                value: root.d.gear;
+                unit: "RPM x1000";
+                face: Dr2Theme.face;
+                rim: #3a362a;
+                track-color: #2a2720;
+                tick-color: Dr2Theme.cream;
+                label-color: Dr2Theme.cream;
+                needle-color: Dr2Theme.yellow;
+                value-color: Dr2Theme.cream;
+                unit-color: Dr2Theme.dim;
+                value-size: 110px;
+                label-size: 40px;
+            }
+            // Shift lamp
+            Rectangle {
+                x: parent.width - 150px;
+                y: 20px;
+                width: 110px;
+                height: 110px;
+                border-radius: 55px;
+                background: Sim.data.shift ? (Sim.data.blink ? Dr2Theme.red : #5a1408) : #2a1a14;
+                border-width: 6px;
+                border-color: #3a362a;
+                drop-shadow-blur: Sim.data.shift ? 30px : 0px;
+                drop-shadow-color: Dr2Theme.red;
+            }
+        }
+        // Survival gauges
+        HorizontalLayout {
+            height: 330px;
+            spacing: 14px;
+            Dial {
+                width: 330px;
+                ticks: Sim.speed-ticks;
+                labels: Sim.speed-labels;
+                arc: "";
+                needle: root.d.speed-needle;
+                value: "\{root.d.speed}";
+                unit: root.d.speed-unit;
+                face: Dr2Theme.face;
+                rim: #3a362a;
+                track-color: #2a2720;
+                tick-color: Dr2Theme.cream;
+                label-color: Dr2Theme.cream;
+                needle-color: Dr2Theme.yellow;
+                value-color: Dr2Theme.cream;
+                value-size: 40px;
+                label-size: 18px;
+            }
+            GridLayout {
+                spacing: 12px;
+                Row {
+                    BrakeGauge { label: "BRAKE FL"; c: root.d.fl; }
+                    BrakeGauge { label: "BRAKE FR"; c: root.d.fr; }
+                }
+                Row {
+                    BrakeGauge { label: "BRAKE RL"; c: root.d.rl; }
+                    BrakeGauge { label: "BRAKE RR"; c: root.d.rr; }
+                }
+            }
+        }
+        // LCD stage timer
+        Lcd { vertical-stretch: 1; label: "STAGE TIME"; text: root.d.stage-time; size: 150px; }
+    }
+}
+
+component SuspBar inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: Dr2Theme.plate;
+    border-radius: 12px;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+        Text { text: root.label; color: Dr2Theme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            alignment: center;
+            VBar { width: 60px; value: root.c.susp; fill: Dr2Theme.yellow; track: #0d0d0c; }
+        }
+        Text { text: "SLIP"; color: Dr2Theme.dim; font-size: 18px; font-weight: 900; horizontal-alignment: center; }
+        HBar { height: 14px; value: root.c.slip * 0.5; fill: root.c.slip > 1.0 ? Dr2Theme.red : Dr2Theme.cream; track: #0d0d0c; }
+    }
+}
+
+component Dr2Stage inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        // Stage progress
+        Rectangle {
+            height: 220px;
+            background: Dr2Theme.plate;
+            border-radius: 14px;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 10px;
+                HorizontalLayout {
+                    Text { text: "STAGE PROGRESS"; color: Dr2Theme.dim; font-size: 26px; font-weight: 900; }
+                    Text { horizontal-stretch: 1; text: root.d.stage-text; color: Dr2Theme.cream; font-size: 30px; font-weight: 900; horizontal-alignment: right; }
+                }
+                HBar { height: 70px; value: root.d.stage-progress; fill: Dr2Theme.yellow; track: #0d0d0c; }
+                Text { text: root.d.stage-pct; color: Dr2Theme.cream; font-size: 34px; font-weight: 900; horizontal-alignment: center; }
+            }
+        }
+        Lcd { height: 230px; label: "STAGE TIME"; text: root.d.stage-time; size: 120px; }
+        HorizontalLayout {
+            height: 560px;
+            spacing: 14px;
+            SuspBar { label: "FL"; c: root.d.fl; }
+            SuspBar { label: "FR"; c: root.d.fr; }
+            SuspBar { label: "RL"; c: root.d.rl; }
+            SuspBar { label: "RR"; c: root.d.rr; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "GEAR"; value: root.d.gear; bg: Dr2Theme.plate; title-color: Dr2Theme.dim; value-color: Dr2Theme.cream; value-size: 130px; }
+            Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: Dr2Theme.plate; title-color: Dr2Theme.dim; value-color: Dr2Theme.cream; value-size: 96px; }
+            HorizontalLayout {
+                width: 220px;
+                spacing: 12px;
+                VBar { value: root.d.throttle; fill: #5fae3a; track: #0d0d0c; }
+                VBar { value: root.d.brake; fill: Dr2Theme.red; track: #0d0d0c; }
+                VBar { value: root.d.handbrake; fill: Dr2Theme.yellow; track: #0d0d0c; }
+            }
+        }
+    }
+}
+
+component Dr2Map inherits Rectangle {
+    background: Dr2Theme.bg;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+        HBar { height: 40px; value: Sim.data.stage-progress; fill: Dr2Theme.yellow; track: Dr2Theme.plate; }
+        TrackMap {
+            vertical-stretch: 1;
+            path: Sim.map-path;
+            dots: Sim.map-dots;
+            note: Sim.data.map-note;
+            track-color: Dr2Theme.cream;
+            track-edge: #000000;
+            player-color: Dr2Theme.red;
+            line-width: 10px;
+            note-color: Dr2Theme.dim;
+        }
+    }
+}
+
+export component Dr2Dash inherits DashShell {
+    background: Dr2Theme.bg;
+    brand: "DiRT RALLY 2.0";
+    tabs: ["ANALOG", "STAGE", "MAP"];
+    accent: Dr2Theme.yellow;
+    status-bg: Dr2Theme.plate;
+    status-text: Dr2Theme.cream;
+    nav-bg: #0a0a09;
+    nav-idle: Dr2Theme.plate;
+    nav-text: Dr2Theme.cream;
+    toast-idle: #0a0a09;
+    toast-idle-text: Dr2Theme.dim;
+
+    if Sim.layout == 0 : Dr2Analog { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : Dr2Stage { width: parent.width; height: parent.height; }
+    if Sim.layout >= 2 : Dr2Map { width: parent.width; height: parent.height; }
+}

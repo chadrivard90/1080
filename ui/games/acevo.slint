@@ -1,0 +1,230 @@
+// Assetto Corsa EVO - "The MoTeC Engineer". Data-logger look: pure black, sharp white / red /
+// blue monospace text, flat colour, no gradients.
+// Tabs: ENGINEER (shift bar, lap tower, map, TC/ABS lights, pressures, bias dial), TYRES, MAP.
+
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, Tile, ShiftLights, Dial, DeltaStrip, CornerTile } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+
+global EvoTheme {
+    out property <color> black: #000000;
+    out property <color> panel: #0b0b0b;
+    out property <color> line: #2a2a2a;
+    out property <color> white: #f2f2f2;
+    out property <color> red: #ff1a1a;
+    out property <color> blue: #1e90ff;
+    out property <color> dim: #8a8a8a;
+    out property <string> mono: "DejaVu Sans Mono";
+}
+
+// One line of the lap tower: label left, time right.
+component TowerLine inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <color> value-color: EvoTheme.white;
+    background: EvoTheme.panel;
+    border-width: 2px;
+    border-color: EvoTheme.line;
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        Text { width: 220px; text: root.label; color: EvoTheme.dim; font-size: 30px; font-weight: 700; font-family: EvoTheme.mono; vertical-alignment: center; }
+        Text { horizontal-stretch: 1; text: root.value; color: root.value-color; font-size: 84px; font-weight: 700; font-family: EvoTheme.mono; horizontal-alignment: right; vertical-alignment: center; }
+    }
+}
+
+// TC / ABS intervention light.
+component AssistLight inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <string> level;
+    in property <color> on-color;
+    preferred-height: 100px;
+    background: root.active ? root.on-color : EvoTheme.panel;
+    border-width: 3px;
+    border-color: root.on-color;
+    VerticalLayout {
+        alignment: center;
+        Text { text: root.label; color: root.active ? #000000 : root.on-color; font-size: 52px; font-weight: 900; font-family: EvoTheme.mono; horizontal-alignment: center; }
+        Text { text: "LVL " + root.level; color: root.active ? #000000 : EvoTheme.dim; font-size: 24px; font-weight: 700; font-family: EvoTheme.mono; horizontal-alignment: center; }
+    }
+}
+
+component PressureCell inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: EvoTheme.panel;
+    border-width: 3px;
+    border-color: root.c.pressure != "" ? root.c.pressure-color : EvoTheme.line;
+    VerticalLayout {
+        alignment: center;
+        Text { text: root.label; color: EvoTheme.dim; font-size: 22px; font-family: EvoTheme.mono; horizontal-alignment: center; }
+        Text { text: root.c.pressure != "" ? root.c.pressure : "--.-"; color: root.c.pressure != "" ? root.c.pressure-color : EvoTheme.dim; font-size: 54px; font-weight: 700; font-family: EvoTheme.mono; horizontal-alignment: center; }
+    }
+}
+
+component EvoEngineer inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 10px;
+        // Full-width multi-colour shift bar.
+        ShiftLights { height: 76px; low: #00c853; mid: #ffd600; high: EvoTheme.red; flash: EvoTheme.blue; off: #141414; radius: 2px; gap: 4px; }
+        // Gear / speed strip
+        HorizontalLayout {
+            height: 150px;
+            spacing: 10px;
+            Tile { title: "GEAR"; value: root.d.gear; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 110px; font: EvoTheme.mono; }
+            Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 80px; font: EvoTheme.mono; }
+            Tile { title: "POS"; value: root.d.pos-text; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 60px; font: EvoTheme.mono; }
+        }
+        // Lap tower
+        TowerLine { height: 120px; label: "CURRENT"; value: root.d.current-lap; value-color: root.d.lap-invalid ? EvoTheme.red : EvoTheme.white; }
+        TowerLine { height: 120px; label: "LAST"; value: root.d.last-lap; }
+        TowerLine { height: 120px; label: "BEST"; value: root.d.best-lap; value-color: EvoTheme.blue; }
+        DeltaStrip {
+            height: 100px;
+            delta: root.d.delta;
+            valid: root.d.has-delta;
+            text: root.d.delta-text;
+            bg: EvoTheme.panel;
+            faster: #00a844;
+            slower: #c41212;
+            font: EvoTheme.mono;
+            radius: 0px;
+            font-size: 64px;
+        }
+        // Map flanked by TC / ABS lights
+        HorizontalLayout {
+            height: 470px;
+            spacing: 10px;
+            AssistLight { width: 170px; label: "TC"; active: root.d.tc-active; level: root.d.tc-level; on-color: EvoTheme.blue; }
+            Rectangle {
+                horizontal-stretch: 1;
+                background: EvoTheme.panel;
+                border-width: 2px;
+                border-color: EvoTheme.line;
+                TrackMap {
+                    width: parent.width;
+                    height: parent.height;
+                    path: Sim.map-path;
+                    dots: Sim.map-dots;
+                    note: Sim.data.map-note;
+                    track-color: EvoTheme.white;
+                    track-edge: #000000;
+                    player-color: EvoTheme.red;
+                    car-color: EvoTheme.blue;
+                    label-color: #ffffff;
+                    line-width: 8px;
+                    dot-size: 30px;
+                }
+            }
+            AssistLight { width: 170px; label: "ABS"; active: root.d.abs-active; level: root.d.abs-level; on-color: EvoTheme.red; }
+        }
+        // Tyre pressures + brake bias dial
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 10px;
+            GridLayout {
+                horizontal-stretch: 2;
+                spacing: 10px;
+                Row {
+                    PressureCell { label: "FL PSI"; c: root.d.fl; }
+                    PressureCell { label: "FR PSI"; c: root.d.fr; }
+                }
+                Row {
+                    PressureCell { label: "RL PSI"; c: root.d.rl; }
+                    PressureCell { label: "RR PSI"; c: root.d.rr; }
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+                preferred-width: 100px;
+                background: EvoTheme.panel;
+                border-width: 2px;
+                border-color: EvoTheme.line;
+                Dial {
+                    width: parent.width;
+                    height: parent.height;
+                    ticks: Sim.speed-ticks;
+                    labels: [];
+                    arc: "";
+                    needle: root.d.bias-needle;
+                    value: root.d.brake-bias;
+                    unit: "BRAKE BIAS F";
+                    face: #000000;
+                    rim: EvoTheme.line;
+                    track-color: #1a1a1a;
+                    tick-color: EvoTheme.dim;
+                    needle-color: EvoTheme.red;
+                    value-size: 36px;
+                    font: EvoTheme.mono;
+                }
+            }
+        }
+    }
+}
+
+component EvoTyres inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 12px;
+        HorizontalLayout {
+            height: 640px;
+            spacing: 12px;
+            CornerTile { label: "FL"; c: root.d.fl; bg: EvoTheme.panel; dim: EvoTheme.dim; font: EvoTheme.mono; radius: 0px; }
+            CornerTile { label: "FR"; c: root.d.fr; bg: EvoTheme.panel; dim: EvoTheme.dim; font: EvoTheme.mono; radius: 0px; }
+        }
+        HorizontalLayout {
+            height: 640px;
+            spacing: 12px;
+            CornerTile { label: "RL"; c: root.d.rl; bg: EvoTheme.panel; dim: EvoTheme.dim; font: EvoTheme.mono; radius: 0px; }
+            CornerTile { label: "RR"; c: root.d.rr; bg: EvoTheme.panel; dim: EvoTheme.dim; font: EvoTheme.mono; radius: 0px; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 12px;
+            Tile { title: "WATER"; value: root.d.has-water ? root.d.water : "--"; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 56px; font: EvoTheme.mono; }
+            Tile { title: "FUEL"; value: root.d.fuel; sub: root.d.fuel-laps + " LAPS"; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 48px; font: EvoTheme.mono; }
+            Tile { title: "TRACK"; value: root.d.track-temp; sub: "AIR " + root.d.air-temp; bg: EvoTheme.panel; edge: EvoTheme.line; radius: 0px; value-size: 56px; font: EvoTheme.mono; }
+        }
+    }
+}
+
+component EvoMap inherits Rectangle {
+    background: EvoTheme.black;
+    TrackMap {
+        width: parent.width;
+        height: parent.height;
+        path: Sim.map-path;
+        dots: Sim.map-dots;
+        note: Sim.data.map-note;
+        track-color: EvoTheme.white;
+        track-edge: #000000;
+        player-color: EvoTheme.red;
+        car-color: EvoTheme.blue;
+        label-color: #ffffff;
+        line-width: 10px;
+    }
+}
+
+export component AcEvoDash inherits DashShell {
+    background: EvoTheme.black;
+    brand: "AC EVO";
+    tabs: ["ENGINEER", "TYRES", "MAP"];
+    accent: EvoTheme.red;
+    status-bg: EvoTheme.panel;
+    nav-bg: EvoTheme.black;
+    nav-idle: #111111;
+    toast-idle: #050505;
+    toast-idle-text: EvoTheme.dim;
+    font: EvoTheme.mono;
+    nav-radius: 0px;
+
+    if Sim.layout == 0 : EvoEngineer { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : EvoTyres { width: parent.width; height: parent.height; }
+    if Sim.layout >= 2 : EvoMap { width: parent.width; height: parent.height; }
+}

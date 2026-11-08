@@ -1,5 +1,7 @@
 // Data pushed from Rust (src/games/f1_25/view.rs) for the F1 25 dash.
 
+import { MapDot } from "../map.slint";
+
 export struct Tyre {
     surface: int,
     inner: int,
@@ -200,7 +202,10 @@ export global F1 {
     in property <[StandingRow]> standings;
     in property <[LapRow]> laps;
     in property <[ForecastRow]> forecast;
-    // Selected layout tab: 0 mfd, 1 race, 2 timing, 3 car, 4 tower, 5 strategy.
+    in property <string> map-path;
+    in property <[MapDot]> map-dots;
+    in property <string> map-note;
+    // Selected layout tab: 0 mfd, 1 race, 2 timing, 3 car, 4 tower, 5 strategy, 6 map.
     in-out property <int> layout: 0;
 }
 

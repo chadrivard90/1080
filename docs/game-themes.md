@@ -2,7 +2,7 @@
 
 Design brief for each game's dash. Each game gets its own theme plus several layouts behind the bottom nav bar. The concept below becomes that game's default layout. Vector art (Slint `Path`) and images are allowed in themes.
 
-Status: **F1 25 built.** Others pending.
+Status: **all eight built** (first versions, awaiting live-data testing). Each game also has a MAP tab. The source files are F1 in `ui/f1/` and the others in `ui/games/<game>.slint`.
 
 ---
 
@@ -56,8 +56,8 @@ Theme: clean and structural, focused on environment and endurance variables.
 
 ---
 
-## Telemetry to verify before building each game
-Check these against each game's actual telemetry output when that game's turn comes:
+## Telemetry gaps found during research
+Substitutions made where a game doesn't send what its brief asked for:
 - **NASCAR 26:** blind-spot radar needs other cars' positions (or a car-left/right flag) in the output.
 - **DiRT Rally 2.0:** its UDP output has no oil pressure; water temp may also be missing. A fallback may be needed.
 - **EA WRC:** check which damage channels are exposed; stage progress comes from stage distance.

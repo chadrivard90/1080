@@ -253,6 +253,14 @@ pub fn run(shared: Arc<Mutex<F1State>>, stop: Arc<AtomicBool>) {
             l.cc_warnings = 1;
             l.speed_trap_kph = 331.4;
         }
+        // World positions on a made-up circuit shape so the MAP tab has something to draw.
+        for i in 0..CARS {
+            let a = st.laps[i].lap_distance / TRACK_LEN * TAU;
+            st.motion[i].x = 900.0 * a.cos() + 250.0 * (2.0 * a).sin();
+            st.motion[i].z = 500.0 * a.sin() + 150.0 * (3.0 * a).cos();
+        }
+        let me = st.motion[PLAYER];
+        st.map.add(me.x, me.z, Some(frac));
         st.session.time_left_s = (5400.0 - t).max(0.0) as u16;
         st.session.safety_car = if (40.0..47.0).contains(&(t % 60.0)) { 2 } else { 0 };
         st.update_delta();

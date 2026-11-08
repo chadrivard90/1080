@@ -1,0 +1,315 @@
+// Forza Horizon 6 - "The Festival Cruiser". Music-festival look: glassmorphism panels over a
+// neon gradient, hot pink / yellow accents, stylised italic type.
+// Tabs: CRUISE (huge speedo, drift + G, road-trip stats), DRIFT, MAP (open-world trail), CAR.
+
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, Tile, Dial, GMeter } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+import { HBar } from "../common.slint";
+
+global Fh6Theme {
+    out property <brush> sky: @linear-gradient(160deg, #1a0b2e 0%, #3a0d52 45%, #7a1050 80%, #ff2d87 120%);
+    out property <color> glass: #ffffff14;
+    out property <color> glass-edge: #ffffff38;
+    out property <color> pink: #ff2d87;
+    out property <color> yellow: #ffe14d;
+    out property <color> cyan: #36f1ff;
+    out property <color> text: #ffffff;
+    out property <color> dim: #e6c9f0;
+}
+
+component Glass inherits Rectangle {
+    background: Fh6Theme.glass;
+    border-radius: 28px;
+    border-width: 2px;
+    border-color: Fh6Theme.glass-edge;
+    drop-shadow-blur: 24px;
+    drop-shadow-color: #00000055;
+}
+
+// Compass strip: heading marks slide past a centre pointer.
+component CompassStrip inherits Glass {
+    clip: true;
+    for m in Sim.compass : Text {
+        x: root.width * m.x - 50px;
+        y: m.major ? 18px : 30px;
+        width: 100px;
+        height: 50px;
+        text: m.label;
+        color: m.major ? Fh6Theme.yellow : Fh6Theme.dim;
+        font-size: m.major ? 40px : 22px;
+        font-weight: 900;
+        font-italic: true;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    Path {
+        x: root.width / 2 - 16px;
+        y: root.height - 26px;
+        width: 32px;
+        height: 22px;
+        viewbox-width: 32;
+        viewbox-height: 22;
+        commands: "M 0 22 L 16 0 L 32 22 Z";
+        fill: Fh6Theme.pink;
+    }
+}
+
+component Fh6Cruise inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 16px;
+        // Massive speedometer
+        Glass {
+            height: 720px;
+            Dial {
+                width: parent.width;
+                height: parent.height - 30px;
+                y: 15px;
+                ticks: Sim.speed-ticks;
+                labels: Sim.speed-labels;
+                arc: root.d.speed-arc;
+                needle: "";
+                value: "\{root.d.speed}";
+                unit: root.d.speed-unit + "    GEAR " + root.d.gear;
+                show-face: false;
+                track-color: #ffffff22;
+                arc-color: Fh6Theme.pink;
+                tick-color: #ffffffaa;
+                label-color: Fh6Theme.dim;
+                needle-color: Fh6Theme.pink;
+                value-color: Fh6Theme.text;
+                unit-color: Fh6Theme.yellow;
+                value-size: 190px;
+                arc-width: 30px;
+                label-size: 26px;
+            }
+        }
+        // Drift + lateral G
+        HorizontalLayout {
+            height: 330px;
+            spacing: 16px;
+            Glass {
+                preferred-width: 100px;
+                Dial {
+                    width: parent.width;
+                    height: parent.height - 20px;
+                    y: 10px;
+                    ticks: "";
+                    labels: [];
+                    arc: "";
+                    needle: root.d.drift-needle;
+                    value: root.d.drift-text;
+                    unit: "DRIFT ANGLE";
+                    show-face: false;
+                    track-color: #ffffff22;
+                    needle-color: Fh6Theme.yellow;
+                    value-color: Fh6Theme.text;
+                    unit-color: Fh6Theme.dim;
+                    value-size: 54px;
+                    arc-width: 14px;
+                }
+            }
+            Glass {
+                preferred-width: 100px;
+                GMeter { width: parent.width; height: parent.height - 30px; y: 15px; lat: root.d.g-lat; long: root.d.g-long; ring: #ffffff40; dot: Fh6Theme.pink; face: #00000033; }
+            }
+        }
+        CompassStrip { height: 110px; }
+        // Road-trip stats
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 16px;
+            Tile { title: "TOP SPEED"; value: root.d.max-speed; sub: root.d.speed-unit; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
+            Tile { title: "ELEVATION"; value: root.d.elevation; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
+            Tile { title: "HEADING"; value: root.d.heading; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 44px; italic: true; radius: 28px; }
+        }
+    }
+}
+
+component SlipBar inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: Fh6Theme.glass;
+    border-radius: 22px;
+    border-width: 2px;
+    border-color: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.glass-edge;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        Text { text: root.label; color: Fh6Theme.yellow; font-size: 26px; font-weight: 900; font-italic: true; horizontal-alignment: center; }
+        Text { vertical-stretch: 1; text: root.c.slip > 1.0 ? "SLIDE" : "GRIP"; color: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.cyan; font-size: 40px; font-weight: 900; font-italic: true; horizontal-alignment: center; vertical-alignment: center; }
+        HBar { height: 18px; value: min(1.0, root.c.slip * 0.5); fill: root.c.slip > 1.0 ? Fh6Theme.pink : Fh6Theme.cyan; track: #00000040; }
+    }
+}
+
+component Fh6Drift inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 16px;
+        Glass {
+            height: 800px;
+            Dial {
+                width: parent.width;
+                height: parent.height - 30px;
+                y: 15px;
+                ticks: Sim.speed-ticks;
+                labels: [];
+                arc: "";
+                needle: root.d.drift-needle;
+                value: root.d.drift-text;
+                unit: "DRIFT ANGLE  (-60° ... +60°)";
+                show-face: false;
+                track-color: #ffffff22;
+                tick-color: #ffffff66;
+                needle-color: Fh6Theme.pink;
+                value-color: Fh6Theme.text;
+                unit-color: Fh6Theme.dim;
+                value-size: 150px;
+                arc-width: 20px;
+            }
+        }
+        HorizontalLayout {
+            height: 230px;
+            spacing: 16px;
+            Tile { title: "YAW RATE"; value: root.d.yaw-rate; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
+            Tile { title: "LATERAL G"; value: root.d.g-text; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
+            Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 12px;
+            SlipBar { label: "FL"; c: root.d.fl; }
+            SlipBar { label: "FR"; c: root.d.fr; }
+            SlipBar { label: "RL"; c: root.d.rl; }
+            SlipBar { label: "RR"; c: root.d.rr; }
+        }
+    }
+}
+
+component Fh6Map inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 16px;
+        CompassStrip { height: 110px; }
+        Glass {
+            vertical-stretch: 1;
+            TrackMap {
+                width: parent.width;
+                height: parent.height;
+                path: Sim.map-path;
+                dots: Sim.map-dots;
+                note: Sim.data.map-note;
+                track-color: Fh6Theme.yellow;
+                track-edge: #00000066;
+                player-color: Fh6Theme.pink;
+                line-width: 10px;
+                note-color: Fh6Theme.dim;
+            }
+        }
+        HorizontalLayout {
+            height: 170px;
+            spacing: 16px;
+            Tile { title: "DISTANCE"; value: root.d.distance; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
+            Tile { title: "ELEVATION"; value: root.d.elevation; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
+        }
+    }
+}
+
+component Fh6Car inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 16px;
+        HorizontalLayout {
+            height: 560px;
+            spacing: 16px;
+            Glass {
+                preferred-width: 100px;
+                Dial {
+                    width: parent.width;
+                    height: parent.height - 30px;
+                    y: 15px;
+                    ticks: Sim.tach-ticks;
+                    labels: Sim.tach-labels;
+                    arc: root.d.rpm-arc;
+                    needle: root.d.rpm-needle;
+                    value: root.d.gear;
+                    unit: "RPM x1000";
+                    show-face: false;
+                    track-color: #ffffff22;
+                    arc-color: Fh6Theme.pink;
+                    tick-color: #ffffffaa;
+                    label-color: Fh6Theme.dim;
+                    needle-color: Fh6Theme.yellow;
+                    value-size: 90px;
+                    arc-width: 18px;
+                }
+            }
+            Glass {
+                preferred-width: 100px;
+                Dial {
+                    width: parent.width;
+                    height: parent.height - 30px;
+                    y: 15px;
+                    ticks: Sim.speed-ticks;
+                    labels: [];
+                    arc: "";
+                    needle: root.d.boost-needle;
+                    value: root.d.has-boost ? root.d.boost : "--";
+                    unit: "BOOST";
+                    show-face: false;
+                    track-color: #ffffff22;
+                    tick-color: #ffffff66;
+                    needle-color: Fh6Theme.cyan;
+                    value-size: 44px;
+                    arc-width: 18px;
+                }
+            }
+        }
+        HorizontalLayout {
+            height: 260px;
+            spacing: 16px;
+            Tile { title: "POWER"; value: root.d.power; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 64px; italic: true; radius: 28px; }
+            Tile { title: "TORQUE"; value: root.d.torque; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
+        }
+        HorizontalLayout {
+            height: 260px;
+            spacing: 16px;
+            Tile { title: "CLASS / PI"; value: root.d.car-info; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 52px; italic: true; radius: 28px; }
+            Tile { title: "FUEL"; value: root.d.fuel; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-size: 56px; italic: true; radius: 28px; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 16px;
+            Tile { title: "TYRE FL"; value: root.d.fl.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.fl.temp-color; value-size: 48px; radius: 28px; }
+            Tile { title: "TYRE FR"; value: root.d.fr.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.fr.temp-color; value-size: 48px; radius: 28px; }
+            Tile { title: "TYRE RL"; value: root.d.rl.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.rl.temp-color; value-size: 48px; radius: 28px; }
+            Tile { title: "TYRE RR"; value: root.d.rr.temp; bg: Fh6Theme.glass; edge: Fh6Theme.glass-edge; title-color: Fh6Theme.yellow; value-color: root.d.rr.temp-color; value-size: 48px; radius: 28px; }
+        }
+    }
+}
+
+export component Fh6Dash inherits DashShell {
+    background: Fh6Theme.sky;
+    brand: "FORZA HORIZON 6";
+    tabs: ["CRUISE", "DRIFT", "MAP", "CAR"];
+    accent: Fh6Theme.pink;
+    status-bg: #1a0b2ecc;
+    nav-bg: #12081f;
+    nav-idle: #2a1240;
+    toast-idle: #12081f;
+    toast-idle-text: Fh6Theme.dim;
+    italic: true;
+    nav-radius: 28px;
+
+    if Sim.layout == 0 : Fh6Cruise { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : Fh6Drift { width: parent.width; height: parent.height; }
+    if Sim.layout == 2 : Fh6Map { width: parent.width; height: parent.height; }
+    if Sim.layout >= 3 : Fh6Car { width: parent.width; height: parent.height; }
+}

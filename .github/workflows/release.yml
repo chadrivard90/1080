@@ -1,6 +1,8 @@
-# Builds Race Dash for 64-bit Raspberry Pi OS on every push to main and publishes
-# race-dash-aarch64.tar.gz as the latest GitHub Release. The Pi installer/updater download it.
-name: Build Pi release
+# On every push to main:
+#   - builds + tests Race Dash for 64-bit Raspberry Pi OS  -> race-dash-aarch64.tar.gz
+#   - builds + tests the Windows PC bridge (AC EVO / NASCAR) -> race-dash-bridge.exe
+#   - publishes both as the latest GitHub Release (the Pi updater downloads the tarball).
+name: Build release
 
 on:
   push:
@@ -15,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  pi:
     # Native ARM64 runner, building inside Debian Bookworm so the binary links against the
     # same glibc as Raspberry Pi OS Bookworm (and runs on newer releases too).
     runs-on: ubuntu-24.04-arm
@@ -53,6 +55,7 @@ jobs:
           if ! command -v cargo >/dev/null 2>&1; then
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
           fi
+          rustup update stable --no-self-update || true
           cargo --version
 
       - name: Test
@@ -65,18 +68,55 @@ jobs:
         run: |
           mkdir -p dist/race-dash
           cp target/release/race-dash dist/race-dash/
-          cp -r scripts assets README.md dist/race-dash/
+          cp -r scripts assets docs README.md dist/race-dash/
           echo "${GITHUB_SHA}" > dist/race-dash/VERSION
           echo "${GITHUB_REPOSITORY}" > dist/race-dash/REPO
           tar -C dist/race-dash -czf race-dash-aarch64.tar.gz .
           ls -lh race-dash-aarch64.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pi
+          path: race-dash-aarch64.tar.gz
+
+  bridge:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test and build bridge
+        shell: bash
+        run: |
+          cd bridge
+          cargo test --release
+          cargo build --release
+          cp target/release/race-dash-bridge.exe ../race-dash-bridge.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridge
+          path: race-dash-bridge.exe
+
+  release:
+    needs: [pi, bridge]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Race Dash build ${{ github.run_number }}
-          body: "Built from ${{ github.sha }}"
+          body: |
+            Built from ${{ github.sha }}
+            - race-dash-aarch64.tar.gz: Raspberry Pi app (64-bit Raspberry Pi OS)
+            - race-dash-bridge.exe: run on the gaming PC for Assetto Corsa EVO / NASCAR
           target_commitish: ${{ github.sha }}
-          files: race-dash-aarch64.tar.gz
+          files: |
+            artifacts/race-dash-aarch64.tar.gz
+            artifacts/race-dash-bridge.exe
           make_latest: true

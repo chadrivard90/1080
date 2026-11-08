@@ -1,0 +1,12 @@
+[package]
+name = "race-dash-bridge"
+version = "0.1.0"
+edition = "2021"
+description = "Reads shared-memory sim telemetry on the gaming PC and broadcasts it to Race Dash"
+license = "MIT"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+strip = true

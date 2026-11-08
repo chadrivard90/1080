@@ -1,0 +1,109 @@
+// Track map shared by every game. Rust supplies the outline as an SVG path in a 1000x1000
+// view box (recorded from your driving line) and the car dots in the same coordinates.
+// Tap the map to rotate / mirror it.
+
+import { AppState } from "globals.slint";
+
+export struct MapDot {
+    x: float,
+    y: float,
+    player: bool,
+    label: string,
+    color: color,
+}
+
+export component TrackMap inherits Rectangle {
+    in property <string> path;
+    in property <[MapDot]> dots;
+    in property <string> note;
+    in property <color> track-color: #e8e8ee;
+    in property <color> track-edge: #000000;
+    in property <color> player-color: #e10600;
+    in property <color> car-color: #ffffff;
+    in property <color> label-color: #000000;
+    in property <color> note-color: #9a9ca6;
+    in property <bool> use-dot-colors: false;
+    in property <length> line-width: 12px;
+    in property <length> dot-size: 38px;
+
+    property <length> side: min(self.width, self.height) - 20px;
+    property <length> ox: (self.width - self.side) / 2;
+    property <length> oy: (self.height - self.side) / 2;
+    clip: true;
+
+    if root.path != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 1000;
+        viewbox-height: 1000;
+        commands: root.path;
+        stroke: root.track-edge;
+        stroke-width: root.line-width + 8px;
+        fill: transparent;
+    }
+    if root.path != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 1000;
+        viewbox-height: 1000;
+        commands: root.path;
+        stroke: root.track-color;
+        stroke-width: root.line-width;
+        fill: transparent;
+    }
+
+    for dot in root.dots : Rectangle {
+        property <length> size: dot.player ? root.dot-size + 12px : root.dot-size;
+        x: root.ox + root.side * dot.x / 1000 - self.size / 2;
+        y: root.oy + root.side * dot.y / 1000 - self.size / 2;
+        width: self.size;
+        height: self.size;
+        border-radius: self.size / 2;
+        border-width: 3px;
+        border-color: dot.player ? #ffffff : #000000;
+        background: dot.player ? root.player-color : (root.use-dot-colors ? dot.color : root.car-color);
+        Text {
+            width: parent.width;
+            height: parent.height;
+            text: dot.label;
+            color: dot.player ? #ffffff : root.label-color;
+            font-size: 18px;
+            font-weight: 900;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    if root.note != "" : Text {
+        x: 20px;
+        y: root.height - 56px;
+        width: root.width - 40px;
+        height: 40px;
+        text: root.note;
+        color: root.note-color;
+        font-size: 24px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    Text {
+        x: root.width - 260px;
+        y: 10px;
+        width: 250px;
+        height: 30px;
+        text: "TAP TO ROTATE";
+        color: root.note-color;
+        font-size: 18px;
+        font-weight: 800;
+        horizontal-alignment: right;
+    }
+
+    TouchArea {
+        clicked => { AppState.rotate-map(); }
+    }
+}

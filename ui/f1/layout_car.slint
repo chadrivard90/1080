@@ -14,9 +14,9 @@ export component CarLayout inherits Rectangle {
 
         // Top-down car with tyre cards at the corners
         Rectangle {
-            height: 960px;
+            height: 900px;
             property <length> tyre-w: 340px;
-            property <length> tyre-h: 420px;
+            property <length> tyre-h: 400px;
             property <length> mid-x: self.tyre-w + 14px;
             property <length> mid-w: self.width - 2 * (self.tyre-w + 14px);
 
@@ -70,7 +70,7 @@ export component CarLayout inherits Rectangle {
 
         // Power unit wear
         Panel {
-            height: 290px;
+            height: 260px;
             title: root.d.engine-failed ? "POWER UNIT WEAR  ·  ENGINE FAILURE" : "POWER UNIT WEAR";
             HorizontalLayout {
                 vertical-stretch: 1;

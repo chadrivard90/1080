@@ -5,6 +5,8 @@
 
 use std::time::Instant;
 
+use crate::games::map::MapRecorder;
+
 pub const NUM_CARS: usize = 22;
 pub const PACKET_FORMAT: u16 = 2025;
 pub const HEADER_SIZE: usize = 29;
@@ -129,6 +131,9 @@ pub fn parse_header(buf: &[u8]) -> Option<Header> {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CarMotion {
+    /// World position (metres) on the ground plane.
+    pub x: f32,
+    pub z: f32,
     pub g_lat: f32,
     pub g_long: f32,
     pub g_vert: f32,
@@ -458,6 +463,8 @@ pub struct F1State {
     pub event: Option<EventMsg>,
     pub red_flag_at: Option<Instant>,
     pub delta: DeltaTracker,
+    /// Track outline recorded from the player's driving line.
+    pub map: MapRecorder,
 }
 
 impl F1State {
@@ -534,10 +541,20 @@ impl F1State {
 
     fn parse_motion(&mut self, b: &[u8]) {
         for i in 0..NUM_CARS {
+            let base = HEADER_SIZE + i * CAR_MOTION_SIZE;
+            let mut p = Reader::new(b, base);
+            let x = p.f32();
+            p.skip(4); // y
+            let z = p.f32();
             // Skip position (12), velocity (12), forward dir (6), right dir (6) = 36 bytes.
-            let mut r = Reader::new(b, HEADER_SIZE + i * CAR_MOTION_SIZE + 36);
-            self.motion[i] = CarMotion { g_lat: r.f32(), g_long: r.f32(), g_vert: r.f32() };
+            let mut r = Reader::new(b, base + 36);
+            self.motion[i] = CarMotion { x, z, g_lat: r.f32(), g_long: r.f32(), g_vert: r.f32() };
         }
+        let me = self.motion[self.player];
+        let len = self.session.track_length as f32;
+        let dist = self.laps[self.player].lap_distance;
+        let pct = (len > 0.0 && dist >= 0.0).then(|| (dist / len).clamp(0.0, 1.0));
+        self.map.add(me.x, me.z, pct);
     }
 
     fn parse_session(&mut self, b: &[u8]) {

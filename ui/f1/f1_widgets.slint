@@ -7,6 +7,9 @@ import { Caption, HBar } from "../common.slint";
 export component Panel inherits Rectangle {
     in property <string> title;
     in property <length> pad: 16px;
+    preferred-width: 100px;
+    min-width: 0px;
+    clip: true;
     background: F1Theme.panel;
     border-radius: 18px;
     VerticalLayout {
@@ -24,6 +27,9 @@ export component ValuePanel inherits Rectangle {
     in property <string> sub;
     in property <color> value-color: #ffffff;
     in property <length> value-size: 80px;
+    preferred-width: 100px;
+    min-width: 0px;
+    clip: true;
     background: F1Theme.panel;
     border-radius: 18px;
     VerticalLayout {
@@ -38,8 +44,9 @@ export component ValuePanel inherits Rectangle {
             font-weight: 900;
             horizontal-alignment: center;
             vertical-alignment: center;
+            overflow: elide;
         }
-        if root.sub != "" : Caption { text: root.sub; horizontal-alignment: center; color: #b8b8c8; }
+        if root.sub != "" : Caption { text: root.sub; horizontal-alignment: center; color: #b8b8c8; overflow: elide; }
     }
 }
 
@@ -96,6 +103,9 @@ export component GapPanel inherits Rectangle {
     in property <string> value;
     in property <color> value-color: #ffffff;
     in property <color> accent: F1Theme.line;
+    preferred-width: 100px;
+    min-width: 0px;
+    clip: true;
     background: F1Theme.panel;
     border-radius: 18px;
     border-width: 4px;
@@ -117,6 +127,7 @@ export component GapPanel inherits Rectangle {
         }
         Text {
             vertical-stretch: 1;
+            overflow: elide;
             text: root.value;
             color: root.value-color;
             font-size: 104px;
@@ -156,6 +167,7 @@ export component TyreCard inherits Rectangle {
     in property <Tyre> t;
     in property <string> label;
     in property <string> temp-unit;
+    clip: true;
     background: F1Theme.panel;
     border-radius: 22px;
     border-width: 5px;
@@ -263,6 +275,9 @@ export component SectorBox inherits Rectangle {
     in property <SectorInfo> s;
     in property <bool> current;
     in property <length> font-size: 54px;
+    preferred-width: 100px;
+    min-width: 0px;
+    clip: true;
     border-radius: 16px;
     background: root.s.color;
     border-width: root.current ? 4px : 0px;

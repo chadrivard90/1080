@@ -1,6 +1,7 @@
 //! Converts the parsed `F1State` into the Slint `F1Data` / model rows shown on screen.
 //! All text formatting and colour decisions live here so the .slint files stay declarative.
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -8,7 +9,8 @@ use slint::{ComponentHandle as _, Model as _, VecModel};
 
 use super::lookup::{self, hex};
 use super::packets::{EventKind, F1State, FL, FR, NUM_CARS, RL, RR};
-use crate::{F1Data, ForecastRow, LapRow, Part, SectorInfo, StandingRow, Tyre};
+use crate::games::map::MapCar;
+use crate::{F1Data, ForecastRow, LapRow, MapDot, Part, SectorInfo, StandingRow, Tyre};
 
 const ERS_MAX_J: f32 = 4_000_000.0;
 
@@ -16,14 +18,22 @@ pub struct Models {
     pub standings: Rc<VecModel<StandingRow>>,
     pub laps: Rc<VecModel<LapRow>>,
     pub forecast: Rc<VecModel<ForecastRow>>,
+    pub map_dots: Rc<VecModel<MapDot>>,
+    pub map_orient: Rc<Cell<u8>>,
+    map_version: Cell<u64>,
+    map_orient_built: Cell<u8>,
 }
 
 impl Models {
-    pub fn new() -> Self {
+    pub fn new(map_orient: Rc<Cell<u8>>) -> Self {
         Self {
             standings: Rc::new(VecModel::default()),
             laps: Rc::new(VecModel::default()),
             forecast: Rc::new(VecModel::default()),
+            map_dots: Rc::new(VecModel::default()),
+            map_orient,
+            map_version: Cell::new(u64::MAX),
+            map_orient_built: Cell::new(255),
         }
     }
 }
@@ -99,6 +109,53 @@ pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) 
     sync_model(&models.standings, build_standings(st, is_race));
     sync_model(&models.laps, build_laps(st));
     sync_model(&models.forecast, build_forecast(st));
+    apply_map(&f1, st, models);
+}
+
+/// Track map: outline from the player's line, every active car as a team-coloured dot.
+fn apply_map(f1: &crate::F1<'_>, st: &F1State, models: &Models) {
+    let cars: Vec<MapCar> = (0..NUM_CARS)
+        .filter(|&i| st.laps[i].position > 0 && st.laps[i].result_status >= 2)
+        .map(|i| {
+            let team = st.participants[i].team_id;
+            let c = lookup::team_color(team);
+            MapCar {
+                pos: Some((st.motion[i].x, st.motion[i].z)),
+                pct: None,
+                player: i == st.player,
+                label: st.laps[i].position.to_string(),
+                color: Some(((c.red() as u32) << 16) | ((c.green() as u32) << 8) | c.blue() as u32),
+            }
+        })
+        .collect();
+    let orient = models.map_orient.get();
+    let (path, dots) = st.map.render(&cars, orient, None);
+    if st.map.version != models.map_version.get() || orient != models.map_orient_built.get() {
+        models.map_version.set(st.map.version);
+        models.map_orient_built.set(orient);
+        f1.set_map_path(path.into());
+    }
+    f1.set_map_note(
+        if !st.map.has_outline() {
+            "Start driving to draw the track"
+        } else if !st.map.is_complete() {
+            "Drawing the track. The outline completes after one lap"
+        } else {
+            ""
+        }
+        .into(),
+    );
+    let ui_dots: Vec<MapDot> = dots
+        .into_iter()
+        .map(|d| MapDot {
+            x: d.x,
+            y: d.y,
+            player: d.player,
+            label: d.label.into(),
+            color: d.color.map_or(hex(0xFFFFFF), hex),
+        })
+        .collect();
+    sync_model(&models.map_dots, ui_dots);
 }
 
 /// Update a VecModel in place so Slint only re-renders rows that actually changed.
@@ -526,7 +583,7 @@ fn build_laps(st: &F1State) -> Vec<LapRow> {
     completed
         .iter()
         .rev()
-        .take(11)
+        .take(9)
         .map(|&(i, l)| LapRow {
             lap: i as i32 + 1,
             time: fmt_lap(l.time_ms).into(),

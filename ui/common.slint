@@ -40,6 +40,33 @@ export component TouchButton inherits Rectangle {
     }
 }
 
+// Dedicated pop-up strip that sits between the dash and the nav bar, so event messages never
+// cover data. Shows the idle text when there is no event.
+export component ToastStrip inherits Rectangle {
+    in property <string> text;
+    in property <color> color: #ffffff;
+    in property <color> text-color: #000000;
+    in property <string> idle-text;
+    in property <color> idle-color: #101014;
+    in property <color> idle-text-color: #6c6e78;
+    in property <bool> italic: true;
+    background: root.text != "" ? root.color : root.idle-color;
+    clip: true;
+    Text {
+        x: 24px;
+        width: parent.width - 48px;
+        height: parent.height;
+        text: root.text != "" ? root.text : root.idle-text;
+        color: root.text != "" ? root.text-color : root.idle-text-color;
+        font-size: root.text != "" ? 44px : 26px;
+        font-weight: 900;
+        font-italic: root.italic && root.text != "";
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
 // Horizontal fill bar, value 0..1.
 export component HBar inherits Rectangle {
     in property <float> value;

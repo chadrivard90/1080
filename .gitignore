@@ -1,4 +1,5 @@
 /target
+/bridge/target
 /dist
 /.cargo-home
 /.rustup-home

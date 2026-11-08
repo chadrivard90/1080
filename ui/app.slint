@@ -1,10 +1,19 @@
-// Root window. page 0 = title screen, page N = game N-1's dash.
+// Root window. page 0 = title screen, page N = dash for title tile N-1.
 
 import { TitleScreen } from "title.slint";
 import { F1Dash } from "f1/f1_dash.slint";
+import { NascarDash } from "games/nascar.slint";
+import { AcEvoDash } from "games/acevo.slint";
+import { Ams2Dash } from "games/ams2.slint";
+import { Dr2Dash } from "games/dr2.slint";
+import { WrcDash } from "games/wrc.slint";
+import { FmDash } from "games/fm.slint";
+import { Fh6Dash } from "games/fh6.slint";
 
 export { AppState, GameInfo } from "globals.slint";
+export { MapDot } from "map.slint";
 export { F1, F1Data, Tyre, Part, SectorInfo, StandingRow, LapRow, ForecastRow } from "f1/f1_state.slint";
+export { Sim, SimData, Corner, SimRow, CompassMark, DialLabel } from "sim/sim_state.slint";
 
 export component AppWindow inherits Window {
     in-out property <int> page: 0;
@@ -16,4 +25,11 @@ export component AppWindow inherits Window {
 
     if root.page == 0 : TitleScreen { width: root.width; height: root.height; }
     if root.page == 1 : F1Dash { width: root.width; height: root.height; }
+    if root.page == 2 : NascarDash { width: root.width; height: root.height; }
+    if root.page == 3 : AcEvoDash { width: root.width; height: root.height; }
+    if root.page == 4 : Ams2Dash { width: root.width; height: root.height; }
+    if root.page == 5 : Dr2Dash { width: root.width; height: root.height; }
+    if root.page == 6 : WrcDash { width: root.width; height: root.height; }
+    if root.page == 7 : FmDash { width: root.width; height: root.height; }
+    if root.page == 8 : Fh6Dash { width: root.width; height: root.height; }
 }

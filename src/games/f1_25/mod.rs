@@ -6,6 +6,8 @@ pub mod packets;
 mod udp;
 pub mod view;
 
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -26,7 +28,7 @@ pub struct F1Session {
 }
 
 impl F1Session {
-    pub fn start(ui: &crate::AppWindow, demo: bool, port: u16) -> Self {
+    pub fn start(ui: &crate::AppWindow, demo: bool, port: u16, map_orient: Rc<Cell<u8>>) -> Self {
         let shared = Arc::new(Mutex::new(F1State::default()));
         let stop = Arc::new(AtomicBool::new(false));
 
@@ -45,8 +47,9 @@ impl F1Session {
                 .ok()
         };
 
-        let models = view::Models::new();
+        let models = view::Models::new(map_orient);
         let f1 = ui.global::<crate::F1>();
+        f1.set_map_dots(ModelRc::from(models.map_dots.clone()));
         f1.set_standings(ModelRc::from(models.standings.clone()));
         f1.set_laps(ModelRc::from(models.laps.clone()));
         f1.set_forecast(ModelRc::from(models.forecast.clone()));

@@ -1,0 +1,290 @@
+// EA SPORTS WRC - "The Stage Navigator". Gritty, high-contrast dark UI with sharp angled
+// shapes and cyan / magenta accents.
+// WRC's default UDP structure has no turbo boost or damage channels, so the gauges show RPM
+// and speed, and the vehicle matrix shows what is sent: brakes, suspension and wheel slip.
+// Tabs: STAGE, VEHICLE, INPUTS, MAP.
+
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, Tile, ShiftLights, Dial, GMeter } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+import { HBar, VBar } from "../common.slint";
+
+global WrcTheme {
+    out property <color> bg: #0b0d10;
+    out property <color> panel: #151a20;
+    out property <color> grit: #1d232b;
+    out property <color> cyan: #00e5ff;
+    out property <color> magenta: #ff2bd6;
+    out property <color> text: #f1f5f9;
+    out property <color> dim: #7d8a99;
+}
+
+// Panel with an angled cyan tab label.
+component AngledPanel inherits Rectangle {
+    in property <string> label;
+    in property <color> accent: WrcTheme.cyan;
+    background: WrcTheme.panel;
+    clip: true;
+    Path {
+        x: 0px;
+        y: 0px;
+        width: 280px;
+        height: 40px;
+        viewbox-width: 280;
+        viewbox-height: 40;
+        commands: "M 0 0 L 280 0 L 250 40 L 0 40 Z";
+        fill: root.accent;
+    }
+    Text { x: 16px; y: 0px; width: 240px; height: 40px; text: root.label; color: #000000; font-size: 24px; font-weight: 900; font-italic: true; vertical-alignment: center; }
+    Rectangle { x: 0px; y: parent.height - 4px; width: parent.width; height: 4px; background: root.accent; }
+    VerticalLayout {
+        padding: 14px;
+        padding-top: 52px;
+        @children
+    }
+}
+
+component HealthCell inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: WrcTheme.grit;
+    border-width: 3px;
+    border-color: root.c.slip > 1.0 ? WrcTheme.magenta : #2a323d;
+    VerticalLayout {
+        padding: 10px;
+        spacing: 6px;
+        Text { text: root.label; color: WrcTheme.cyan; font-size: 24px; font-weight: 900; font-italic: true; }
+        Text {
+            text: root.c.has-brake ? "BRK " + root.c.brake : "BRK --";
+            color: root.c.has-brake ? root.c.brake-color : WrcTheme.dim;
+            font-size: 34px;
+            font-weight: 900;
+            overflow: elide;
+        }
+        Text { text: "SUSP"; color: WrcTheme.dim; font-size: 18px; font-weight: 800; }
+        HBar { height: 14px; value: root.c.susp; fill: WrcTheme.cyan; track: #0b0d10; }
+        Text { text: "GRIP"; color: WrcTheme.dim; font-size: 18px; font-weight: 800; }
+        HBar { height: 14px; value: 1.0 - min(1.0, root.c.slip); fill: root.c.slip > 1.0 ? WrcTheme.magenta : #22c55e; track: #0b0d10; }
+    }
+}
+
+component WrcStage inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        // Stage progress
+        AngledPanel {
+            height: 190px;
+            label: "STAGE PROGRESS";
+            HorizontalLayout {
+                height: 40px;
+                Text { horizontal-stretch: 1; text: root.d.stage-text; color: WrcTheme.text; font-size: 30px; font-weight: 900; vertical-alignment: center; }
+                Text { horizontal-stretch: 1; text: root.d.stage-time; color: WrcTheme.cyan; font-size: 36px; font-weight: 900; horizontal-alignment: right; vertical-alignment: center; }
+            }
+            HBar { height: 50px; value: root.d.stage-progress; fill: WrcTheme.magenta; track: #0b0d10; }
+        }
+        // Gear + shift light
+        HorizontalLayout {
+            height: 400px;
+            spacing: 14px;
+            Rectangle {
+                width: 400px;
+                background: Sim.data.shift && Sim.data.blink ? WrcTheme.magenta : WrcTheme.panel;
+                Path {
+                    width: parent.width;
+                    height: parent.height;
+                    viewbox-width: 400;
+                    viewbox-height: 400;
+                    commands: "M 0 0 L 60 0 L 0 60 Z M 400 400 L 340 400 L 400 340 Z";
+                    fill: WrcTheme.cyan;
+                }
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.d.gear;
+                    color: Sim.data.shift && Sim.data.blink ? #000000 : WrcTheme.text;
+                    font-size: 320px;
+                    font-weight: 900;
+                    font-italic: true;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            VerticalLayout {
+                spacing: 14px;
+                ShiftLights { height: 90px; low: WrcTheme.cyan; mid: #ffffff; high: WrcTheme.magenta; flash: WrcTheme.magenta; off: WrcTheme.grit; radius: 0px; gap: 6px; }
+                Tile { title: root.d.speed-unit; value: "\{root.d.speed}"; bg: WrcTheme.panel; title-color: WrcTheme.cyan; value-size: 92px; italic: true; radius: 0px; }
+                // Handbrake light
+                Rectangle {
+                    height: 110px;
+                    background: root.d.handbrake > 0.2 ? WrcTheme.magenta : WrcTheme.grit;
+                    border-width: 3px;
+                    border-color: WrcTheme.magenta;
+                    Text {
+                        width: parent.width;
+                        height: parent.height;
+                        text: "HANDBRAKE";
+                        color: root.d.handbrake > 0.2 ? #000000 : WrcTheme.magenta;
+                        font-size: 48px;
+                        font-weight: 900;
+                        font-italic: true;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+        // Dials
+        HorizontalLayout {
+            height: 430px;
+            spacing: 14px;
+            Dial {
+                preferred-width: 100px;
+                ticks: Sim.tach-ticks;
+                labels: Sim.tach-labels;
+                arc: root.d.rpm-arc;
+                needle: root.d.rpm-needle;
+                value: "\{root.d.rpm}";
+                unit: "RPM";
+                face: WrcTheme.panel;
+                rim: WrcTheme.cyan;
+                arc-color: WrcTheme.magenta;
+                track-color: WrcTheme.grit;
+                needle-color: WrcTheme.cyan;
+                value-size: 44px;
+                label-size: 22px;
+            }
+            Dial {
+                preferred-width: 100px;
+                ticks: Sim.speed-ticks;
+                labels: Sim.speed-labels;
+                arc: root.d.speed-arc;
+                needle: root.d.speed-needle;
+                value: "\{root.d.speed}";
+                unit: root.d.speed-unit;
+                face: WrcTheme.panel;
+                rim: WrcTheme.magenta;
+                arc-color: WrcTheme.cyan;
+                track-color: WrcTheme.grit;
+                needle-color: WrcTheme.magenta;
+                value-size: 44px;
+                label-size: 20px;
+            }
+        }
+        // Vehicle health matrix
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 10px;
+            HealthCell { label: "FL"; c: root.d.fl; }
+            HealthCell { label: "FR"; c: root.d.fr; }
+            HealthCell { label: "RL"; c: root.d.rl; }
+            HealthCell { label: "RR"; c: root.d.rr; }
+        }
+    }
+}
+
+component WrcVehicle inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        HorizontalLayout {
+            height: 620px;
+            spacing: 14px;
+            HealthCell { label: "FRONT LEFT"; c: root.d.fl; }
+            HealthCell { label: "FRONT RIGHT"; c: root.d.fr; }
+        }
+        HorizontalLayout {
+            height: 620px;
+            spacing: 14px;
+            HealthCell { label: "REAR LEFT"; c: root.d.rl; }
+            HealthCell { label: "REAR RIGHT"; c: root.d.rr; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "DRIFT ANGLE"; value: root.d.drift-text; bg: WrcTheme.panel; title-color: WrcTheme.cyan; value-size: 72px; radius: 0px; italic: true; }
+            Tile { title: "HEADING"; value: root.d.heading; bg: WrcTheme.panel; title-color: WrcTheme.cyan; value-size: 48px; radius: 0px; italic: true; }
+            Tile { title: "ELEVATION"; value: root.d.elevation; bg: WrcTheme.panel; title-color: WrcTheme.cyan; value-size: 48px; radius: 0px; italic: true; }
+        }
+    }
+}
+
+component WrcInputs inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        HorizontalLayout {
+            height: 820px;
+            spacing: 16px;
+            VBar { preferred-width: 10px; value: root.d.throttle; fill: #22c55e; track: WrcTheme.grit; }
+            VBar { preferred-width: 10px; value: root.d.brake; fill: #ff3b3b; track: WrcTheme.grit; }
+            VBar { preferred-width: 10px; value: root.d.clutch; fill: WrcTheme.cyan; track: WrcTheme.grit; }
+            VBar { preferred-width: 10px; value: root.d.handbrake; fill: WrcTheme.magenta; track: WrcTheme.grit; }
+        }
+        HorizontalLayout {
+            height: 40px;
+            spacing: 16px;
+            Text { horizontal-stretch: 1; preferred-width: 10px; text: "THROTTLE"; color: WrcTheme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+            Text { horizontal-stretch: 1; preferred-width: 10px; text: "BRAKE"; color: WrcTheme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+            Text { horizontal-stretch: 1; preferred-width: 10px; text: "CLUTCH"; color: WrcTheme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+            Text { horizontal-stretch: 1; preferred-width: 10px; text: "HANDBRAKE"; color: WrcTheme.dim; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+        }
+        // Steering position
+        Rectangle {
+            height: 80px;
+            background: WrcTheme.grit;
+            Rectangle { x: parent.width / 2 - 2px; width: 4px; height: parent.height; background: WrcTheme.dim; }
+            Rectangle {
+                width: 60px;
+                height: parent.height;
+                x: (parent.width - self.width) / 2 + (parent.width - self.width) / 2 * max(-1.0, min(1.0, root.d.steer));
+                background: WrcTheme.cyan;
+            }
+        }
+        GMeter { vertical-stretch: 1; lat: root.d.g-lat; long: root.d.g-long; ring: #2a323d; dot: WrcTheme.magenta; face: WrcTheme.panel; }
+    }
+}
+
+component WrcMap inherits Rectangle {
+    background: WrcTheme.bg;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+        HBar { height: 40px; value: Sim.data.stage-progress; fill: WrcTheme.magenta; track: WrcTheme.panel; }
+        TrackMap {
+            vertical-stretch: 1;
+            path: Sim.map-path;
+            dots: Sim.map-dots;
+            note: Sim.data.map-note;
+            track-color: WrcTheme.cyan;
+            track-edge: #000000;
+            player-color: WrcTheme.magenta;
+            line-width: 10px;
+            note-color: WrcTheme.dim;
+        }
+    }
+}
+
+export component WrcDash inherits DashShell {
+    background: WrcTheme.bg;
+    brand: "EA SPORTS WRC";
+    tabs: ["STAGE", "VEHICLE", "INPUTS", "MAP"];
+    accent: WrcTheme.cyan;
+    status-bg: WrcTheme.panel;
+    nav-bg: #06080a;
+    nav-idle: WrcTheme.panel;
+    toast-idle: #06080a;
+    toast-idle-text: WrcTheme.dim;
+    italic: true;
+    nav-radius: 0px;
+
+    if Sim.layout == 0 : WrcStage { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : WrcVehicle { width: parent.width; height: parent.height; }
+    if Sim.layout == 2 : WrcInputs { width: parent.width; height: parent.height; }
+    if Sim.layout >= 3 : WrcMap { width: parent.width; height: parent.height; }
+}

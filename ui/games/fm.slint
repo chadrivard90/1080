@@ -1,0 +1,242 @@
+// Forza Motorsport - "The Apex Tracker". Sleek slate grey, smooth magenta -> cyan gradients,
+// rounded elements.
+// Tabs: APEX (RPM arc, split delta, friction circle, tyre grip/heat), TYRES, TIMING, MAP.
+// Forza only sends the player's car, so the map shows your car on the recorded line.
+
+import { Sim, SimData, Corner } from "../sim/sim_state.slint";
+import { DashShell, Tile, Dial, DeltaStrip, GMeter, CornerTile } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+import { HBar } from "../common.slint";
+
+global FmTheme {
+    out property <color> bg: #1c2027;
+    out property <color> slate: #2a2f38;
+    out property <color> slate-hi: #343a45;
+    out property <color> magenta: #e6007e;
+    out property <color> cyan: #00d1ff;
+    out property <color> text: #f5f7fb;
+    out property <color> dim: #9aa3b2;
+    out property <brush> sweep: @linear-gradient(90deg, #e6007e 0%, #7a3cff 50%, #00d1ff 100%);
+}
+
+// Per-wheel grip + heat card.
+component GripCard inherits Rectangle {
+    in property <string> label;
+    in property <Corner> c;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: FmTheme.slate;
+    border-radius: 24px;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 6px;
+        HorizontalLayout {
+            Text { text: root.label; color: FmTheme.text; font-size: 26px; font-weight: 900; }
+            Text {
+                horizontal-stretch: 1;
+                text: root.c.slip > 1.0 ? "SLIDING" : "GRIP";
+                color: root.c.slip > 1.0 ? FmTheme.magenta : FmTheme.cyan;
+                font-size: 22px;
+                font-weight: 900;
+                horizontal-alignment: right;
+            }
+        }
+        Text {
+            vertical-stretch: 1;
+            text: root.c.has-temp ? root.c.temp : "--";
+            color: root.c.has-temp ? root.c.temp-color : FmTheme.dim;
+            font-size: 60px;
+            font-weight: 900;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        HBar { height: 16px; value: min(1.0, root.c.slip); fill: root.c.slip > 1.0 ? FmTheme.magenta : FmTheme.cyan; track: FmTheme.bg; border-radius: 8px; }
+    }
+}
+
+component FmApex inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        // Sweeping RPM arc with gear + speed inside
+        Rectangle {
+            height: 600px;
+            background: FmTheme.slate;
+            border-radius: 30px;
+            Dial {
+                width: parent.width;
+                height: parent.height - 20px;
+                y: 10px;
+                ticks: "";
+                labels: [];
+                arc: root.d.rpm-arc;
+                needle: "";
+                value: root.d.gear;
+                unit: "\{root.d.speed} " + root.d.speed-unit;
+                show-face: false;
+                track-color: FmTheme.bg;
+                arc-color: root.d.shift ? FmTheme.magenta : FmTheme.cyan;
+                needle-color: FmTheme.slate;
+                value-color: FmTheme.text;
+                unit-color: FmTheme.dim;
+                value-size: 150px;
+                arc-width: 26px;
+            }
+        }
+        // Live split vs best + lap times
+        DeltaStrip {
+            height: 140px;
+            title: "SPLIT VS BEST LAP";
+            delta: root.d.delta;
+            valid: root.d.has-delta;
+            text: root.d.delta-text;
+            bg: FmTheme.slate;
+            faster: FmTheme.cyan;
+            slower: FmTheme.magenta;
+            radius: 24px;
+            font-size: 84px;
+        }
+        HorizontalLayout {
+            height: 130px;
+            spacing: 14px;
+            Tile { title: "LAST"; value: root.d.last-lap; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 48px; radius: 24px; }
+            Tile { title: "BEST"; value: root.d.best-lap; bg: FmTheme.slate; title-color: FmTheme.magenta; value-size: 48px; radius: 24px; }
+            Tile { title: "POS"; value: root.d.pos-text; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 48px; radius: 24px; }
+        }
+        // Friction circle
+        HorizontalLayout {
+            height: 380px;
+            spacing: 14px;
+            Rectangle {
+                horizontal-stretch: 1;
+                background: FmTheme.slate;
+                border-radius: 24px;
+                GMeter { width: parent.width; height: parent.height - 30px; y: 15px; lat: root.d.g-lat; long: root.d.g-long; ring: FmTheme.slate-hi; dot: FmTheme.magenta; face: FmTheme.bg; }
+            }
+            VerticalLayout {
+                width: 300px;
+                spacing: 14px;
+                Tile { title: "LATERAL G"; value: root.d.g-text; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 48px; radius: 24px; }
+                Tile { title: "POWER"; value: root.d.power; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 40px; radius: 24px; }
+            }
+        }
+        // Tyre grip + heat
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 12px;
+            GripCard { label: "FL"; c: root.d.fl; }
+            GripCard { label: "FR"; c: root.d.fr; }
+            GripCard { label: "RL"; c: root.d.rl; }
+            GripCard { label: "RR"; c: root.d.rr; }
+        }
+    }
+}
+
+component FmTyres inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        HorizontalLayout {
+            height: 640px;
+            spacing: 14px;
+            CornerTile { label: "FL"; c: root.d.fl; bg: FmTheme.slate; dim: FmTheme.dim; radius: 24px; }
+            CornerTile { label: "FR"; c: root.d.fr; bg: FmTheme.slate; dim: FmTheme.dim; radius: 24px; }
+        }
+        HorizontalLayout {
+            height: 640px;
+            spacing: 14px;
+            CornerTile { label: "RL"; c: root.d.rl; bg: FmTheme.slate; dim: FmTheme.dim; radius: 24px; }
+            CornerTile { label: "RR"; c: root.d.rr; bg: FmTheme.slate; dim: FmTheme.dim; radius: 24px; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "FUEL"; value: root.d.fuel; sub: root.d.fuel-laps + " LAPS"; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 52px; radius: 24px; }
+            Tile { title: "BOOST"; value: root.d.has-boost ? root.d.boost : "--"; bg: FmTheme.slate; title-color: FmTheme.magenta; value-size: 52px; radius: 24px; }
+        }
+    }
+}
+
+component FmTiming inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        Rectangle {
+            height: 300px;
+            border-radius: 30px;
+            background: FmTheme.sweep;
+            VerticalLayout {
+                alignment: center;
+                Text { text: "CURRENT LAP"; color: #ffffffcc; font-size: 28px; font-weight: 900; horizontal-alignment: center; }
+                Text { text: root.d.current-lap; color: #ffffff; font-size: 140px; font-weight: 900; horizontal-alignment: center; }
+            }
+        }
+        DeltaStrip {
+            height: 180px;
+            title: "SPLIT VS BEST LAP";
+            delta: root.d.delta;
+            valid: root.d.has-delta;
+            text: root.d.delta-text;
+            bg: FmTheme.slate;
+            faster: FmTheme.cyan;
+            slower: FmTheme.magenta;
+            radius: 24px;
+            font-size: 100px;
+        }
+        HorizontalLayout {
+            height: 260px;
+            spacing: 14px;
+            Tile { title: "LAST LAP"; value: root.d.last-lap; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 64px; radius: 24px; }
+            Tile { title: "BEST LAP"; value: root.d.best-lap; bg: FmTheme.slate; title-color: FmTheme.magenta; value-size: 64px; radius: 24px; }
+        }
+        HorizontalLayout {
+            height: 260px;
+            spacing: 14px;
+            Tile { title: "POSITION"; value: root.d.pos-text; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 80px; radius: 24px; }
+            Tile { title: "LAP"; value: root.d.lap-text; bg: FmTheme.slate; title-color: FmTheme.cyan; value-size: 56px; radius: 24px; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "CAR"; value: root.d.car-info; bg: FmTheme.slate; title-color: FmTheme.magenta; value-size: 48px; radius: 24px; }
+            Tile { title: "TOP SPEED"; value: root.d.max-speed + " " + root.d.speed-unit; bg: FmTheme.slate; title-color: FmTheme.magenta; value-size: 48px; radius: 24px; }
+        }
+    }
+}
+
+component FmMap inherits Rectangle {
+    background: FmTheme.bg;
+    TrackMap {
+        width: parent.width;
+        height: parent.height;
+        path: Sim.map-path;
+        dots: Sim.map-dots;
+        note: Sim.data.map-note;
+        track-color: FmTheme.cyan;
+        track-edge: FmTheme.slate-hi;
+        player-color: FmTheme.magenta;
+        line-width: 16px;
+        note-color: FmTheme.dim;
+    }
+}
+
+export component FmDash inherits DashShell {
+    background: FmTheme.bg;
+    brand: "FORZA MOTORSPORT";
+    tabs: ["APEX", "TYRES", "TIMING", "MAP"];
+    accent: FmTheme.magenta;
+    status-bg: FmTheme.slate;
+    nav-bg: #15181d;
+    nav-idle: FmTheme.slate;
+    toast-idle: #15181d;
+    toast-idle-text: FmTheme.dim;
+    nav-radius: 24px;
+
+    if Sim.layout == 0 : FmApex { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : FmTyres { width: parent.width; height: parent.height; }
+    if Sim.layout == 2 : FmTiming { width: parent.width; height: parent.height; }
+    if Sim.layout >= 3 : FmMap { width: parent.width; height: parent.height; }
+}

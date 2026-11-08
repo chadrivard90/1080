@@ -21,4 +21,6 @@ export global AppState {
     callback exit-app();
     // A persisted setting changed (demo toggle, selected layout).
     callback settings-changed();
+    // Track map tapped: rotate / mirror it (remembered per game).
+    callback rotate-map();
 }

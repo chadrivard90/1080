@@ -1,0 +1,202 @@
+// Automobilista 2 - "Endurance Weather Board". Clean, structural graphite panels with a teal
+// accent; flag panels flank the gear so track conditions are visible peripherally.
+// Tabs: WEATHER, TIMING, TYRES, MAP.
+
+import { Sim, SimData } from "../sim/sim_state.slint";
+import { DashShell, Tile, ShiftLights, RowItem, CornerTile } from "../sim/sim_widgets.slint";
+import { TrackMap } from "../map.slint";
+import { HBar } from "../common.slint";
+
+global Ams2Theme {
+    out property <color> bg: #0e1216;
+    out property <color> panel: #1a2027;
+    out property <color> panel-hi: #232b34;
+    out property <color> teal: #00c389;
+    out property <color> text: #f4f7fa;
+    out property <color> dim: #8b97a3;
+}
+
+// Flag panel: shows the current flag colour (grey = none).
+component FlagPanel inherits Rectangle {
+    property <bool> has-flag: Sim.data.banner-text != "" && !Sim.data.pit-limiter;
+    border-radius: 14px;
+    background: self.has-flag ? Sim.data.banner-color : Ams2Theme.panel;
+    border-width: 3px;
+    border-color: self.has-flag ? #ffffff : Ams2Theme.panel-hi;
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: parent.has-flag ? "FLAG" : "CLEAR";
+        color: parent.has-flag ? Sim.data.banner-text-color : Ams2Theme.dim;
+        font-size: 30px;
+        font-weight: 900;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+component Ams2Weather inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        ShiftLights { height: 70px; low: Ams2Theme.teal; mid: #ffc400; high: #ff3b3b; flash: #2f7bff; off: Ams2Theme.panel; }
+        // Gear + RPM flanked by flag panels
+        HorizontalLayout {
+            height: 400px;
+            spacing: 14px;
+            FlagPanel { width: 150px; }
+            Rectangle {
+                horizontal-stretch: 1;
+                background: Ams2Theme.panel;
+                border-radius: 14px;
+                VerticalLayout {
+                    padding: 14px;
+                    Text { vertical-stretch: 1; text: root.d.gear; color: Ams2Theme.text; font-size: 250px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    HorizontalLayout {
+                        height: 60px;
+                        Text { horizontal-stretch: 1; text: "\{root.d.speed} " + root.d.speed-unit; color: Ams2Theme.text; font-size: 44px; font-weight: 800; vertical-alignment: center; }
+                        Text { horizontal-stretch: 1; text: "\{root.d.rpm} RPM"; color: Ams2Theme.dim; font-size: 36px; font-weight: 800; horizontal-alignment: right; vertical-alignment: center; }
+                    }
+                    HBar { height: 16px; value: root.d.rpm-pct; fill: Ams2Theme.teal; track: Ams2Theme.panel-hi; }
+                }
+            }
+            FlagPanel { width: 150px; }
+        }
+        // Environment
+        HorizontalLayout {
+            height: 260px;
+            spacing: 14px;
+            Tile { title: "TRACK SURFACE"; value: root.d.track-temp; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 96px; }
+            Tile { title: "AMBIENT"; value: root.d.air-temp; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 96px; }
+        }
+        HorizontalLayout {
+            height: 260px;
+            spacing: 14px;
+            Tile {
+                title: "RAIN / WATER";
+                value: "\{root.d.rain-pct}%";
+                sub: root.d.weather;
+                bg: Ams2Theme.panel;
+                title-color: Ams2Theme.teal;
+                value-color: root.d.rain-pct > 40 ? #4ea8ff : Ams2Theme.text;
+                value-size: 96px;
+            }
+            Tile { title: "WIND"; value: root.d.wind; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 64px; }
+        }
+        // Pit plan
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "FUEL"; value: root.d.fuel; sub: root.d.fuel-laps + " LAPS"; bg: Ams2Theme.panel-hi; title-color: Ams2Theme.teal; value-size: 64px; }
+            Tile {
+                title: "TYRE WEAR";
+                value: root.d.fl.wear;
+                sub: "FL  " + root.d.fl.wear + "  FR " + root.d.fr.wear;
+                bg: Ams2Theme.panel-hi;
+                title-color: Ams2Theme.teal;
+                value-size: 64px;
+            }
+            Tile {
+                title: "PIT";
+                value: root.d.in-pit ? root.d.pit-text : root.d.time-left;
+                sub: root.d.in-pit ? "" : "SESSION LEFT";
+                bg: Ams2Theme.panel-hi;
+                title-color: Ams2Theme.teal;
+                value-color: root.d.in-pit ? #ffc400 : Ams2Theme.text;
+                value-size: 48px;
+            }
+        }
+    }
+}
+
+component Ams2Timing inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 8px;
+        HorizontalLayout {
+            height: 190px;
+            spacing: 12px;
+            Tile { title: "POSITION"; value: root.d.pos-text; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 64px; }
+            Tile { title: "GAP AHEAD"; value: root.d.gap-ahead; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 52px; }
+            Tile { title: "GAP BEHIND"; value: root.d.gap-behind; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 52px; }
+        }
+        HorizontalLayout {
+            height: 150px;
+            spacing: 12px;
+            Tile { title: "LAST"; value: root.d.last-lap; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 52px; }
+            Tile { title: "BEST"; value: root.d.best-lap; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 52px; value-color: #c04bff; }
+            Tile { title: "CURRENT"; value: root.d.current-lap; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 52px; value-color: root.d.lap-invalid ? #ff4a4a : Ams2Theme.text; }
+        }
+        for entry in Sim.standings : RowItem {
+            height: 54px;
+            item: entry;
+            bg: Ams2Theme.panel;
+            player-bg: #00c38955;
+            dim: Ams2Theme.dim;
+            font-size: 28px;
+        }
+        Rectangle { vertical-stretch: 1; }
+    }
+}
+
+component Ams2Tyres inherits Rectangle {
+    property <SimData> d: Sim.data;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+        HorizontalLayout {
+            height: 690px;
+            spacing: 14px;
+            CornerTile { label: "FL"; c: root.d.fl; bg: Ams2Theme.panel; dim: Ams2Theme.dim; }
+            CornerTile { label: "FR"; c: root.d.fr; bg: Ams2Theme.panel; dim: Ams2Theme.dim; }
+        }
+        HorizontalLayout {
+            height: 690px;
+            spacing: 14px;
+            CornerTile { label: "RL"; c: root.d.rl; bg: Ams2Theme.panel; dim: Ams2Theme.dim; }
+            CornerTile { label: "RR"; c: root.d.rr; bg: Ams2Theme.panel; dim: Ams2Theme.dim; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+            Tile { title: "BRAKE BIAS"; value: root.d.brake-bias; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 48px; }
+            Tile { title: "WATER"; value: root.d.has-water ? root.d.water : "--"; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 48px; }
+            Tile { title: "OIL"; value: root.d.oil-temp; sub: root.d.oil-press; bg: Ams2Theme.panel; title-color: Ams2Theme.teal; value-size: 48px; }
+        }
+    }
+}
+
+component Ams2Map inherits Rectangle {
+    background: Ams2Theme.bg;
+    TrackMap {
+        width: parent.width;
+        height: parent.height;
+        path: Sim.map-path;
+        dots: Sim.map-dots;
+        note: Sim.data.map-note;
+        track-color: #dfe6ec;
+        track-edge: #000000;
+        player-color: Ams2Theme.teal;
+        car-color: #ffffff;
+        line-width: 16px;
+    }
+}
+
+export component Ams2Dash inherits DashShell {
+    background: Ams2Theme.bg;
+    brand: "AMS2";
+    tabs: ["WEATHER", "TIMING", "TYRES", "MAP"];
+    accent: Ams2Theme.teal;
+    status-bg: Ams2Theme.panel;
+    nav-bg: #080b0e;
+    nav-idle: Ams2Theme.panel;
+    toast-idle: #080b0e;
+    toast-idle-text: Ams2Theme.dim;
+
+    if Sim.layout == 0 : Ams2Weather { width: parent.width; height: parent.height; }
+    if Sim.layout == 1 : Ams2Timing { width: parent.width; height: parent.height; }
+    if Sim.layout == 2 : Ams2Tyres { width: parent.width; height: parent.height; }
+    if Sim.layout >= 3 : Ams2Map { width: parent.width; height: parent.height; }
+}

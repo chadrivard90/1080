@@ -1,0 +1,665 @@
+// Themeable building blocks for the shared-engine dashes.
+//
+// Layout rule: tiles declare an equal preferred width and a zero minimum, and their text elides,
+// so rows split by stretch factor only. Panels never resize when a value gets longer.
+
+import { Sim, SimData, Corner, SimRow, DialLabel } from "sim_state.slint";
+import { AppState } from "../globals.slint";
+import { TouchButton, ToastStrip, HBar, VBar } from "../common.slint";
+
+// Caption + big value (+ optional sub line).
+export component Tile inherits Rectangle {
+    in property <string> title;
+    in property <string> value;
+    in property <string> sub;
+    in property <color> bg: #1b1c20;
+    in property <color> title-color: #9a9ca6;
+    in property <color> value-color: #ffffff;
+    in property <color> sub-color: #c8cad2;
+    in property <length> value-size: 64px;
+    in property <length> title-size: 22px;
+    in property <bool> italic: false;
+    in property <string> font: "";
+    in property <length> radius: 16px;
+    in property <color> edge: transparent;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: root.bg;
+    border-radius: root.radius;
+    border-width: 3px;
+    border-color: root.edge;
+    clip: true;
+    VerticalLayout {
+        padding: 12px;
+        spacing: 2px;
+        Text {
+            text: root.title;
+            color: root.title-color;
+            font-size: root.title-size;
+            font-weight: 800;
+            font-family: root.font;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            vertical-stretch: 1;
+            text: root.value;
+            color: root.value-color;
+            font-size: root.value-size;
+            font-weight: 900;
+            font-italic: root.italic;
+            font-family: root.font;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.sub != "" : Text {
+            text: root.sub;
+            color: root.sub-color;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: root.font;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+// 15-LED shift light strip.
+export component ShiftLights inherits Rectangle {
+    in property <color> low: #22c55e;
+    in property <color> mid: #ff2d2d;
+    in property <color> high: #2f7bff;
+    in property <color> flash: #2f7bff;
+    in property <color> off: #18191c;
+    in property <length> radius: 10px;
+    in property <length> gap: 8px;
+    background: transparent;
+    HorizontalLayout {
+        padding: 8px;
+        spacing: root.gap;
+        for i in 15 : Rectangle {
+            preferred-width: 10px;
+            border-radius: root.radius;
+            background: Sim.data.shift
+                ? (Sim.data.blink ? root.flash : root.off)
+                : (i < Sim.data.rev-count ? (i < 5 ? root.low : (i < 10 ? root.mid : root.high)) : root.off);
+        }
+    }
+}
+
+// Analog dial: ticks + labels + value arc + needle, drawn from Rust-made SVG paths (0..200 box).
+export component Dial inherits Rectangle {
+    in property <string> ticks;
+    in property <[DialLabel]> labels;
+    in property <string> arc;
+    in property <string> needle;
+    in property <string> value;
+    in property <string> unit;
+    in property <color> face: #141518;
+    in property <color> rim: #2c2e34;
+    in property <color> track-color: #2a2c31;
+    in property <color> arc-color: #e10600;
+    in property <color> tick-color: #d8d8de;
+    in property <color> label-color: #d8d8de;
+    in property <color> needle-color: #ff3b30;
+    in property <color> value-color: #ffffff;
+    in property <color> unit-color: #9a9ca6;
+    in property <length> value-size: 64px;
+    in property <length> label-size: 24px;
+    in property <length> arc-width: 10px;
+    in property <string> font: "";
+    in property <bool> show-face: true;
+    property <length> side: min(self.width, self.height);
+    property <length> ox: (self.width - self.side) / 2;
+    property <length> oy: (self.height - self.side) / 2;
+
+    if root.show-face : Rectangle {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        border-radius: root.side / 2;
+        background: root.face;
+        border-width: 6px;
+        border-color: root.rim;
+    }
+    Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 200;
+        viewbox-height: 200;
+        commands: Sim.dial-track;
+        stroke: root.track-color;
+        stroke-width: root.arc-width;
+        fill: transparent;
+    }
+    if root.arc != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 200;
+        viewbox-height: 200;
+        commands: root.arc;
+        stroke: root.arc-color;
+        stroke-width: root.arc-width;
+        fill: transparent;
+    }
+    if root.ticks != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 200;
+        viewbox-height: 200;
+        commands: root.ticks;
+        stroke: root.tick-color;
+        stroke-width: 3px;
+        fill: transparent;
+    }
+    for l in root.labels : Text {
+        x: root.ox + root.side * l.x / 200 - 40px;
+        y: root.oy + root.side * l.y / 200 - 18px;
+        width: 80px;
+        height: 36px;
+        text: l.text;
+        color: root.label-color;
+        font-size: root.label-size;
+        font-weight: 800;
+        font-family: root.font;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    Text {
+        x: root.ox;
+        y: root.oy + root.side * 0.60;
+        width: root.side;
+        height: root.value-size * 1.3;
+        text: root.value;
+        color: root.value-color;
+        font-size: root.value-size;
+        font-weight: 900;
+        font-family: root.font;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    Text {
+        x: root.ox;
+        y: root.oy + root.side * 0.60 + root.value-size * 1.25;
+        width: root.side;
+        height: 30px;
+        text: root.unit;
+        color: root.unit-color;
+        font-size: 22px;
+        font-weight: 800;
+        font-family: root.font;
+        horizontal-alignment: center;
+    }
+    if root.needle != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 200;
+        viewbox-height: 200;
+        commands: root.needle;
+        stroke: root.needle-color;
+        stroke-width: 8px;
+        fill: transparent;
+    }
+    Rectangle {
+        x: root.ox + root.side / 2 - 18px;
+        y: root.oy + root.side / 2 - 18px;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        background: root.needle-color;
+        border-width: 4px;
+        border-color: root.face;
+    }
+}
+
+// Centre-zero delta bar (green = faster).
+export component DeltaStrip inherits Rectangle {
+    in property <float> delta;
+    in property <bool> valid;
+    in property <string> text;
+    in property <string> title: "DELTA";
+    in property <color> bg: #1b1c20;
+    in property <color> faster: #22c55e;
+    in property <color> slower: #e0282b;
+    in property <color> title-color: #9a9ca6;
+    in property <length> font-size: 80px;
+    in property <string> font: "";
+    in property <length> radius: 16px;
+    property <float> frac: max(-1.0, min(1.0, root.delta));
+    property <float> mag: root.frac < 0 ? -root.frac : root.frac;
+    background: root.bg;
+    border-radius: root.radius;
+    clip: true;
+    if root.valid : Rectangle {
+        y: 0px;
+        height: parent.height;
+        width: parent.width / 2 * root.mag;
+        x: root.frac < 0 ? parent.width / 2 - self.width : parent.width / 2;
+        background: root.frac < 0 ? root.faster : root.slower;
+    }
+    Rectangle { x: parent.width / 2 - 2px; y: 0px; width: 4px; height: parent.height; background: #ffffff55; }
+    Text { x: 16px; y: 8px; text: root.title; color: root.title-color; font-size: 20px; font-weight: 800; font-family: root.font; }
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.valid ? root.text : "--.---";
+        color: #ffffff;
+        font-size: root.font-size;
+        font-weight: 900;
+        font-family: root.font;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Tyre / wheel tile: temps, pressure, wear, brake.
+export component CornerTile inherits Rectangle {
+    in property <Corner> c;
+    in property <string> label;
+    in property <color> bg: #1b1c20;
+    in property <color> text-color: #ffffff;
+    in property <color> dim: #9a9ca6;
+    in property <string> font: "";
+    in property <length> radius: 16px;
+    in property <bool> show-detail: true;
+    preferred-width: 100px;
+    min-width: 0px;
+    background: root.bg;
+    border-radius: root.radius;
+    border-width: 5px;
+    border-color: root.c.has-temp ? root.c.temp-color : #3a3c43;
+    clip: true;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 4px;
+        HorizontalLayout {
+            height: 30px;
+            Text { text: root.label; color: root.text-color; font-size: 26px; font-weight: 900; font-family: root.font; }
+            Text {
+                horizontal-stretch: 1;
+                text: root.c.wear != "" ? root.c.wear + " WORN" : "";
+                color: root.c.wear-pct > 0.6 ? #ff4a4a : (root.c.wear-pct > 0.35 ? #ffc400 : root.dim);
+                font-size: 22px;
+                font-weight: 800;
+                font-family: root.font;
+                horizontal-alignment: right;
+                overflow: elide;
+            }
+        }
+        Text {
+            vertical-stretch: 1;
+            text: root.c.has-temp ? root.c.temp : "--";
+            color: root.c.has-temp ? root.c.temp-color : root.dim;
+            font-size: 72px;
+            font-weight: 900;
+            font-family: root.font;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        if root.show-detail && root.c.detail != "" : Text {
+            text: "I/M/O  " + root.c.detail;
+            color: root.dim;
+            font-size: 22px;
+            font-weight: 800;
+            font-family: root.font;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            height: 36px;
+            spacing: 8px;
+            Text {
+                horizontal-stretch: 1;
+                preferred-width: 10px;
+                text: root.c.inner != "" ? "CORE " + root.c.inner : "";
+                color: root.c.inner-color;
+                font-size: 24px;
+                font-weight: 900;
+                font-family: root.font;
+                overflow: elide;
+            }
+            Text {
+                horizontal-stretch: 1;
+                preferred-width: 10px;
+                text: root.c.pressure != "" ? root.c.pressure + " PSI" : "";
+                color: root.c.pressure-color;
+                font-size: 24px;
+                font-weight: 900;
+                font-family: root.font;
+                horizontal-alignment: right;
+                overflow: elide;
+            }
+        }
+        if root.c.has-brake : Text {
+            text: "BRAKE " + root.c.brake;
+            color: root.c.brake-color;
+            font-size: 24px;
+            font-weight: 900;
+            font-family: root.font;
+            horizontal-alignment: center;
+        }
+        HBar { height: 10px; value: 1.0 - root.c.wear-pct; fill: root.c.wear-pct > 0.6 ? #ff4a4a : (root.c.wear-pct > 0.35 ? #ffc400 : #22c55e); }
+    }
+}
+
+// Friction circle: dot shows lateral / longitudinal G.
+export component GMeter inherits Rectangle {
+    in property <float> lat;
+    in property <float> long;
+    in property <float> max-g: 3.0;
+    in property <color> ring: #3a3c43;
+    in property <color> dot: #ff2d87;
+    in property <color> face: #0b0c0e;
+    property <length> side: min(self.width, self.height);
+    property <length> cx: self.width / 2;
+    property <length> cy: self.height / 2;
+    Rectangle {
+        x: root.cx - root.side / 2;
+        y: root.cy - root.side / 2;
+        width: root.side;
+        height: root.side;
+        border-radius: root.side / 2;
+        background: root.face;
+        border-width: 4px;
+        border-color: root.ring;
+    }
+    Rectangle {
+        x: root.cx - root.side / 4;
+        y: root.cy - root.side / 4;
+        width: root.side / 2;
+        height: root.side / 2;
+        border-radius: root.side / 4;
+        border-width: 2px;
+        border-color: root.ring;
+    }
+    Rectangle { x: root.cx - 1px; y: root.cy - root.side / 2; width: 2px; height: root.side; background: root.ring; }
+    Rectangle { x: root.cx - root.side / 2; y: root.cy - 1px; width: root.side; height: 2px; background: root.ring; }
+    Rectangle {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: root.dot;
+        drop-shadow-blur: 18px;
+        drop-shadow-color: root.dot;
+        x: root.cx + root.side / 2 * max(-1.0, min(1.0, root.lat / root.max-g)) - 20px;
+        y: root.cy - root.side / 2 * max(-1.0, min(1.0, root.long / root.max-g)) - 20px;
+    }
+}
+
+// Standings / relative row.
+export component RowItem inherits Rectangle {
+    in property <SimRow> item;
+    in property <color> bg: #1b1c20;
+    in property <color> player-bg: #e1060055;
+    in property <color> text-color: #ffffff;
+    in property <color> dim: #9a9ca6;
+    in property <color> pit-color: #ffc400;
+    in property <length> font-size: 30px;
+    in property <string> font: "";
+    in property <bool> italic: false;
+    border-radius: 8px;
+    background: root.item.player ? root.player-bg : root.bg;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 16px;
+        spacing: 12px;
+        Text {
+            width: 64px;
+            text: root.item.pos > 0 ? "\{root.item.pos}" : "";
+            color: root.text-color;
+            font-size: root.font-size;
+            font-weight: 900;
+            font-italic: root.italic;
+            font-family: root.font;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.item.name;
+            color: root.text-color;
+            font-size: root.font-size;
+            font-weight: root.item.player ? 900 : 700;
+            font-italic: root.italic;
+            font-family: root.font;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            width: 70px;
+            text: root.item.in-pit ? "PIT" : "";
+            color: root.pit-color;
+            font-size: 24px;
+            font-weight: 900;
+            font-family: root.font;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Text {
+            width: 200px;
+            text: root.item.detail;
+            color: root.dim;
+            font-size: root.font-size - 4px;
+            font-weight: 700;
+            font-family: root.font;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            width: 180px;
+            text: root.item.gap;
+            color: root.text-color;
+            font-size: root.font-size;
+            font-weight: 900;
+            font-family: root.font;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+// Overlay shown until telemetry arrives.
+component SimWaiting inherits Rectangle {
+    in property <color> accent;
+    in property <color> card: #15161a;
+    in property <string> font: "";
+    background: #000000c8;
+    Rectangle {
+        x: 50px;
+        y: (parent.height - self.height) / 2;
+        width: parent.width - 100px;
+        height: 820px;
+        background: root.card;
+        border-radius: 24px;
+        border-width: 4px;
+        border-color: root.accent;
+        VerticalLayout {
+            padding: 36px;
+            spacing: 12px;
+            Text {
+                text: "WAITING FOR " + Sim.game-name;
+                color: #ffffff;
+                font-size: 46px;
+                font-weight: 900;
+                font-italic: true;
+                font-family: root.font;
+                wrap: word-wrap;
+            }
+            Text {
+                text: Sim.data.status-text;
+                color: #ffd400;
+                font-size: 26px;
+                font-weight: 800;
+                font-family: root.font;
+                wrap: word-wrap;
+            }
+            Rectangle { height: 8px; }
+            for line in Sim.setup-lines : Text {
+                text: line;
+                color: #e0e0e6;
+                font-size: 28px;
+                font-weight: 700;
+                font-family: root.font;
+                wrap: word-wrap;
+            }
+            Rectangle { vertical-stretch: 1; }
+            Text {
+                text: "PI ADDRESS  " + AppState.ip-address + "      TIP: TURN ON DEMO ON THE TITLE SCREEN TO PREVIEW";
+                color: #8d8da3;
+                font-size: 20px;
+                font-weight: 800;
+                font-family: root.font;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+// Shared frame for every non-F1 dash: flag / status bar, content, pop-up strip, nav bar.
+// Put `if Sim.layout == N : SomeLayout { width: parent.width; height: parent.height; }`
+// children inside; they fill the content area.
+export component DashShell inherits Rectangle {
+    in property <[string]> tabs;
+    in property <color> accent: #e10600;
+    in property <color> status-bg: #101014;
+    in property <color> status-text: #ffffff;
+    in property <color> nav-bg: #050508;
+    in property <color> nav-idle: #1c1c24;
+    in property <color> nav-text: #ffffff;
+    in property <color> toast-idle: #0c0c10;
+    in property <color> toast-idle-text: #6c6e78;
+    in property <string> font: "";
+    in property <bool> italic: false;
+    in property <length> nav-radius: 14px;
+    in property <string> brand;
+
+    VerticalLayout {
+        // Status bar: becomes a full-colour flag banner when needed.
+        Rectangle {
+            height: 72px;
+            background: Sim.data.banner-text != "" ? Sim.data.banner-color : root.status-bg;
+            if Sim.data.banner-text == "" : HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 20px;
+                padding-right: 20px;
+                spacing: 16px;
+                Text {
+                    width: 260px;
+                    text: root.brand;
+                    color: root.accent;
+                    font-size: 28px;
+                    font-weight: 900;
+                    font-italic: root.italic;
+                    font-family: root.font;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: Sim.data.track-name != "" ? Sim.data.session-name + "  ·  " + Sim.data.track-name : Sim.data.session-name;
+                    color: root.status-text;
+                    font-size: 26px;
+                    font-weight: 800;
+                    font-family: root.font;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Text {
+                    width: 240px;
+                    text: Sim.data.lap-text != "" ? Sim.data.lap-text : Sim.data.time-left;
+                    color: root.status-text;
+                    font-size: 30px;
+                    font-weight: 900;
+                    font-family: root.font;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+            if Sim.data.banner-text != "" : Text {
+                width: parent.width;
+                height: parent.height;
+                text: Sim.data.banner-text;
+                color: Sim.data.banner-text-color;
+                font-size: 48px;
+                font-weight: 900;
+                font-italic: true;
+                font-family: root.font;
+                letter-spacing: 6px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                opacity: Sim.data.blink ? 1.0 : 0.75;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+            @children
+            if !Sim.data.connected : SimWaiting {
+                width: parent.width;
+                height: parent.height;
+                accent: root.accent;
+                font: root.font;
+            }
+        }
+
+        ToastStrip {
+            height: 96px;
+            text: Sim.data.event-text;
+            color: Sim.data.event-color;
+            text-color: Sim.data.event-text-color;
+            idle-text: Sim.data.connected ? Sim.data.pos-text + "      " + Sim.data.lap-text : "";
+            idle-color: root.toast-idle;
+            idle-text-color: root.toast-idle-text;
+        }
+
+        Rectangle {
+            height: 140px;
+            background: root.nav-bg;
+            Rectangle { x: 0px; y: 0px; width: parent.width; height: 4px; background: root.accent; }
+            HorizontalLayout {
+                padding: 14px;
+                padding-top: 18px;
+                spacing: 10px;
+                TouchButton {
+                    width: 150px;
+                    text: "HOME";
+                    accent: #8d8da3;
+                    idle-color: root.nav-idle;
+                    text-color: root.nav-text;
+                    font-size: 30px;
+                    border-radius: root.nav-radius;
+                    clicked => { AppState.go-home(); }
+                }
+                for name[i] in root.tabs : TouchButton {
+                    preferred-width: 100px;
+                    text: name;
+                    font-size: 28px;
+                    accent: root.accent;
+                    idle-color: root.nav-idle;
+                    text-color: root.nav-text;
+                    active: Sim.layout == i;
+                    border-radius: root.nav-radius;
+                    clicked => {
+                        Sim.layout = i;
+                        AppState.settings-changed();
+                    }
+                }
+            }
+        }
+    }
+}
