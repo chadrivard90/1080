@@ -225,6 +225,22 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
     d.rl = tyre(RL);
     d.rr = tyre(RR);
     d.temp_unit = if fahrenheit { "°F" } else { "°C" }.into();
+    // Flag tyres whose surface and core temperatures disagree (e.g. surface cooked, carcass cold).
+    let notes: Vec<String> = [("FL", FL), ("FR", FR), ("RL", RL), ("RR", RR)]
+        .iter()
+        .filter_map(|&(name, w)| {
+            let surface = tel.tyre_surface_temp[w] as f32;
+            let core = tel.tyre_inner_temp[w] as f32;
+            if surface > 110.0 && core < 85.0 {
+                Some(format!("{name} SURFACE HOT / CORE COLD"))
+            } else if surface < 80.0 && core > 105.0 {
+                Some(format!("{name} SURFACE COLD / CORE HOT"))
+            } else {
+                None
+            }
+        })
+        .collect();
+    d.tyre_note = notes.join("  ·  ").into();
 
     // --- damage ----------------------------------------------------------------------------
     d.wing_fl = part(dmg.fl_wing);
@@ -290,9 +306,9 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
         if done {
             let t = current[k];
             let (bg, fg) = if overall[k] > 0 && t <= overall[k] {
-                (hex(0xB545FF), hex(0xFFFFFF))
+                (hex(0xC04BFF), hex(0xFFFFFF))
             } else if pb_sectors[k] > 0 && t <= pb_sectors[k] {
-                (hex(0x00D26A), hex(0x000000))
+                (hex(0x2BFF88), hex(0x000000))
             } else {
                 (hex(0xFFD400), hex(0x000000))
             };
@@ -302,7 +318,7 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
             let active = lap.sector as usize == k;
             SectorInfo {
                 time: fmt_sector(prev).into(),
-                color: if active { hex(0x34344A) } else { hex(0x22222E) },
+                color: if active { hex(0x3A3C43) } else { hex(0x25272C) },
                 text_color: hex(0x8D8DA3),
                 ..Default::default()
             }

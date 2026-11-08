@@ -1,9 +1,10 @@
 // F1 25 dash shell: shift lights + flag/status bar on top, selected layout in the middle,
-// layout nav bar (with HOME) at the bottom. Shared across all five layouts.
+// layout nav bar (with HOME) at the bottom. Shared across all six layouts.
 
 import { F1, F1Theme, F1Data } from "f1_state.slint";
 import { AppState } from "../globals.slint";
 import { TouchButton, Caption } from "../common.slint";
+import { MfdLayout } from "layout_mfd.slint";
 import { RaceLayout } from "layout_race.slint";
 import { TimingLayout } from "layout_timing.slint";
 import { CarLayout } from "layout_car.slint";
@@ -22,8 +23,8 @@ component RevStrip inherits Rectangle {
             background: root.d.rev-max
                 ? (root.d.blink ? #2f7bff : #0c1430)
                 : (i < root.d.rev-count
-                    ? (i < 5 ? #00d26a : (i < 10 ? #ff1e1e : #b545ff))
-                    : #191922);
+                    ? (i < 5 ? F1Theme.green : (i < 10 ? #ff2d2d : F1Theme.purple))
+                    : #18191c);
         }
     }
 }
@@ -98,16 +99,16 @@ component F1NavBar inherits Rectangle {
         padding-top: 18px;
         spacing: 10px;
         TouchButton {
-            width: 170px;
+            width: 150px;
             text: "HOME";
             accent: #8d8da3;
             idle-color: #22222c;
-            font-size: 36px;
+            font-size: 32px;
             clicked => { AppState.go-home(); }
         }
-        for name[i] in ["RACE", "TIMING", "CAR", "TOWER", "STRAT"] : TouchButton {
+        for name[i] in ["MFD", "RACE", "TIMING", "CAR", "TOWER", "STRAT"] : TouchButton {
             text: name;
-            font-size: 32px;
+            font-size: 29px;
             accent: F1Theme.red;
             active: F1.layout == i;
             clicked => {
@@ -186,18 +187,20 @@ export component F1Dash inherits Rectangle {
     background: F1Theme.bg;
 
     VerticalLayout {
-        RevStrip { height: 76px; }
+        // The MFD layout has its own curved LED sweep.
+        if F1.layout != 0 : RevStrip { height: 76px; }
         StatusBar { height: 86px; }
 
         Rectangle {
             vertical-stretch: 1;
             clip: true;
 
-            if F1.layout == 0 : RaceLayout { width: parent.width; height: parent.height; }
-            if F1.layout == 1 : TimingLayout { width: parent.width; height: parent.height; }
-            if F1.layout == 2 : CarLayout { width: parent.width; height: parent.height; }
-            if F1.layout == 3 : TowerLayout { width: parent.width; height: parent.height; }
-            if F1.layout == 4 : StrategyLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 0 : MfdLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 1 : RaceLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 2 : TimingLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 3 : CarLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 4 : TowerLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 5 : StrategyLayout { width: parent.width; height: parent.height; }
 
             if F1.data.event-text != "" && F1.data.connected : EventToast {
                 x: 40px;

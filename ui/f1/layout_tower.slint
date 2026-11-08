@@ -1,16 +1,16 @@
-// TOWER layout â€” broadcast-style timing tower for the whole field.
+// TOWER layout - broadcast-style timing tower for the whole field.
 // Race: interval to car ahead + gap to leader. Practice/quali: best lap + gap to P1.
 
 import { F1, F1Theme, F1Data, StandingRow } from "f1_state.slint";
 import { Caption } from "../common.slint";
 
 component TowerRow inherits Rectangle {
-    in property <StandingRow> row;
+    in property <StandingRow> entry;
     border-radius: 10px;
-    background: root.row.player ? #e1060055 : F1Theme.panel;
-    border-width: root.row.player ? 3px : 0px;
+    background: root.entry.player ? #e1060055 : F1Theme.panel;
+    border-width: root.entry.player ? 3px : 0px;
     border-color: F1Theme.red;
-    opacity: root.row.retired ? 0.45 : 1.0;
+    opacity: root.entry.retired ? 0.45 : 1.0;
 
     HorizontalLayout {
         padding-left: 8px;
@@ -18,7 +18,7 @@ component TowerRow inherits Rectangle {
         spacing: 12px;
         Text {
             width: 64px;
-            text: "\{root.row.pos}";
+            text: "\{root.entry.pos}";
             color: #ffffff;
             font-size: 34px;
             font-weight: 900;
@@ -27,19 +27,19 @@ component TowerRow inherits Rectangle {
         }
         Rectangle {
             width: 10px;
-            background: root.row.team-color;
+            background: root.entry.team-color;
             border-radius: 3px;
         }
         Text {
             horizontal-stretch: 1;
-            text: root.row.name;
+            text: root.entry.name;
             color: #ffffff;
             font-size: 32px;
-            font-weight: root.row.player ? 900 : 700;
+            font-weight: root.entry.player ? 900 : 700;
             vertical-alignment: center;
             overflow: elide;
         }
-        if root.row.fastest : VerticalLayout {
+        if root.entry.fastest : VerticalLayout {
             alignment: center;
             Rectangle {
                 width: 30px;
@@ -50,8 +50,8 @@ component TowerRow inherits Rectangle {
         }
         Text {
             width: 90px;
-            text: root.row.status;
-            color: root.row.status == "PIT" ? F1Theme.yellow : F1Theme.red;
+            text: root.entry.status;
+            color: root.entry.status == "PIT" ? F1Theme.yellow : F1Theme.red;
             font-size: 26px;
             font-weight: 900;
             horizontal-alignment: center;
@@ -59,7 +59,7 @@ component TowerRow inherits Rectangle {
         }
         Text {
             width: 160px;
-            text: root.row.interval;
+            text: root.entry.interval;
             color: #ffffff;
             font-size: 30px;
             font-weight: 800;
@@ -68,7 +68,7 @@ component TowerRow inherits Rectangle {
         }
         Text {
             width: 160px;
-            text: root.row.gap;
+            text: root.entry.gap;
             color: #b8b8c8;
             font-size: 30px;
             font-weight: 700;
@@ -84,12 +84,12 @@ component TowerRow inherits Rectangle {
                 height: 44px;
                 border-radius: 22px;
                 border-width: 5px;
-                border-color: root.row.tyre-color;
+                border-color: root.entry.tyre-color;
                 background: #000000;
                 Text {
                     width: parent.width;
                     height: parent.height;
-                    text: root.row.tyre;
+                    text: root.entry.tyre;
                     color: #ffffff;
                     font-size: 20px;
                     font-weight: 900;
@@ -100,7 +100,7 @@ component TowerRow inherits Rectangle {
         }
         Text {
             width: 44px;
-            text: "\{root.row.tyre-age}";
+            text: "\{root.entry.tyre-age}";
             color: #b8b8c8;
             font-size: 26px;
             font-weight: 800;
@@ -108,7 +108,7 @@ component TowerRow inherits Rectangle {
         }
         Text {
             width: 40px;
-            text: root.row.pits > 0 ? "\{root.row.pits}" : "";
+            text: root.entry.pits > 0 ? "\{root.entry.pits}" : "";
             color: F1Theme.dim;
             font-size: 26px;
             font-weight: 800;
@@ -179,9 +179,9 @@ export component TowerLayout inherits Rectangle {
             Caption { width: 40px; text: "PIT"; horizontal-alignment: right; vertical-alignment: center; }
         }
 
-        for entry in F1.standings : TowerRow {
+        for standing in F1.standings : TowerRow {
             height: 60px;
-            row: entry;
+            entry: standing;
         }
 
         Rectangle { vertical-stretch: 1; }

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub struct Config {
     /// Feed the dashes with simulated data instead of listening for the game.
     pub demo: bool,
-    /// Last selected F1 25 layout tab.
+    /// Last selected F1 25 layout tab (0 = MFD).
     pub f1_layout: i32,
     /// UDP port F1 25 sends to (game default 20777).
     pub f1_port: u16,

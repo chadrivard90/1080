@@ -21,6 +21,7 @@ The screen sits to the right of the main monitor, so you only ever see it out of
 
 | Tab | Use it for | What's on it |
 |---|---|---|
+| **MFD** (default) | Everything, steering-wheel style | The "Halo MFD": a huge gear inside a curved 15-LED shift sweep, delta to best, ERS battery and deploy mode, a DRS light that flashes green when DRS becomes available, and a four-tyre matrix comparing surface and core temperature (it warns when the surface is hot but the core is cold) with brake temperature beside each wheel. |
 | **RACE** | Default, wheel-to-wheel | Huge gear, speed and RPM bar, position and lap, throttle/brake bars. **Gap ahead** (turns green inside 1.0 s, i.e. DRS range) and **gap behind** (turns red under 1.0 s). Live delta-to-best bar, last/best lap, DRS state, ERS %/mode, fuel +/- laps, 4-corner tyre temps/wear, brake bias/diff. |
 | **TIMING** | Quali / hot laps | Large live delta. The whole panel tints green or red. Current lap time, S1/S2/S3 boxes (purple/green/yellow), last/PB/ideal lap, session best. Lap-invalid warning. |
 | **CAR** | Engineer view | Top-down car with a tyre card at each corner: carcass temp (colour-coded), surface temp, pressure, brake temp, wear. Wing/floor/sidepod/diffuser/engine/gearbox damage. PU component wear, ERS deploy/harvest, fuel, G-force dot. |
@@ -67,15 +68,33 @@ Make the repo **public**. The free ARM build machines and the Pi's no-login down
 
 Every push to `main` runs [.github/workflows/release.yml](.github/workflows/release.yml) on a GitHub ARM64 machine. It runs the tests, builds the app for 64-bit Raspberry Pi OS, and publishes **`race-dash-aarch64.tar.gz`** as the latest release. Watch it under the repo's **Actions** tab. The first run takes about 10–15 minutes; later runs are faster because of caching. A red X means the build failed, and the log shows why.
 
-### 3. Install on the Pi (one time, no compiling)
+### 3. First install on the Pi (USB)
 
-Needs 64-bit Raspberry Pi OS with the desktop. In a terminal on the Pi (replace `<your-user>/race-dash`):
+Needs 64-bit Raspberry Pi OS with the desktop.
+
+1. On GitHub, open the repo's **Releases** and download **race-dash-aarch64.tar.gz**. Use the release asset, not the "Source code" download.
+2. Copy it to a USB stick and plug that into the Pi. Raspberry Pi OS mounts it under `/media/<user>/<stick-name>`.
+3. In a terminal on the Pi:
+
+```bash
+mkdir -p ~/race-dash && tar -xzf /media/$USER/*/race-dash-aarch64.tar.gz -C ~/race-dash
+```
+
+```bash
+bash ~/race-dash/scripts/setup.sh
+```
+
+This creates the **Race Dash** and **Update Race Dash** desktop icons. The tarball records which GitHub repo it came from, so after this, **Update Race Dash** gets new versions straight from GitHub.
+
+#### Or: install over the network instead of USB
+
+Replace `<your-user>/race-dash`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/<your-user>/race-dash/main/scripts/pi-install.sh | bash -s <your-user>/race-dash
 ```
 
-This downloads the latest release into `~/race-dash` and creates the **Race Dash** and **Update Race Dash** desktop icons.
+This downloads the latest release into `~/race-dash` and runs the same setup.
 
 > Prefer to compile on the Pi instead? `git clone` the repo and run `bash scripts/install-from-source.sh`. The updater detects which kind of install you have.
 ### 4. Point F1 25 at the Pi
@@ -125,7 +144,8 @@ ui/title.slint               title screen
 ui/common.slint              shared widgets (buttons, bars)
 ui/f1/f1_state.slint         F1 data structs, F1 global, F1 theme colours
 ui/f1/f1_dash.slint          shift lights, flag bar, nav bar, overlays
-ui/f1/layout_*.slint         the five F1 layouts
+ui/f1/layout_*.slint         the six F1 layouts (layout_mfd.slint = default)
+docs/game-themes.md          design brief for every game's theme
 src/main.rs                  app wiring
 src/games/f1_25/packets.rs   F1 25 UDP parser (format 2025) + delta tracker
 src/games/f1_25/view.rs      state -> UI data (formatting, colours)

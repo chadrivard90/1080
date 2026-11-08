@@ -112,6 +112,8 @@ export struct F1Data {
     rl: Tyre,
     rr: Tyre,
     temp-unit: string,
+    // e.g. "FL SURFACE HOT / CORE COLD" when surface and core disagree
+    tyre-note: string,
 
     // Damage / wear (percent + colour)
     wing-fl: Part,
@@ -198,23 +200,23 @@ export global F1 {
     in property <[StandingRow]> standings;
     in property <[LapRow]> laps;
     in property <[ForecastRow]> forecast;
-    // Selected layout tab: 0 race, 1 timing, 2 car, 3 tower, 4 strategy.
+    // Selected layout tab: 0 mfd, 1 race, 2 timing, 3 car, 4 tower, 5 strategy.
     in-out property <int> layout: 0;
 }
 
-// F1 25 visual theme: dark carbon, F1 red, broadcast-style accents.
+// F1 25 visual theme: steering-wheel MFD look - dark grey with sharp neon accents.
 export global F1Theme {
-    out property <color> bg: #0d0d13;
-    out property <color> panel: #1a1a24;
-    out property <color> panel-hi: #24243a;
-    out property <color> line: #34344a;
+    out property <color> bg: #0e0f11;
+    out property <color> panel: #1b1c20;
+    out property <color> panel-hi: #26282d;
+    out property <color> line: #3a3c43;
     out property <color> red: #e10600;
     out property <color> text: #ffffff;
-    out property <color> dim: #8d8da3;
-    out property <color> green: #00d26a;
-    out property <color> yellow: #ffd400;
-    out property <color> purple: #b545ff;
+    out property <color> dim: #9a9ca6;
+    out property <color> green: #2bff88;
+    out property <color> yellow: #ffe100;
+    out property <color> purple: #c04bff;
     out property <color> blue: #2f7bff;
     out property <color> orange: #ff8a00;
-    out property <color> ers: #ffd400;
+    out property <color> ers: #ffe100;
 }
