@@ -133,7 +133,7 @@ component PackPage inherits Rectangle {
                     }
                 }
             }
-            // RPM light bar follows the stat strip.
+            // Lap times, gaps, fuel
             NascarStrip {
                 vertical-stretch: 2;
                 stats: [
@@ -144,7 +144,9 @@ component PackPage inherits Rectangle {
                     { label: "BEHIND", value: root.d.gap-behind, tint: transparent },
                     { label: "FUEL LAPS", value: root.d.fuel-laps, tint: root.d.fuel-laps-num >= 0 && root.d.fuel-laps-num < 2 ? NascarTheme.red : transparent }
                 ];
-            }            Banner {
+            }
+            // RPM light bar
+            Banner {
                 vertical-stretch: 2;
                 fill: NascarTheme.ink-fill;
                 VerticalLayout {
