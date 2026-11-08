@@ -147,7 +147,7 @@ component FestDrift inherits Rectangle {
             vertical-stretch: 8;
             title: "DRIFT ZONE";
             Rectangle {
-                property <length> side: min(self.width, self.height) - 80px;
+                property <length> side: min(parent.width, parent.height) - 80px;
                 x: (parent.width - self.side) / 2;
                 y: (parent.height - self.side) / 2 + 20px;
                 width: self.side;
@@ -165,8 +165,8 @@ component FestDrift inherits Rectangle {
                     height: parent.height * 0.76;
                     source: @image-url("../img/car_drift.svg");
                     image-fit: contain;
-                    rotation-angle: root.d.drift-deg * 1deg;
-                    animate rotation-angle { duration: 80ms; }
+                    transform-rotation: root.d.drift-deg * 1deg;
+                    animate transform-rotation { duration: 80ms; }
                 }
             }
             Text {

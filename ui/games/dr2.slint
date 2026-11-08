@@ -137,8 +137,8 @@ component Dr2TachPage inherits Rectangle {
                 width: parent.side;
                 height: parent.side;
                 source: @image-url("../img/needle.svg");
-                rotation-angle: root.d.tach9-angle * 1deg;
-                animate rotation-angle { duration: 40ms; }
+                transform-rotation: root.d.tach9-angle * 1deg;
+                animate transform-rotation { duration: 40ms; }
             }
         }
         HorizontalLayout {

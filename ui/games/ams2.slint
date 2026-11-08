@@ -240,9 +240,9 @@ component HudWeather inherits Rectangle {
                             width: parent.width * 0.7;
                             height: parent.height * 0.7;
                             source: @image-url("../img/arrow.svg");
-                            rotation-angle: root.d.wind-deg * 1deg;
+                            transform-rotation: root.d.wind-deg * 1deg;
                             opacity: root.d.has-wind-dir ? 1.0 : 0.25;
-                            animate rotation-angle { duration: 800ms; }
+                            animate transform-rotation { duration: 800ms; }
                         }
                     }
                 }
