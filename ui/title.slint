@@ -20,56 +20,54 @@ component GameButton inherits Rectangle {
     drop-shadow-blur: touch.pressed ? 34px : 16px;
     drop-shadow-color: root.game.accent.transparentize(0.55);
 
-    // Optional AI art filling the button, darkened so the name stays readable.
+    // Optional AI art filling the button. Only the bottom edge is darkened (under the label),
+    // so the centre of the picture stays clear.
     if root.game.has-art : Image { width: parent.width; height: parent.height; source: root.game.art; image-fit: cover; }
-    if root.game.has-art : Rectangle {
+    Rectangle {
         width: parent.width;
         height: parent.height;
-        background: @linear-gradient(180deg, #00000022 0%, #00000088 55%, #000000dd 100%);
+        background: @linear-gradient(180deg, #00000000 0%, #00000000 52%, #000000b0 80%, #000000e6 100%);
     }
-    // Accent slash in the corner.
-    Path {
-        x: parent.width - 170px;
-        y: 0px;
-        width: 170px;
-        height: parent.height;
-        viewbox-width: 170;
-        viewbox-height: 300;
-        commands: "M 110 0 L 170 0 L 170 0 L 60 300 L 0 300 Z";
-        fill: root.game.accent.transparentize(0.82);
-    }
-    VerticalLayout {
-        padding: 18px;
-        spacing: 10px;
-        alignment: center;
-        // Emblem in a round frame (AI emblems can be square; the frame crops them).
-        HorizontalLayout {
+    // Accent bar down the left edge.
+    Rectangle { x: 0px; y: 0px; width: 8px; height: parent.height; background: root.game.accent; }
+
+    // Label anchored bottom-left: round emblem, then name over subtitle.
+    HorizontalLayout {
+        x: 22px;
+        y: parent.height - self.height - 14px;
+        width: parent.width - 40px;
+        height: 96px;
+        spacing: 14px;
+        Rectangle {
+            width: 88px;
+            height: 88px;
+            border-radius: 44px;
+            clip: true;
+            background: #000000;
+            Image { width: parent.width; height: parent.height; source: root.game.emblem; image-fit: cover; }
+            Rectangle { width: parent.width; height: parent.height; border-radius: 44px; border-width: 3px; border-color: root.game.accent; }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
             alignment: center;
-            Rectangle {
-                width: 140px;
-                height: 140px;
-                border-radius: 70px;
-                clip: true;
-                Image { width: parent.width; height: parent.height; source: root.game.emblem; image-fit: cover; }
+            spacing: 2px;
+            Text {
+                text: root.game.name;
+                color: #ffffff;
+                font-family: Fonts.russo;
+                font-size: 30px;
+                overflow: elide;
             }
-        }
-        Text {
-            text: root.game.name;
-            color: #ffffff;
-            font-family: Fonts.russo;
-            font-size: 40px;
-            horizontal-alignment: center;
-            wrap: word-wrap;
-        }
-        Text {
-            text: root.game.subtitle;
-            color: root.game.accent.brighter(0.5);
-            font-family: Fonts.titillium;
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 3px;
-            horizontal-alignment: center;
-            overflow: elide;
+            Text {
+                text: root.game.subtitle;
+                color: root.game.accent.brighter(0.5);
+                font-family: Fonts.titillium;
+                font-size: 19px;
+                font-weight: 800;
+                letter-spacing: 3px;
+                overflow: elide;
+            }
         }
     }
     touch := TouchArea {
@@ -125,8 +123,8 @@ export component TitleScreen inherits Rectangle {
                 padding-left: 56px;
                 alignment: center;
                 spacing: 0px;
-                Text { text: "RACE"; color: #ffffff; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
-                Text { text: "DASH"; color: #e10600; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
+                Text { text: "SIDE"; color: #ffffff; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
+                Text { text: "POD"; color: #e10600; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
                 Text { text: "SIM RACING TELEMETRY"; color: #b8b8c8; font-family: Fonts.titillium; font-size: 30px; font-weight: 800; letter-spacing: 8px; }
             }
             Rectangle { x: 0px; y: parent.height - 5px; width: parent.width; height: 5px; background: #e10600; }

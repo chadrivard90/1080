@@ -71,6 +71,7 @@ component Card inherits Rectangle {
         padding: 22px;
         padding-top: 16px;
         spacing: 10px;
+        alignment: start;
         Text { text: root.title; color: SetTheme.accent; font-family: Fonts.russo; font-size: 30px; letter-spacing: 2px; }
         @children
     }
@@ -127,6 +128,7 @@ export component SettingsScreen inherits Rectangle {
 
         // Display
         Card {
+            vertical-stretch: 0;
             title: "DISPLAY";
             OptionRow {
                 label: "DASH PANELS";
@@ -145,6 +147,7 @@ export component SettingsScreen inherits Rectangle {
 
         // Per game
         Card {
+            vertical-stretch: 0;
             title: "GAME  ·  " + root.names[root.g];
             // Game picker: 2 rows of 4.
             for gr in 2 : HorizontalLayout {
@@ -173,7 +176,7 @@ export component SettingsScreen inherits Rectangle {
                 hint: "Default \{AppState.set-default-port}";
                 Seg { label: "-100"; clicked => { AppState.set-port -= 100; AppState.game-settings-changed(); } }
                 Seg { label: "-1"; clicked => { AppState.set-port -= 1; AppState.game-settings-changed(); } }
-                Value { horizontal-stretch: 2; text: "\{AppState.set-port}"; }
+                Value { horizontal-stretch: 2; min-width: 150px; text: "\{AppState.set-port}"; }
                 Seg { label: "+1"; clicked => { AppState.set-port += 1; AppState.game-settings-changed(); } }
                 Seg { label: "+100"; clicked => { AppState.set-port += 100; AppState.game-settings-changed(); } }
                 Seg { label: "RESET"; clicked => { AppState.set-port = AppState.set-default-port; AppState.game-settings-changed(); } }

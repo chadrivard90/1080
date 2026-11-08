@@ -303,10 +303,10 @@ component WrcServicePage inherits Rectangle {
         WrcStrip {
             vertical-stretch: 1.2;
             stats: [
-                { label: "FL TYRE", value: root.d.fl.temp == "" ? "--" : root.d.fl.temp, tint: root.d.fl.temp-color },
-                { label: "FR TYRE", value: root.d.fr.temp == "" ? "--" : root.d.fr.temp, tint: root.d.fr.temp-color },
-                { label: "RL TYRE", value: root.d.rl.temp == "" ? "--" : root.d.rl.temp, tint: root.d.rl.temp-color },
-                { label: "RR TYRE", value: root.d.rr.temp == "" ? "--" : root.d.rr.temp, tint: root.d.rr.temp-color }
+                { label: "GEAR", value: root.d.gear, tint: transparent },
+                { label: "RPM", value: "\{root.d.rpm}", tint: root.d.shift ? WrcTheme.magenta : transparent },
+                { label: "TOP SPEED", value: root.d.max-speed, tint: transparent },
+                { label: "STAGE TIME", value: root.d.stage-time, tint: WrcTheme.cyan }
             ];
         }
         HorizontalLayout {
