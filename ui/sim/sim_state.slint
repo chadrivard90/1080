@@ -190,6 +190,13 @@ export struct SimData {
     brake-rear: string,
     brake-front-needle: string,
     brake-rear-needle: string,
+
+    // All-time personal best for this track + car, from the lap log.
+    has-pb: bool,
+    pb-lap: string,
+    // Last lap compared with the all-time best before it ("" until a lap is logged).
+    pb-gap: string,
+    pb-gap-good: bool,
 }
 
 export global Sim {

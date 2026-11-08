@@ -91,7 +91,7 @@ component FooterButton inherits Rectangle {
     drop-shadow-color: root.accent.transparentize(0.5);
     VerticalLayout {
         alignment: center;
-        Text { text: root.label; color: #ffffff; font-family: Fonts.russo; font-size: 40px; horizontal-alignment: center; }
+        Text { text: root.label; color: #ffffff; font-family: Fonts.russo; font-size: 34px; horizontal-alignment: center; }
         if root.sub != "" : Text { text: root.sub; color: #ffffffbb; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; horizontal-alignment: center; }
     }
     touch := TouchArea { clicked => { root.clicked(); } }
@@ -184,7 +184,15 @@ export component TitleScreen inherits Rectangle {
                 }
             }
             FooterButton {
-                width: 200px;
+                width: 230px;
+                label: "SETTINGS";
+                sub: "PORTS · LAP LOG";
+                accent: #9b59ff;
+                on: false;
+                clicked => { AppState.open-settings(); }
+            }
+            FooterButton {
+                width: 160px;
                 label: "DEMO";
                 sub: AppState.demo-mode ? "ON" : "OFF";
                 accent: #2f7bff;
@@ -195,7 +203,7 @@ export component TitleScreen inherits Rectangle {
                 }
             }
             FooterButton {
-                width: 200px;
+                width: 160px;
                 label: "EXIT";
                 sub: "";
                 accent: #e10600;

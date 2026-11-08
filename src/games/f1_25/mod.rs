@@ -28,7 +28,7 @@ pub struct F1Session {
 }
 
 impl F1Session {
-    pub fn start(ui: &crate::AppWindow, demo: bool, port: u16, map_orient: Rc<Cell<u8>>) -> Self {
+    pub fn start(ui: &crate::AppWindow, demo: bool, port: u16, fuel_margin: f32, map_orient: Rc<Cell<u8>>) -> Self {
         let shared = Arc::new(Mutex::new(F1State::default()));
         let stop = Arc::new(AtomicBool::new(false));
 
@@ -47,7 +47,7 @@ impl F1Session {
                 .ok()
         };
 
-        let models = view::Models::new(map_orient);
+        let models = view::Models::new(map_orient, fuel_margin, !demo);
         let f1 = ui.global::<crate::F1>();
         f1.set_map_dots(ModelRc::from(models.map_dots.clone()));
         f1.set_relative(ModelRc::from(models.relative.clone()));

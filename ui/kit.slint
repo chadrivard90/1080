@@ -38,11 +38,11 @@ component TabButton inherits Rectangle {
     drop-shadow-blur: root.active ? 18px : 0px;
     drop-shadow-color: root.accent.transparentize(0.4);
     VerticalLayout {
-        padding: 8px;
-        spacing: 4px;
+        padding: 4px;
+        spacing: 2px;
         alignment: center;
         Image {
-            height: 44px;
+            height: 34px;
             source: root.tab.icon;
             colorize: root.active ? root.active-text : root.text-color;
             image-fit: contain;
@@ -51,7 +51,7 @@ component TabButton inherits Rectangle {
             text: root.tab.label;
             color: root.active ? root.active-text : root.text-color;
             font-family: root.font;
-            font-size: 24px;
+            font-size: 21px;
             font-weight: 800;
             horizontal-alignment: center;
             overflow: elide;
@@ -81,11 +81,11 @@ export component Dock inherits Rectangle {
     background: root.bg;
     Rectangle { x: 0px; y: 0px; width: parent.width; height: 3px; background: root.accent; }
     HorizontalLayout {
-        padding: 12px;
-        padding-top: 14px;
-        spacing: 12px;
+        padding: 10px;
+        padding-top: 12px;
+        spacing: 10px;
         for t[i] in root.tabs : TabButton {
-            width: 196px;
+            width: 176px;
             tab: t;
             active: root.active == i;
             accent: root.accent;
@@ -111,10 +111,12 @@ export component Dock inherits Rectangle {
                 text: root.pill-text;
                 color: root.pill-text-color;
                 font-family: root.font;
-                font-size: root.pill-alert ? 28px : 24px;
+                font-size: root.pill-alert ? 26px : 22px;
                 font-weight: 900;
                 horizontal-alignment: center;
                 vertical-alignment: center;
+                // Long alerts wrap onto a second line instead of being cut off.
+                wrap: word-wrap;
                 overflow: elide;
             }
         }
@@ -126,10 +128,10 @@ export component Dock inherits Rectangle {
             border-width: 2px;
             border-color: #c8323a;
             VerticalLayout {
-                padding: 8px;
-                spacing: 4px;
+                padding: 4px;
+                spacing: 2px;
                 alignment: center;
-                Image { height: 40px; source: @image-url("img/icons/menu.svg"); colorize: #ff6b6b; image-fit: contain; }
+                Image { height: 32px; source: @image-url("img/icons/menu.svg"); colorize: #ff6b6b; image-fit: contain; }
                 Text { text: "MENU"; color: #ffb3b3; font-family: root.font; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
             }
             menu-touch := TouchArea { clicked => { AppState.go-home(); } }
@@ -160,6 +162,8 @@ export component GhostText inherits Rectangle {
         width: parent.width;
         height: parent.height;
         text: root.ghost;
+        // Placeholders such as "--" don't line up with the segments, so hide them then.
+        visible: root.text != "--" && root.text != "--.---" && root.text != "-:--.---" && root.text != "--:--" && root.text != "";
         color: root.color-off;
         font-family: root.font;
         font-size: root.size;
@@ -175,6 +179,70 @@ export component GhostText inherits Rectangle {
         font-size: root.size;
         horizontal-alignment: root.align;
         vertical-alignment: center;
+    }
+}
+
+// One small labelled value in a StatStrip.
+export struct Stat {
+    label: string,
+    value: string,
+    // transparent = use the strip's value colour
+    tint: color,
+}
+
+// A row of equal cells, each a small caption over a value. Packs secondary data densely.
+export component StatStrip inherits Rectangle {
+    in property <[Stat]> stats;
+    in property <brush> cell-bg: #1b1c20;
+    in property <color> edge: transparent;
+    in property <color> label-color: #9a9ca6;
+    in property <color> value-color: #ffffff;
+    in property <string> font: "";
+    in property <string> label-font: root.font;
+    in property <length> radius: 12px;
+    in property <length> value-size: 40px;
+    in property <length> label-size: 18px;
+    in property <length> gap: 10px;
+    in property <bool> italic: false;
+    min-height: 0px;
+    preferred-height: 0px;
+    min-width: 0px;
+    preferred-width: 100px;
+    HorizontalLayout {
+        spacing: root.gap;
+        for s in root.stats : Rectangle {
+            preferred-width: 10px;
+            min-width: 0px;
+            background: root.cell-bg;
+            border-radius: root.radius;
+            border-width: root.edge == transparent ? 0px : 1px;
+            border-color: root.edge;
+            clip: true;
+            VerticalLayout {
+                padding: 4px;
+                spacing: 0px;
+                alignment: center;
+                Text {
+                    text: s.label;
+                    color: root.label-color;
+                    font-size: root.label-size;
+                    font-weight: 800;
+                    font-family: root.label-font;
+                    horizontal-alignment: center;
+                    overflow: elide;
+                }
+                Text {
+                    text: s.value;
+                    color: s.tint == transparent ? root.value-color : s.tint;
+                    font-size: root.value-size;
+                    font-weight: 900;
+                    font-italic: root.italic;
+                    font-family: root.font;
+                    horizontal-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
     }
 }
 

@@ -6,13 +6,17 @@
 
 import { Sim, SimData, Corner, SimRow, DynoBar } from "../sim/sim_state.slint";
 import { DashShell, GMeter, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts } from "../kit.slint";
+import { Fonts, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
 global FmTheme {
     out property <color> slate: #2b2e33;
-    out property <color> glass: #2b2e3388;
+    // Fills, see-through per the PANELS setting.
+    out property <color> glass: rgba(43, 46, 51, 0.85 * AppState.panel);
+    out property <color> well: rgba(31, 34, 39, AppState.panel);
+    out property <color> shadow: rgba(0, 0, 0, 0.4 * AppState.shade);
     out property <color> edge: #ffffff33;
     out property <color> magenta: #e6007e;
     out property <color> cyan: #00d1ff;
@@ -33,7 +37,7 @@ component FmGlass inherits Rectangle {
     border-width: 1px;
     border-color: FmTheme.edge;
     drop-shadow-blur: 30px;
-    drop-shadow-color: #00000066;
+    drop-shadow-color: FmTheme.shadow;
     clip: true;
     if root.title != "" : Text {
         x: 24px;
@@ -41,10 +45,23 @@ component FmGlass inherits Rectangle {
         text: root.title;
         color: FmTheme.dim;
         font-family: Fonts.titillium;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 900;
         letter-spacing: 3px;
     }
+}
+
+// Glass stat strip.
+component FmStrip inherits StatStrip {
+    cell-bg: FmTheme.glass;
+    edge: FmTheme.edge;
+    label-color: FmTheme.dim;
+    value-color: FmTheme.text;
+    font: Fonts.titillium;
+    value-size: 34px;
+    label-size: 17px;
+    radius: 18px;
+    gap: 14px;
 }
 
 component FmApexPage inherits Rectangle {
@@ -54,7 +71,7 @@ component FmApexPage inherits Rectangle {
         spacing: 20px;
         // Sleek RPM arc with gear + speed
         FmGlass {
-            vertical-stretch: 6;
+            vertical-stretch: 5;
             Rectangle {
                 property <length> side: min(self.width, self.height) * 1.05;
                 width: parent.width;
@@ -87,13 +104,13 @@ component FmApexPage inherits Rectangle {
                     width: parent.width;
                     height: parent.height;
                     alignment: center;
-                    Text { text: root.d.gear; color: FmTheme.text; font-family: Fonts.titillium; font-size: 230px; font-weight: 900; horizontal-alignment: center; }
-                    Text { text: "\{root.d.speed} " + root.d.speed-unit; color: FmTheme.cyan; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; horizontal-alignment: center; }
+                    Text { text: root.d.gear; color: FmTheme.text; font-family: Fonts.titillium; font-size: 170px; font-weight: 900; horizontal-alignment: center; }
+                    Text { text: "\{root.d.speed} " + root.d.speed-unit; color: FmTheme.cyan; font-family: Fonts.titillium; font-size: 44px; font-weight: 900; horizontal-alignment: center; }
                 }
             }
         }
         DeltaStrip {
-            vertical-stretch: 2;
+            vertical-stretch: 1.4;
             title: "SPLIT VS BEST LAP";
             delta: root.d.delta;
             valid: root.d.has-delta;
@@ -103,11 +120,31 @@ component FmApexPage inherits Rectangle {
             slower: FmTheme.magenta;
             radius: 25px;
             font: Fonts.titillium;
-            font-size: 90px;
+            font-size: 60px;
+        }
+        FmStrip {
+            vertical-stretch: 1.2;
+            stats: [
+                { label: root.d.lap-invalid ? "CURRENT · INVALID" : "CURRENT", value: root.d.current-lap, tint: root.d.lap-invalid ? FmTheme.magenta : transparent },
+                { label: "LAST VS ALL-TIME", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? FmTheme.dim : (root.d.pb-gap-good ? FmTheme.cyan : FmTheme.magenta) },
+                { label: "LAP", value: root.d.lap-text == "" ? "--" : root.d.lap-text, tint: transparent },
+                { label: "FUEL", value: root.d.fuel, tint: transparent },
+                { label: "TOP SPEED", value: root.d.max-speed, tint: transparent }
+            ];
+        }
+        FmStrip {
+            vertical-stretch: 1.2;
+            stats: [
+                { label: "FL", value: root.d.fl.temp == "" ? "--" : root.d.fl.temp, tint: root.d.fl.temp-color },
+                { label: "FR", value: root.d.fr.temp == "" ? "--" : root.d.fr.temp, tint: root.d.fr.temp-color },
+                { label: "RL", value: root.d.rl.temp == "" ? "--" : root.d.rl.temp, tint: root.d.rl.temp-color },
+                { label: "RR", value: root.d.rr.temp == "" ? "--" : root.d.rr.temp, tint: root.d.rr.temp-color },
+                { label: "BOOST", value: root.d.has-boost ? root.d.boost : "--", tint: transparent }
+            ];
         }
         // Friction circle
         HorizontalLayout {
-            vertical-stretch: 6;
+            vertical-stretch: 5;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 20px;
@@ -132,15 +169,19 @@ component FmApexPage inherits Rectangle {
                 spacing: 20px;
                 FmGlass {
                     title: "LAST LAP";
-                    Text { width: parent.width; height: parent.height; text: root.d.last-lap; color: FmTheme.text; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.last-lap; color: FmTheme.text; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 FmGlass {
                     title: "BEST LAP";
-                    Text { width: parent.width; height: parent.height; text: root.d.best-lap; color: FmTheme.magenta; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.best-lap; color: FmTheme.magenta; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                }
+                FmGlass {
+                    title: "ALL-TIME BEST";
+                    Text { width: parent.width; height: parent.height; text: root.d.pb-lap; color: #b98cff; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 FmGlass {
                     title: "POSITION";
-                    Text { width: parent.width; height: parent.height; text: root.d.pos-text; color: FmTheme.cyan; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.pos-text; color: FmTheme.cyan; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
             }
         }
@@ -166,7 +207,7 @@ component SlipCircle inherits Rectangle {
         drop-shadow-blur: root.c.slip > 1.0 ? 30px : 0px;
         drop-shadow-color: FmTheme.cyan;
         animate background { duration: 150ms; easing: ease-out; }
-        Text { width: parent.width; height: parent.height; text: root.label; color: #ffffff; font-family: Fonts.titillium; font-size: 40px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+        Text { width: parent.width; height: parent.height; text: root.label; color: #ffffff; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
     }
 }
 
@@ -177,14 +218,15 @@ component HeatTile inherits Rectangle {
     min-width: 0px;
     preferred-width: 100px;
     border-radius: 25px;
-    background: @radial-gradient(circle, root.c.inner-color 0%, root.c.temp-color 100%);
+    background: @radial-gradient(circle, root.c.inner-color.transparentize(0.5 * AppState.fade) 0%, root.c.temp-color.transparentize(0.5 * AppState.fade) 100%);
     border-width: 1px;
     border-color: FmTheme.edge;
     VerticalLayout {
         alignment: center;
-        Text { text: root.label; color: #000000aa; font-family: Fonts.titillium; font-size: 26px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: root.c.temp != "" ? root.c.temp : "--"; color: #000000; font-family: Fonts.titillium; font-size: 72px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: root.c.wear != "" ? root.c.wear + " WORN" : ""; color: #000000bb; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.label; color: #000000aa; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.c.temp != "" ? root.c.temp : "--"; color: #000000; font-family: Fonts.titillium; font-size: 52px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.c.wear != "" ? root.c.wear + " WORN" : ""; color: #000000bb; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.c.pressure != "" ? root.c.pressure + " PSI" : ""; color: #000000bb; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
     }
 }
 
@@ -199,7 +241,7 @@ component LoadBar inherits Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
             border-radius: 18px;
-            background: #1f2227;
+            background: FmTheme.well;
             clip: true;
             Rectangle {
                 x: 0px;
@@ -274,11 +316,11 @@ component PedalBar inherits Rectangle {
     preferred-height: 0px;
     HorizontalLayout {
         spacing: 16px;
-        Text { width: 150px; text: root.label; color: FmTheme.dim; font-family: Fonts.titillium; font-size: 28px; font-weight: 900; vertical-alignment: center; }
+        Text { width: 130px; text: root.label; color: FmTheme.dim; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; vertical-alignment: center; }
         Rectangle {
             horizontal-stretch: 1;
             border-radius: 20px;
-            background: #1f2227;
+            background: FmTheme.well;
             clip: true;
             Rectangle {
                 x: 0px;
@@ -339,7 +381,7 @@ component FmDynoPage inherits Rectangle {
                         bg: #ffffff0a;
                         player-bg: #e6007e66;
                         font: Fonts.titillium;
-                        font-size: 30px;
+                        font-size: 26px;
                         radius: 12px;
                     }
                     Rectangle { vertical-stretch: 0.01; }

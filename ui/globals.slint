@@ -10,12 +10,52 @@ export struct GameInfo {
     has-art: bool,
 }
 
+// One game + track + car from the lap log (settings page).
+export struct BestRow {
+    track: string,
+    car: string,
+    time: string,
+    laps: string,
+}
+
 export global AppState {
+    // ---- settings page (page 9). Rust fills these for the selected game. ----------------
+    // Title-screen index of the game being edited (0 F1 .. 7 FH6).
+    in-out property <int> set-game: 0;
+    in-out property <bool> set-imperial: false;
+    // F1 25 takes units from the game's own settings.
+    in property <bool> set-units-from-game: false;
+    in-out property <int> set-port: 20777;
+    in property <int> set-default-port: 20777;
+    // Shift-light point, percent of max RPM (80..100). Not used by F1 25 (game sends its own).
+    in-out property <int> set-shift: 97;
+    in property <bool> set-shift-from-game: false;
+    // Extra laps of fuel to keep in hand, in tenths of a lap (0..50).
+    in-out property <int> set-fuel-tenths: 5;
+    in property <string> set-fuel-text: "+0.5 LAPS";
+    in property <[BestRow]> bests;
+    in property <string> log-path: "";
+    in property <string> log-summary: "";
+    callback open-settings();
+    callback settings-pick-game(int);
+    // A per-game value on the settings page changed: save it.
+    callback game-settings-changed();
+
     in property <string> ip-address: "--";
     in property <string> version: "";
     in property <string> art-status: "";
     in property <int> f1-port: 20777;
     in-out property <bool> demo-mode: false;
+    // Dash panel see-through level: 0 solid, 1 glass, 2 clear (title screen PANELS button).
+    in-out property <int> glass: 1;
+    // Opacity multiplier for panel fills, and for their drop shadows.
+    out property <float> panel: root.glass == 0 ? 0.94 : (root.glass == 1 ? 0.62 : 0.38);
+    out property <float> shade: root.glass == 0 ? 1.0 : (root.glass == 1 ? 0.6 : 0.35);
+    // Ready-made transparentize() factors: colour.transparentize(AppState.fade) keeps
+    // `panel` of its opacity; .transparentize(AppState.shadow-fade) does the same for shadows.
+    out property <float> fade: 1 - root.panel;
+    out property <float> shadow-fade: 1 - root.shade;
+    out property <string> glass-name: root.glass == 0 ? "SOLID" : (root.glass == 1 ? "GLASS" : "CLEAR");
 
     // Title screen tile tapped (index into the title screen's game list).
     callback select-game(int);

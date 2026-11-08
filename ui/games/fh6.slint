@@ -5,13 +5,16 @@
 
 import { Sim, SimData } from "../sim/sim_state.slint";
 import { DashShell } from "../sim/sim_widgets.slint";
-import { Fonts } from "../kit.slint";
+import { Fonts, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
 global FestTheme {
     out property <brush> sky: @linear-gradient(155deg, #ff2d87 0%, #ff7a59 30%, #ffe14d 60%, #3dffc5 100%);
-    out property <color> frost: #1a0b2e8c;
+    // Frosted fill, see-through per the PANELS setting.
+    out property <color> frost: rgba(26, 11, 46, 0.9 * AppState.panel);
+    out property <color> shadow: rgba(58, 0, 90, 0.33 * AppState.shade);
     out property <color> frost-edge: #ffffff66;
     out property <color> pink: #ff2d87;
     out property <color> yellow: #ffe14d;
@@ -31,7 +34,7 @@ component Frost inherits Rectangle {
     border-width: 2px;
     border-color: FestTheme.frost-edge;
     drop-shadow-blur: 30px;
-    drop-shadow-color: #3a005a55;
+    drop-shadow-color: FestTheme.shadow;
     clip: true;
     if root.title != "" : Text {
         x: 28px;
@@ -39,8 +42,22 @@ component Frost inherits Rectangle {
         text: root.title;
         color: FestTheme.yellow;
         font-family: Fonts.marker;
-        font-size: 36px;
+        font-size: 28px;
     }
+}
+
+// Frosted stat strip.
+component FestStrip inherits StatStrip {
+    cell-bg: FestTheme.frost;
+    edge: FestTheme.frost-edge;
+    label-color: FestTheme.yellow;
+    value-color: FestTheme.text;
+    font: Fonts.russo;
+    value-size: 34px;
+    label-size: 18px;
+    radius: 22px;
+    gap: 14px;
+    italic: true;
 }
 
 component FestCruise inherits Rectangle {
@@ -50,7 +67,7 @@ component FestCruise inherits Rectangle {
         spacing: 22px;
         // Stylised speedometer
         Frost {
-            vertical-stretch: 8;
+            vertical-stretch: 7;
             Rectangle {
                 property <length> side: min(self.width, self.height) * 1.02;
                 width: parent.width;
@@ -84,8 +101,9 @@ component FestCruise inherits Rectangle {
                     height: parent.height;
                     alignment: center;
                     spacing: 0px;
-                    Text { text: "\{root.d.speed}"; color: FestTheme.text; font-family: Fonts.russo; font-size: 270px; font-italic: true; horizontal-alignment: center; }
-                    Text { text: root.d.speed-unit; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 72px; horizontal-alignment: center; }
+                    Text { text: "\{root.d.speed}"; color: FestTheme.text; font-family: Fonts.russo; font-size: 180px; font-italic: true; horizontal-alignment: center; }
+                    Text { text: root.d.speed-unit; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 48px; horizontal-alignment: center; }
+                    Text { text: "GEAR " + root.d.gear; color: FestTheme.mint; font-family: Fonts.russo; font-size: 44px; font-italic: true; horizontal-alignment: center; }
                 }
             }
         }
@@ -114,6 +132,24 @@ component FestCruise inherits Rectangle {
                 }
             }
         }
+        FestStrip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "RPM", value: "\{root.d.rpm}", tint: root.d.shift ? FestTheme.pink : transparent },
+                { label: "TOP SPEED", value: root.d.max-speed, tint: transparent },
+                { label: "DISTANCE", value: root.d.distance, tint: transparent },
+                { label: "HEADING", value: root.d.heading, tint: FestTheme.mint }
+            ];
+        }
+        FestStrip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "POWER", value: root.d.power, tint: transparent },
+                { label: "TORQUE", value: root.d.torque, tint: transparent },
+                { label: "BOOST", value: root.d.has-boost ? root.d.boost : "--", tint: transparent },
+                { label: "LIVE G", value: root.d.g-text, tint: FestTheme.mint }
+            ];
+        }
         // Car card (media-player style)
         Frost {
             vertical-stretch: 3;
@@ -129,9 +165,9 @@ component FestCruise inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    Text { text: "NOW DRIVING"; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 34px; }
-                    Text { text: root.d.car-info; color: FestTheme.text; font-family: Fonts.russo; font-size: 56px; overflow: elide; }
-                    Text { text: "GEAR " + root.d.gear + "   ·   \{root.d.rpm} RPM"; color: FestTheme.dim; font-family: Fonts.russo; font-size: 30px; overflow: elide; }
+                    Text { text: "NOW DRIVING"; color: FestTheme.yellow; font-family: Fonts.marker; font-size: 28px; }
+                    Text { text: root.d.car-info; color: FestTheme.text; font-family: Fonts.russo; font-size: 42px; overflow: elide; }
+                    Text { text: "ALL-TIME LAP  " + root.d.pb-lap + "   ·   LAST  " + root.d.last-lap; color: FestTheme.dim; font-family: Fonts.russo; font-size: 24px; overflow: elide; }
                 }
             }
         }
@@ -177,7 +213,7 @@ component FestDrift inherits Rectangle {
                 text: root.d.drift-text;
                 color: FestTheme.text;
                 font-family: Fonts.russo;
-                font-size: 80px;
+                font-size: 60px;
                 font-italic: true;
                 horizontal-alignment: right;
             }
@@ -186,11 +222,11 @@ component FestDrift inherits Rectangle {
         Frost {
             vertical-stretch: 3;
             border-color: root.d.drifting ? FestTheme.pink : FestTheme.frost-edge;
-            drop-shadow-color: root.d.drifting ? FestTheme.pink : #3a005a55;
+            drop-shadow-color: root.d.drifting ? FestTheme.pink : FestTheme.shadow;
             HorizontalLayout {
                 padding: 24px;
-                Text { text: root.d.drifting ? "DRIFT!" : "SCORE"; color: root.d.drifting ? FestTheme.pink : FestTheme.yellow; font-family: Fonts.marker; font-size: 64px; vertical-alignment: center; }
-                Text { horizontal-stretch: 1; text: root.d.drift-score; color: FestTheme.text; font-family: Fonts.russo; font-size: 130px; font-italic: true; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
+                Text { text: root.d.drifting ? "DRIFT!" : "SCORE"; color: root.d.drifting ? FestTheme.pink : FestTheme.yellow; font-family: Fonts.marker; font-size: 48px; vertical-alignment: center; }
+                Text { horizontal-stretch: 1; text: root.d.drift-score; color: FestTheme.text; font-family: Fonts.russo; font-size: 96px; font-italic: true; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
             }
         }
         HorizontalLayout {
@@ -200,11 +236,15 @@ component FestDrift inherits Rectangle {
             spacing: 22px;
             Frost {
                 title: "PEAK LATERAL G";
-                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.peak-lat-g; color: FestTheme.text; font-family: Fonts.russo; font-size: 84px; horizontal-alignment: center; vertical-alignment: center; }
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.peak-lat-g; color: FestTheme.text; font-family: Fonts.russo; font-size: 56px; horizontal-alignment: center; vertical-alignment: center; }
+            }
+            Frost {
+                title: "YAW RATE";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.yaw-rate; color: FestTheme.yellow; font-family: Fonts.russo; font-size: 56px; horizontal-alignment: center; vertical-alignment: center; }
             }
             Frost {
                 title: "LIVE G";
-                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.g-text; color: FestTheme.mint; font-family: Fonts.russo; font-size: 84px; horizontal-alignment: center; vertical-alignment: center; }
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.g-text; color: FestTheme.mint; font-family: Fonts.russo; font-size: 56px; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
     }
@@ -266,11 +306,15 @@ component FestExplorer inherits Rectangle {
             spacing: 22px;
             Frost {
                 title: "TOP SPEED";
-                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.max-speed + " " + root.d.speed-unit; color: FestTheme.text; font-family: Fonts.russo; font-size: 64px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.max-speed + " " + root.d.speed-unit; color: FestTheme.text; font-family: Fonts.russo; font-size: 46px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
+            }
+            Frost {
+                title: "DISTANCE";
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.distance; color: FestTheme.yellow; font-family: Fonts.russo; font-size: 46px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
             }
             Frost {
                 title: "ELEVATION";
-                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.elevation; color: FestTheme.mint; font-family: Fonts.russo; font-size: 64px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
+                Text { y: 40px; width: parent.width; height: parent.height - 40px; text: root.d.elevation; color: FestTheme.mint; font-family: Fonts.russo; font-size: 46px; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
             }
         }
     }
@@ -293,11 +337,12 @@ export component Fh6Dash inherits DashShell {
     radius: 30px;
 
     Rectangle { y: 0px; width: root.width; height: root.page-height; background: FestTheme.sky; }
-    // Light streaks drift with your heading.
+    // Light streaks drift with your heading. 800 px of overscan covers headings from -180 to 360
+    // degrees, so no edge of the image ever shows.
     Image {
-        x: -200px - (Sim.data.heading-deg / 360) * 400px;
+        x: -400px - (Sim.data.heading-deg / 360) * 400px;
         y: 0px;
-        width: root.width + 400px;
+        width: root.width + 800px;
         height: root.page-height;
         source: Art.bg-fh6;
         image-fit: Art.bg-fh6-custom ? ImageFit.cover : ImageFit.fill;

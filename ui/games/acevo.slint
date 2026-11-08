@@ -5,7 +5,8 @@
 
 import { Sim, SimData, Corner, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip } from "../sim/sim_widgets.slint";
-import { Fonts, GhostText } from "../kit.slint";
+import { Fonts, GhostText, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -14,7 +15,13 @@ global EvoTheme {
     out property <color> line: #262626;
     out property <color> white: #ffffff;
     out property <color> dim: #7a7a7a;
-    out property <color> ghost: #1c1c1c;
+    // Faint white so the unlit segments read on top of any background art.
+    out property <color> ghost: rgba(255, 255, 255, 0.07);
+    // Cell fills, see-through per the PANELS setting.
+    out property <color> cell: rgba(0, 0, 0, AppState.panel);
+    out property <color> well: rgba(7, 7, 7, AppState.panel);
+    out property <color> row: rgba(11, 11, 11, AppState.panel);
+    out property <color> pit: rgba(0, 8, 20, AppState.panel);
     out property <color> red: #ff1a1a;
     out property <color> blue: #1e90ff;
     out property <color> yellow: #ffd600;
@@ -27,7 +34,7 @@ component Cell inherits Rectangle {
     preferred-height: 0px;
     min-width: 0px;
     preferred-width: 100px;
-    background: EvoTheme.black;
+    background: EvoTheme.cell;
     border-width: 2px;
     border-color: EvoTheme.line;
     if root.caption != "" : Text {
@@ -40,6 +47,18 @@ component Cell inherits Rectangle {
     }
 }
 
+// MoTeC-style stat strip.
+component EvoStrip inherits StatStrip {
+    cell-bg: EvoTheme.cell;
+    edge: EvoTheme.line;
+    label-color: EvoTheme.dim;
+    font: Fonts.mono;
+    value-size: 40px;
+    label-size: 18px;
+    radius: 0px;
+    gap: 12px;
+}
+
 // TC / ABS intervention square: snaps to yellow while the system acts.
 component AssistSquare inherits Rectangle {
     in property <string> label;
@@ -47,13 +66,13 @@ component AssistSquare inherits Rectangle {
     in property <string> level;
     min-height: 0px;
     preferred-height: 0px;
-    background: root.active ? EvoTheme.yellow : EvoTheme.black;
+    background: root.active ? EvoTheme.yellow : EvoTheme.cell;
     border-width: 6px;
     border-color: root.active ? EvoTheme.yellow : #3a3a3a;
     VerticalLayout {
         alignment: center;
-        Text { text: root.label; color: root.active ? #000000 : EvoTheme.yellow; font-family: Fonts.mono; font-size: 72px; horizontal-alignment: center; }
-        Text { text: "LVL " + root.level; color: root.active ? #000000 : EvoTheme.dim; font-family: Fonts.mono; font-size: 26px; horizontal-alignment: center; }
+        Text { text: root.label; color: root.active ? #000000 : EvoTheme.yellow; font-family: Fonts.mono; font-size: 52px; horizontal-alignment: center; }
+        Text { text: "LVL " + root.level; color: root.active ? #000000 : EvoTheme.dim; font-family: Fonts.mono; font-size: 22px; horizontal-alignment: center; }
     }
 }
 
@@ -78,14 +97,14 @@ component EvoDash inherits Rectangle {
         }
         // Gear + speed + position
         HorizontalLayout {
-            vertical-stretch: 5;
+            vertical-stretch: 4;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 12px;
             Cell {
                 horizontal-stretch: 3;
                 caption: "GEAR";
-                GhostText { width: parent.width; height: parent.height; text: root.d.gear; ghost: "8"; size: 420px; color-on: EvoTheme.white; color-off: EvoTheme.ghost; }
+                GhostText { width: parent.width; height: parent.height; text: root.d.gear; ghost: "8"; size: 270px; color-on: EvoTheme.white; color-off: EvoTheme.ghost; }
             }
             VerticalLayout {
                 horizontal-stretch: 2;
@@ -94,15 +113,15 @@ component EvoDash inherits Rectangle {
                 spacing: 12px;
                 Cell {
                     caption: root.d.speed-unit;
-                    GhostText { width: parent.width; height: parent.height; text: "\{root.d.speed}"; ghost: "888"; size: 130px; color-off: EvoTheme.ghost; }
+                    GhostText { width: parent.width; height: parent.height; text: "\{root.d.speed}"; ghost: "888"; size: 96px; color-off: EvoTheme.ghost; }
                 }
                 Cell {
                     caption: "POS";
-                    GhostText { width: parent.width; height: parent.height; text: root.d.pos-text; ghost: "P88/88"; size: 72px; color-off: EvoTheme.ghost; }
+                    GhostText { width: parent.width; height: parent.height; text: root.d.pos-text; ghost: "P88/88"; size: 56px; color-off: EvoTheme.ghost; }
                 }
                 Cell {
                     caption: "RPM";
-                    GhostText { width: parent.width; height: parent.height; text: "\{root.d.rpm}"; ghost: "88888"; size: 72px; color-on: root.d.shift ? EvoTheme.red : EvoTheme.white; color-off: EvoTheme.ghost; }
+                    GhostText { width: parent.width; height: parent.height; text: "\{root.d.rpm}"; ghost: "88888"; size: 56px; color-on: root.d.shift ? EvoTheme.red : EvoTheme.white; color-off: EvoTheme.ghost; }
                 }
             }
         }
@@ -113,21 +132,31 @@ component EvoDash inherits Rectangle {
             delta: root.d.delta;
             valid: root.d.has-delta;
             text: root.d.delta-text;
-            bg: EvoTheme.black;
+            bg: EvoTheme.cell;
             faster: #00a844;
             slower: #c41212;
             font: Fonts.mono;
             radius: 0px;
-            font-size: 64px;
+            font-size: 48px;
         }
-        // TC / map / ABS
+        // Lap times
+        EvoStrip {
+            vertical-stretch: 1.3;
+            stats: [
+                { label: root.d.lap-invalid ? "CURRENT INV" : "CURRENT", value: root.d.current-lap, tint: root.d.lap-invalid ? EvoTheme.red : transparent },
+                { label: "LAST", value: root.d.last-lap, tint: transparent },
+                { label: "BEST", value: root.d.best-lap, tint: #00c853 },
+                { label: "ALL-TIME", value: root.d.pb-lap, tint: #b04bff },
+                { label: "LAST VS PB", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? EvoTheme.dim : (root.d.pb-gap-good ? #00c853 : EvoTheme.red) }
+            ];
+        }        // TC / map / ABS
         HorizontalLayout {
             vertical-stretch: 4;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 12px;
             VerticalLayout {
-                width: 210px;
+                width: 180px;
                 spacing: 12px;
                 AssistSquare { vertical-stretch: 1; label: "TC"; active: root.d.tc-active; level: root.d.tc-level; }
                 AssistSquare { vertical-stretch: 1; label: "ABS"; active: root.d.abs-active; level: root.d.abs-level; }
@@ -153,13 +182,17 @@ component EvoDash inherits Rectangle {
         }
         // Fuel
         HorizontalLayout {
-            vertical-stretch: 2;
+            vertical-stretch: 1.6;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 12px;
             Cell {
                 caption: "FUEL / LAP AVG";
-                GhostText { width: parent.width; height: parent.height; text: root.d.fuel-per-lap; ghost: "88.88 L"; size: 64px; color-off: EvoTheme.ghost; }
+                GhostText { width: parent.width; height: parent.height; text: root.d.fuel-per-lap; ghost: "88.88 L"; size: 46px; color-off: EvoTheme.ghost; }
+            }
+            Cell {
+                caption: "IN TANK";
+                GhostText { width: parent.width; height: parent.height; text: root.d.fuel; ghost: "88.8 L"; size: 46px; color-off: EvoTheme.ghost; }
             }
             Cell {
                 caption: "LAPS REMAINING";
@@ -168,7 +201,7 @@ component EvoDash inherits Rectangle {
                     height: parent.height;
                     text: root.d.fuel-laps;
                     ghost: "88.8";
-                    size: 84px;
+                    size: 60px;
                     color-on: root.d.fuel-laps-num >= 0 && root.d.fuel-laps-num < 2 ? EvoTheme.red : EvoTheme.white;
                     color-off: EvoTheme.ghost;
                 }
@@ -188,7 +221,7 @@ component SuspGauge inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
-            background: #070707;
+            background: EvoTheme.well;
             border-width: 2px;
             border-color: EvoTheme.line;
             clip: true;
@@ -212,7 +245,7 @@ component EvoRig inherits Rectangle {
         padding: 14px;
         spacing: 14px;
         Cell {
-            vertical-stretch: 5;
+            vertical-stretch: 4;
             caption: "SUSPENSION TRAVEL";
             HorizontalLayout {
                 padding: 20px;
@@ -226,7 +259,7 @@ component EvoRig inherits Rectangle {
         }
         // Tyre pressures
         GridLayout {
-            vertical-stretch: 4;
+            vertical-stretch: 3;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 12px;
@@ -239,9 +272,27 @@ component EvoRig inherits Rectangle {
                 Cell { caption: "RR PSI"; GhostText { width: parent.width; height: parent.height; text: root.d.rr.pressure; ghost: "88.8"; size: 96px; color-on: root.d.rr.pressure-color; color-off: EvoTheme.ghost; } }
             }
         }
-        // Brake bias: car silhouette with a front (blue) / rear (red) bias bar across the wheels.
+        // Tyre and brake temperatures
+        EvoStrip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "FL TYRE", value: root.d.fl.temp, tint: root.d.fl.temp-color },
+                { label: "FR TYRE", value: root.d.fr.temp, tint: root.d.fr.temp-color },
+                { label: "RL TYRE", value: root.d.rl.temp, tint: root.d.rl.temp-color },
+                { label: "RR TYRE", value: root.d.rr.temp, tint: root.d.rr.temp-color }
+            ];
+        }
+        EvoStrip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "FL BRAKE", value: root.d.fl.brake, tint: root.d.fl.brake-color },
+                { label: "FR BRAKE", value: root.d.fr.brake, tint: root.d.fr.brake-color },
+                { label: "RL BRAKE", value: root.d.rl.brake, tint: root.d.rl.brake-color },
+                { label: "RR BRAKE", value: root.d.rr.brake, tint: root.d.rr.brake-color }
+            ];
+        } with a front (blue) / rear (red) bias bar across the wheels.
         Cell {
-            vertical-stretch: 5;
+            vertical-stretch: 4;
             caption: "BRAKE BIAS";
             HorizontalLayout {
                 padding: 20px;
@@ -273,9 +324,9 @@ component EvoRig inherits Rectangle {
                     horizontal-stretch: 1;
                     alignment: center;
                     spacing: 10px;
-                    Text { text: "FRONT"; color: EvoTheme.blue; font-family: Fonts.mono; font-size: 34px; }
-                    GhostText { height: 150px; text: root.d.brake-bias; ghost: "88.8%"; size: 130px; color-on: EvoTheme.white; color-off: EvoTheme.ghost; align: left; }
-                    Text { text: "TC " + root.d.tc-level + "   ABS " + root.d.abs-level; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 34px; }
+                    Text { text: "FRONT"; color: EvoTheme.blue; font-family: Fonts.mono; font-size: 28px; }
+                    GhostText { height: 110px; text: root.d.brake-bias; ghost: "88.8%"; size: 96px; color-on: EvoTheme.white; color-off: EvoTheme.ghost; align: left; }
+                    Text { text: "TC " + root.d.tc-level + "   ABS " + root.d.abs-level; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 28px; }
                 }
             }
         }
@@ -292,8 +343,17 @@ component EvoPitBox inherits Rectangle {
             min-height: 0px;
             preferred-height: 0px;
             spacing: 12px;
-            Cell { caption: "STINT"; GhostText { width: parent.width; height: parent.height; text: root.d.stint-time; ghost: "8:88:88"; size: 84px; color-off: EvoTheme.ghost; } }
-            Cell { caption: "SESSION LEFT"; GhostText { width: parent.width; height: parent.height; text: root.d.time-left; ghost: "88:88"; size: 84px; color-on: EvoTheme.yellow; color-off: EvoTheme.ghost; } }
+            Cell { caption: "STINT"; GhostText { width: parent.width; height: parent.height; text: root.d.stint-time; ghost: "8:88:88"; size: 60px; color-off: EvoTheme.ghost; } }
+            Cell { caption: "SESSION LEFT"; GhostText { width: parent.width; height: parent.height; text: root.d.time-left; ghost: "88:88"; size: 60px; color-on: EvoTheme.yellow; color-off: EvoTheme.ghost; } }
+        }
+        EvoStrip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "POS", value: root.d.pos-text, tint: transparent },
+                { label: "BEST", value: root.d.best-lap, tint: #00c853 },
+                { label: "ALL-TIME", value: root.d.pb-lap, tint: #b04bff },
+                { label: "FUEL/LAP", value: root.d.fuel-per-lap, tint: transparent }
+            ];
         }
         // Lap matrix: lap / time / gap to best, best lap on purple.
         Cell {
@@ -313,13 +373,13 @@ component EvoPitBox inherits Rectangle {
                     vertical-stretch: 1;
                     min-height: 0px;
                     preferred-height: 0px;
-                    background: l.player ? #800080 : #0b0b0b;
+                    background: l.player ? #800080 : EvoTheme.row;
                     HorizontalLayout {
                         padding-left: 10px;
                         padding-right: 10px;
-                        Text { width: 150px; text: "L\{l.pos}"; color: EvoTheme.white; font-family: Fonts.mono; font-size: 40px; vertical-alignment: center; }
-                        Text { horizontal-stretch: 1; text: l.name; color: EvoTheme.white; font-family: Fonts.mono; font-size: 48px; horizontal-alignment: center; vertical-alignment: center; }
-                        Text { width: 260px; text: l.gap; color: l.player ? #ffffff : EvoTheme.dim; font-family: Fonts.mono; font-size: 40px; horizontal-alignment: right; vertical-alignment: center; }
+                        Text { width: 150px; text: "L\{l.pos}"; color: EvoTheme.white; font-family: Fonts.mono; font-size: 32px; vertical-alignment: center; }
+                        Text { horizontal-stretch: 1; text: l.name; color: EvoTheme.white; font-family: Fonts.mono; font-size: 38px; horizontal-alignment: center; vertical-alignment: center; }
+                        Text { width: 260px; text: l.gap; color: l.player ? #ffffff : EvoTheme.dim; font-family: Fonts.mono; font-size: 32px; horizontal-alignment: right; vertical-alignment: center; }
                     }
                 }
                 Rectangle { vertical-stretch: 0.01; }
@@ -330,7 +390,7 @@ component EvoPitBox inherits Rectangle {
             vertical-stretch: 4;
             min-height: 0px;
             preferred-height: 0px;
-            background: #000814;
+            background: EvoTheme.pit;
             border-width: 8px;
             border-color: #0055ff;
             VerticalLayout {
@@ -343,13 +403,13 @@ component EvoPitBox inherits Rectangle {
                         horizontal-stretch: 1;
                         preferred-width: 10px;
                         Text { text: "FUEL TO ADD"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 24px; }
-                        Text { text: root.d.fuel-to-add; color: EvoTheme.white; font-family: Fonts.mono; font-size: 76px; overflow: elide; }
+                        Text { text: root.d.fuel-to-add; color: EvoTheme.white; font-family: Fonts.mono; font-size: 56px; overflow: elide; }
                     }
                     VerticalLayout {
                         horizontal-stretch: 1;
                         preferred-width: 10px;
                         Text { text: "IN TANK"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 24px; }
-                        Text { text: root.d.fuel; color: EvoTheme.white; font-family: Fonts.mono; font-size: 76px; overflow: elide; }
+                        Text { text: root.d.fuel; color: EvoTheme.white; font-family: Fonts.mono; font-size: 56px; overflow: elide; }
                     }
                 }
                 Text {

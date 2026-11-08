@@ -1,0 +1,252 @@
+// Settings page (page 9): display options, per-game options (units, UDP port, shift-light
+// point, fuel margin) and the lap log's all-time bests. Rust loads and saves the values
+// (src/main.rs: load_settings_page / on_game_settings_changed).
+
+import { AppState, BestRow } from "globals.slint";
+import { Fonts, Texture } from "kit.slint";
+import { Art } from "art.slint";
+
+global SetTheme {
+    out property <color> card: #121218e6;
+    out property <color> edge: #2a2a34;
+    out property <color> idle: #1d1d26;
+    out property <color> accent: #e10600;
+    out property <color> text: #ffffff;
+    out property <color> dim: #8d8da3;
+}
+
+// One option in a segmented control.
+component Seg inherits Rectangle {
+    in property <string> label;
+    in property <bool> on;
+    in property <bool> enabled: true;
+    callback clicked;
+    preferred-width: 100px;
+    min-width: 0px;
+    border-radius: 12px;
+    background: touch.pressed && root.enabled ? SetTheme.accent.darker(0.3) : (root.on ? SetTheme.accent : SetTheme.idle);
+    border-width: 2px;
+    border-color: root.on ? SetTheme.accent.brighter(0.4) : SetTheme.edge;
+    opacity: root.enabled ? 1.0 : 0.4;
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.label;
+        color: SetTheme.text;
+        font-family: Fonts.titillium;
+        font-size: 26px;
+        font-weight: 900;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Label on the left, controls on the right.
+component OptionRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> hint;
+    height: 84px;
+    spacing: 12px;
+    VerticalLayout {
+        width: 330px;
+        alignment: center;
+        Text { text: root.label; color: SetTheme.text; font-family: Fonts.titillium; font-size: 28px; font-weight: 900; overflow: elide; }
+        if root.hint != "" : Text { text: root.hint; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 700; overflow: elide; }
+    }
+    @children
+}
+
+component Card inherits Rectangle {
+    in property <string> title;
+    background: SetTheme.card;
+    border-radius: 18px;
+    border-width: 2px;
+    border-color: SetTheme.edge;
+    VerticalLayout {
+        padding: 22px;
+        padding-top: 16px;
+        spacing: 10px;
+        Text { text: root.title; color: SetTheme.accent; font-family: Fonts.russo; font-size: 30px; letter-spacing: 2px; }
+        @children
+    }
+}
+
+component Value inherits Rectangle {
+    in property <string> text;
+    preferred-width: 100px;
+    min-width: 0px;
+    border-radius: 12px;
+    background: #000000aa;
+    border-width: 2px;
+    border-color: SetTheme.edge;
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        color: #ffffff;
+        font-family: Fonts.russo;
+        font-size: 34px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component SettingsScreen inherits Rectangle {
+    background: #07070a;
+    property <[string]> names: ["F1 25", "NASCAR", "AC EVO", "AMS2", "DIRT 2.0", "WRC", "FORZA MS", "FH6"];
+    property <[color]> accents: [#e10600, #1f5bd8, #d7263d, #00b140, #ff6a00, #00c2c7, #2f7bff, #ff2d87];
+    property <int> g: AppState.set-game;
+
+    Texture { width: parent.width; height: parent.height; source: Art.title-bg; opacity: Art.title-bg-custom ? 0.45 : 0.3; }
+
+    VerticalLayout {
+        padding: 28px;
+        spacing: 20px;
+
+        // Header
+        HorizontalLayout {
+            height: 110px;
+            spacing: 20px;
+            Text { horizontal-stretch: 1; text: "SETTINGS"; color: #ffffff; font-family: Fonts.russo; font-size: 72px; font-italic: true; vertical-alignment: center; }
+            Rectangle {
+                width: 220px;
+                border-radius: 18px;
+                background: back.pressed ? #7a0a0a : #3a1214;
+                border-width: 3px;
+                border-color: #c8323a;
+                Text { width: parent.width; height: parent.height; text: "DONE"; color: #ffffff; font-family: Fonts.russo; font-size: 40px; horizontal-alignment: center; vertical-alignment: center; }
+                back := TouchArea { clicked => { AppState.go-home(); } }
+            }
+        }
+
+        // Display
+        Card {
+            title: "DISPLAY";
+            OptionRow {
+                label: "DASH PANELS";
+                hint: "How much of the background shows through";
+                Seg { label: "SOLID"; on: AppState.glass == 0; clicked => { AppState.glass = 0; AppState.settings-changed(); } }
+                Seg { label: "GLASS"; on: AppState.glass == 1; clicked => { AppState.glass = 1; AppState.settings-changed(); } }
+                Seg { label: "CLEAR"; on: AppState.glass == 2; clicked => { AppState.glass = 2; AppState.settings-changed(); } }
+            }
+            OptionRow {
+                label: "DEMO MODE";
+                hint: "Fake data to preview the dashes";
+                Seg { label: "OFF"; on: !AppState.demo-mode; clicked => { AppState.demo-mode = false; AppState.settings-changed(); } }
+                Seg { label: "ON"; on: AppState.demo-mode; clicked => { AppState.demo-mode = true; AppState.settings-changed(); } }
+            }
+        }
+
+        // Per game
+        Card {
+            title: "GAME  ·  " + root.names[root.g];
+            // Game picker: 2 rows of 4.
+            for gr in 2 : HorizontalLayout {
+                height: 70px;
+                spacing: 10px;
+                for gc in 4 : Rectangle {
+                    property <int> idx: gr * 4 + gc;
+                    preferred-width: 100px;
+                    border-radius: 12px;
+                    background: root.g == self.idx ? root.accents[self.idx] : SetTheme.idle;
+                    border-width: 2px;
+                    border-color: root.accents[self.idx];
+                    Text { width: parent.width; height: parent.height; text: root.names[parent.idx]; color: #ffffff; font-family: Fonts.titillium; font-size: 24px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
+                    TouchArea { clicked => { AppState.settings-pick-game(parent.idx); } }
+                }
+            }
+            Rectangle { height: 4px; }
+            OptionRow {
+                label: "UNITS";
+                hint: AppState.set-units-from-game ? "F1 25 uses its own unit settings" : "Speed, temperature, fuel";
+                Seg { label: "METRIC"; enabled: !AppState.set-units-from-game; on: !AppState.set-units-from-game && !AppState.set-imperial; clicked => { AppState.set-imperial = false; AppState.game-settings-changed(); } }
+                Seg { label: "IMPERIAL"; enabled: !AppState.set-units-from-game; on: !AppState.set-units-from-game && AppState.set-imperial; clicked => { AppState.set-imperial = true; AppState.game-settings-changed(); } }
+            }
+            OptionRow {
+                label: "UDP PORT";
+                hint: "Default \{AppState.set-default-port}";
+                Seg { label: "-100"; clicked => { AppState.set-port -= 100; AppState.game-settings-changed(); } }
+                Seg { label: "-1"; clicked => { AppState.set-port -= 1; AppState.game-settings-changed(); } }
+                Value { horizontal-stretch: 2; text: "\{AppState.set-port}"; }
+                Seg { label: "+1"; clicked => { AppState.set-port += 1; AppState.game-settings-changed(); } }
+                Seg { label: "+100"; clicked => { AppState.set-port += 100; AppState.game-settings-changed(); } }
+                Seg { label: "RESET"; clicked => { AppState.set-port = AppState.set-default-port; AppState.game-settings-changed(); } }
+            }
+            OptionRow {
+                label: "SHIFT LIGHTS FULL AT";
+                hint: AppState.set-shift-from-game ? "F1 25 sends its own shift lights" : "Percent of max RPM; lights flash here";
+                Seg { label: "-1%"; enabled: !AppState.set-shift-from-game; clicked => { AppState.set-shift -= 1; AppState.game-settings-changed(); } }
+                Value { horizontal-stretch: 2; text: AppState.set-shift-from-game ? "GAME" : "\{AppState.set-shift}%"; }
+                Seg { label: "+1%"; enabled: !AppState.set-shift-from-game; clicked => { AppState.set-shift += 1; AppState.game-settings-changed(); } }
+                Seg { label: "RESET"; enabled: !AppState.set-shift-from-game; clicked => { AppState.set-shift = 97; AppState.game-settings-changed(); } }
+            }
+            OptionRow {
+                label: "FUEL MARGIN";
+                hint: "Extra laps of fuel to keep in hand";
+                Seg { label: "-0.1"; clicked => { AppState.set-fuel-tenths -= 1; AppState.game-settings-changed(); } }
+                Value {
+                    horizontal-stretch: 2;
+                    text: AppState.set-fuel-text;
+                }
+                Seg { label: "+0.1"; clicked => { AppState.set-fuel-tenths += 1; AppState.game-settings-changed(); } }
+                Seg { label: "+0.5"; clicked => { AppState.set-fuel-tenths += 5; AppState.game-settings-changed(); } }
+            }
+            Text { text: "Changes apply the next time you open this game's dash."; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 700; }
+        }
+
+        // Lap log
+        Card {
+            vertical-stretch: 1;
+            min-height: 0px;
+            preferred-height: 0px;
+            title: "LAP LOG  ·  ALL-TIME BESTS";
+            Text { text: AppState.log-summary; color: SetTheme.text; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; overflow: elide; }
+            Text { text: "CSV FILE  " + AppState.log-path; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 700; overflow: elide; }
+            HorizontalLayout {
+                height: 34px;
+                spacing: 12px;
+                Text { horizontal-stretch: 3; text: "TRACK"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; }
+                Text { horizontal-stretch: 3; text: "CAR"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; }
+                Text { width: 190px; text: "BEST VALID"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: right; }
+                Text { width: 120px; text: "LAPS"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: right; }
+            }
+            Flickable {
+                vertical-stretch: 1;
+                min-height: 0px;
+                preferred-height: 0px;
+                VerticalLayout {
+                    alignment: start;
+                    spacing: 6px;
+                    if AppState.bests.length == 0 : Text {
+                        text: "No laps logged for this game yet. Every completed lap is saved automatically.";
+                        color: SetTheme.dim;
+                        font-family: Fonts.titillium;
+                        font-size: 22px;
+                        font-weight: 700;
+                        wrap: word-wrap;
+                    }
+                    for b in AppState.bests : Rectangle {
+                        height: 50px;
+                        border-radius: 10px;
+                        background: #ffffff0d;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            spacing: 12px;
+                            Text { horizontal-stretch: 3; text: b.track; color: #ffffff; font-family: Fonts.titillium; font-size: 24px; font-weight: 800; vertical-alignment: center; overflow: elide; }
+                            Text { horizontal-stretch: 3; text: b.car; color: #c8cad2; font-family: Fonts.titillium; font-size: 22px; font-weight: 700; vertical-alignment: center; overflow: elide; }
+                            Text { width: 190px; text: b.time; color: #c04bff; font-family: Fonts.russo; font-size: 26px; horizontal-alignment: right; vertical-alignment: center; }
+                            Text { width: 120px; text: b.laps; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; horizontal-alignment: right; vertical-alignment: center; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,7 +1,7 @@
 //! Converts the parsed `F1State` into the Slint `F1Data` / model rows shown on screen.
 //! All text formatting and colour decisions live here so the .slint files stay declarative.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -10,6 +10,7 @@ use slint::{ComponentHandle as _, Model as _, VecModel};
 use super::lookup::{self, hex};
 use super::packets::{EventKind, F1State, FL, FR, NUM_CARS, RL, RR};
 use crate::games::map::MapCar;
+use crate::laplog::{self, LapInput, LapLog};
 use crate::{F1Data, ForecastRow, LapRow, MapDot, Part, SectorInfo, StandingRow, Tyre};
 
 const ERS_MAX_J: f32 = 4_000_000.0;
@@ -23,10 +24,17 @@ pub struct Models {
     pub map_orient: Rc<Cell<u8>>,
     map_version: Cell<u64>,
     map_orient_built: Cell<u8>,
+    /// Extra laps of fuel to keep in hand (settings page).
+    pub fuel_margin: f32,
+    /// Write finished laps to the lap log (off in demo mode).
+    pub log_laps: bool,
+    laplog: RefCell<LapLog>,
+    last_vs_pb: Cell<Option<f32>>,
+    pb_event: RefCell<Option<(String, Instant)>>,
 }
 
 impl Models {
-    pub fn new(map_orient: Rc<Cell<u8>>) -> Self {
+    pub fn new(map_orient: Rc<Cell<u8>>, fuel_margin: f32, log_laps: bool) -> Self {
         Self {
             standings: Rc::new(VecModel::default()),
             laps: Rc::new(VecModel::default()),
@@ -36,6 +44,11 @@ impl Models {
             map_orient,
             map_version: Cell::new(u64::MAX),
             map_orient_built: Cell::new(255),
+            fuel_margin: fuel_margin.clamp(0.0, 5.0),
+            log_laps,
+            laplog: RefCell::new(LapLog::open()),
+            last_vs_pb: Cell::new(None),
+            pb_event: RefCell::new(None),
         }
     }
 }
@@ -142,7 +155,8 @@ fn part(pct: u8) -> Part {
 
 pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) {
     let f1 = ui.global::<crate::F1>();
-    let data = build_data(st, blink);
+    let mut data = build_data(st, blink, models.fuel_margin);
+    log_laps(st, models, &mut data);
     let is_race = data.is_race;
     f1.set_data(data);
     let standings = build_standings(st, is_race);
@@ -155,6 +169,48 @@ pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) 
     sync_model(&models.laps, build_laps(st));
     sync_model(&models.forecast, build_forecast(st));
     apply_map(&f1, st, models);
+}
+
+/// Append finished laps to the CSV log and show the all-time personal best for the track.
+fn log_laps(st: &F1State, models: &Models, d: &mut F1Data) {
+    let now = Instant::now();
+    let p = st.player;
+    let lap = &st.laps[p];
+    let track = if st.session.received { lookup::track_name(st.session.track_id) } else { "" };
+    let session = if st.session.received { lookup::session_name(st.session.session_type) } else { "" };
+    let mut log = models.laplog.borrow_mut();
+    if d.connected && st.session.received && models.log_laps {
+        let input = LapInput {
+            game: "f1",
+            track,
+            car: "",
+            session,
+            lap: lap.lap_num as i32,
+            last_lap_s: (lap.last_lap_ms > 0).then(|| lap.last_lap_ms as f32 / 1000.0),
+            invalid_now: lap.lap_invalid,
+            position: lap.position as u32,
+            fuel: Some(st.status[p].fuel_in_tank),
+        };
+        if let Some(done) = log.observe(&input) {
+            if done.new_best {
+                *models.pb_event.borrow_mut() = Some((format!("ALL-TIME BEST  {}", fmt_lap_secs(done.time_s)), now));
+            }
+            models.last_vs_pb.set(done.previous_best.map(|b| done.time_s - b));
+        }
+    }
+    let pb = log.best("f1", track, "");
+    d.has_pb = pb.is_some();
+    d.pb_lap = pb.map_or_else(|| "-:--.---".to_string(), fmt_lap_secs).into();
+    let gap = models.last_vs_pb.get();
+    d.pb_gap = gap.map_or_else(String::new, laplog::fmt_diff).into();
+    d.pb_gap_good = gap.is_some_and(|g| g <= 0.0);
+    if let Some((text, at)) = models.pb_event.borrow().as_ref() {
+        if now.duration_since(*at) < Duration::from_secs(6) {
+            d.event_text = text.clone().into();
+            d.event_color = hex(0xB545FF);
+            d.event_text_color = hex(0xFFFFFF);
+        }
+    }
 }
 
 /// Track map: outline from the player's line, every active car as a team-coloured dot.
@@ -220,7 +276,7 @@ fn sync_model<T: Clone + PartialEq + 'static>(model: &VecModel<T>, rows: Vec<T>)
     }
 }
 
-fn build_data(st: &F1State, blink: bool) -> F1Data {
+fn build_data(st: &F1State, blink: bool, fuel_margin: f32) -> F1Data {
     let now = Instant::now();
     let p = st.player;
     let tel = &st.telemetry[p];
@@ -290,7 +346,8 @@ fn build_data(st: &F1State, blink: bool) -> F1Data {
 
     d.fuel_kg = format!("{:.1} kg", sta.fuel_in_tank).into();
     d.fuel_laps = format!("{:+.2}", sta.fuel_remaining_laps).into();
-    d.fuel_ok = sta.fuel_remaining_laps >= 0.0;
+    d.fuel_ok = sta.fuel_remaining_laps >= fuel_margin;
+    d.fuel_target = format!("TARGET {:+.1}", fuel_margin).into();
     d.fuel_mix = lookup::fuel_mix(sta.fuel_mix).into();
 
     d.brake_bias = sta.brake_bias as i32;

@@ -10,6 +10,7 @@ import "../fonts/BebasNeue-Regular.ttf";
 import "../fonts/PermanentMarker-Regular.ttf";
 
 import { TitleScreen } from "title.slint";
+import { SettingsScreen } from "settings.slint";
 import { F1Dash } from "f1/f1_dash.slint";
 import { NascarDash } from "games/nascar.slint";
 import { AcEvoDash } from "games/acevo.slint";
@@ -19,7 +20,7 @@ import { WrcDash } from "games/wrc.slint";
 import { FmDash } from "games/fm.slint";
 import { Fh6Dash } from "games/fh6.slint";
 
-export { AppState, GameInfo } from "globals.slint";
+export { AppState, GameInfo, BestRow } from "globals.slint";
 export { MapDot } from "map.slint";
 export { Art } from "art.slint";
 export { F1, F1Data, Tyre, Part, SectorInfo, StandingRow, LapRow, ForecastRow } from "f1/f1_state.slint";
@@ -43,4 +44,5 @@ export component AppWindow inherits Window {
     if root.page == 6 : WrcDash { width: root.width; height: root.height; }
     if root.page == 7 : FmDash { width: root.width; height: root.height; }
     if root.page == 8 : Fh6Dash { width: root.width; height: root.height; }
+    if root.page == 9 : SettingsScreen { width: root.width; height: root.height; }
 }

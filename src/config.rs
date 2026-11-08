@@ -2,10 +2,13 @@
 //!
 //! Keys:
 //!   demo=0|1
+//!   glass=0|1|2          dash panel see-through level (solid, glass, clear)
 //!   layout_<game>=N      last selected tab per game (f1, nascar, acevo, ams2, dr2, wrc, fm, fh6)
 //!   map_<game>=0..7      track map rotation / mirror per game
 //!   port_<game>=N        UDP port override
 //!   units_<game>=metric|imperial
+//!   shift_<game>=80..100   shift-light point, % of max RPM (games that don't send their own)
+//!   fuelmargin_<game>=0.0..5.0   extra laps of fuel to keep in hand
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -64,6 +67,13 @@ impl Config {
         self.set("demo".into(), if on { "1" } else { "0" }.into());
     }
 
+    pub fn glass(&self) -> i32 {
+        self.get_i("glass", 1).clamp(0, 2) as i32
+    }
+    pub fn set_glass(&mut self, level: i32) {
+        self.set("glass".into(), level.clamp(0, 2).to_string());
+    }
+
     pub fn layout(&self, game: &str) -> i32 {
         self.get_i(&format!("layout_{game}"), 0) as i32
     }
@@ -83,11 +93,39 @@ impl Config {
         u16::try_from(p).unwrap_or(default)
     }
 
+    pub fn set_port(&mut self, game: &str, port: u16) {
+        self.set(format!("port_{game}"), port.to_string());
+    }
+
     pub fn imperial(&self, game: &str, default: bool) -> bool {
         match self.values.get(&format!("units_{game}")).map(String::as_str) {
             Some("imperial") => true,
             Some("metric") => false,
             _ => default,
         }
+    }
+    pub fn set_imperial(&mut self, game: &str, imperial: bool) {
+        self.set(format!("units_{game}"), if imperial { "imperial" } else { "metric" }.into());
+    }
+
+    /// RPM, as a percent of the car's max, where the shift lights are full and flash.
+    pub fn shift_pct(&self, game: &str) -> i32 {
+        self.get_i(&format!("shift_{game}"), 97).clamp(80, 100) as i32
+    }
+    pub fn set_shift_pct(&mut self, game: &str, pct: i32) {
+        self.set(format!("shift_{game}"), pct.clamp(80, 100).to_string());
+    }
+
+    /// Extra laps of fuel to keep in hand when working out what to add / whether fuel is OK.
+    pub fn fuel_margin(&self, game: &str) -> f32 {
+        self.values
+            .get(&format!("fuelmargin_{game}"))
+            .and_then(|v| v.parse::<f32>().ok())
+            .filter(|v| v.is_finite())
+            .unwrap_or(0.5)
+            .clamp(0.0, 5.0)
+    }
+    pub fn set_fuel_margin(&mut self, game: &str, laps: f32) {
+        self.set(format!("fuelmargin_{game}"), format!("{:.1}", laps.clamp(0.0, 5.0)));
     }
 }

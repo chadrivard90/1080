@@ -7,7 +7,8 @@
 
 import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, Dial } from "../sim/sim_widgets.slint";
-import { Fonts, Texture } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -18,11 +19,15 @@ global WrcTheme {
     out property <color> cyan: #00e5ff;
     out property <color> text: #f2f2f2;
     out property <color> dim: #9a9a9a;
+    // Fills, see-through per the PANELS setting.
+    out property <brush> chop-fill: @linear-gradient(160deg, rgba(38, 38, 38, AppState.panel) 0%, rgba(23, 23, 23, AppState.panel) 100%);
+    out property <color> well: rgba(22, 22, 22, AppState.panel);
+    out property <color> idle: rgba(26, 26, 26, AppState.panel);
 }
 
 // Polygon panel with chopped corners.
 component Chop inherits Rectangle {
-    in property <brush> fill: @linear-gradient(160deg, #262626 0%, #171717 100%);
+    in property <brush> fill: WrcTheme.chop-fill;
     in property <color> edge: WrcTheme.magenta;
     in property <float> cut: 46;
     property <float> w: self.width / 1px;
@@ -43,17 +48,30 @@ component Chop inherits Rectangle {
     }
 }
 
-// Slanted digital readout.
-component Slant inherits Chop {
+// Angular stat strip.
+component WrcStrip inherits StatStrip {
+    cell-bg: WrcTheme.idle;
+    edge: #4a4a4a;
+    label-color: WrcTheme.magenta;
+    value-color: WrcTheme.text;
+    font: Fonts.russo;
+    value-size: 32px;
+    label-size: 17px;
+    radius: 0px;
+    gap: 12px;
+    italic: true;
+}
+
+// Slanted digital readout.component Slant inherits Chop {
     in property <string> title;
     in property <string> value;
     in property <color> value-color: WrcTheme.text;
-    in property <length> size: 110px;
+    in property <length> size: 72px;
     VerticalLayout {
         padding: 18px;
         padding-left: 40px;
         alignment: center;
-        Text { text: root.title; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 26px; font-italic: true; }
+        Text { text: root.title; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 22px; font-italic: true; }
         Text { text: root.value; color: root.value-color; font-family: Fonts.russo; font-size: root.size; font-italic: true; overflow: elide; }
     }
 }
@@ -70,7 +88,7 @@ component WrcStagePage inherits Rectangle {
             Rectangle {
                 vertical-stretch: 1;
                 min-height: 0px;
-                background: #161616;
+                background: WrcTheme.well;
                 border-width: 3px;
                 border-color: #4a4a4a;
                 clip: true;
@@ -84,15 +102,16 @@ component WrcStagePage inherits Rectangle {
                 }
                 for i in 9 : Rectangle { x: 0px; y: parent.height * (i + 1) / 10; width: parent.width; height: 2px; background: #00000066; }
             }
-            Text { text: root.d.stage-pct == "" ? "0%" : root.d.stage-pct; color: WrcTheme.text; font-family: Fonts.russo; font-size: 22px; horizontal-alignment: center; wrap: word-wrap; }
+            Text { text: root.d.stage-pct == "" ? "0%" : root.d.stage-pct; color: WrcTheme.text; font-family: Fonts.russo; font-size: 34px; font-italic: true; horizontal-alignment: center; }
+            Text { text: "STAGE"; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 20px; horizontal-alignment: center; }
         }
         VerticalLayout {
             spacing: 18px;
             // Gear + speed + shift lights
             Chop {
-                vertical-stretch: 6;
+                vertical-stretch: 5;
                 VerticalLayout {
-                    padding: 30px;
+                    padding: 26px;
                     padding-top: 26px;
                     spacing: 6px;
                     ShiftLights { vertical-stretch: 1; low: WrcTheme.cyan; mid: #ffffff; high: WrcTheme.magenta; flash: WrcTheme.magenta; off: #333333; radius: 2px; gap: 6px; }
@@ -105,24 +124,42 @@ component WrcStagePage inherits Rectangle {
                             text: root.d.gear;
                             color: root.d.shift && root.d.blink ? WrcTheme.magenta : WrcTheme.text;
                             font-family: Fonts.russo;
-                            font-size: 340px;
+                            font-size: 230px;
                             font-italic: true;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
                         VerticalLayout {
-                            width: 300px;
+                            width: 280px;
                             alignment: center;
-                            Text { text: "\{root.d.speed}"; color: WrcTheme.text; font-family: Fonts.russo; font-size: 130px; font-italic: true; horizontal-alignment: right; }
-                            Text { text: root.d.speed-unit; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 34px; font-italic: true; horizontal-alignment: right; }
-                            Text { text: root.d.stage-time; color: WrcTheme.cyan; font-family: Fonts.russo; font-size: 40px; font-italic: true; horizontal-alignment: right; }
+                            Text { text: "\{root.d.speed}"; color: WrcTheme.text; font-family: Fonts.russo; font-size: 96px; font-italic: true; horizontal-alignment: right; }
+                            Text { text: root.d.speed-unit; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 26px; font-italic: true; horizontal-alignment: right; }
+                            Text { text: root.d.stage-time; color: WrcTheme.cyan; font-family: Fonts.russo; font-size: 36px; font-italic: true; horizontal-alignment: right; }
                         }
                     }
                 }
             }
+            WrcStrip {
+                vertical-stretch: 1.1;
+                stats: [
+                    { label: "DISTANCE", value: root.d.has-stage ? root.d.stage-text : "--", tint: transparent },
+                    { label: "POSITION", value: root.d.pos-text, tint: transparent },
+                    { label: "LAST STAGE", value: root.d.last-lap, tint: transparent },
+                    { label: "ALL-TIME", value: root.d.pb-lap, tint: WrcTheme.cyan }
+                ];
+            }
+            WrcStrip {
+                vertical-stretch: 1.1;
+                stats: [
+                    { label: "FL BRAKE", value: root.d.fl.brake == "" ? "--" : root.d.fl.brake, tint: root.d.fl.brake-color },
+                    { label: "FR BRAKE", value: root.d.fr.brake == "" ? "--" : root.d.fr.brake, tint: root.d.fr.brake-color },
+                    { label: "RL BRAKE", value: root.d.rl.brake == "" ? "--" : root.d.rl.brake, tint: root.d.rl.brake-color },
+                    { label: "RR BRAKE", value: root.d.rr.brake == "" ? "--" : root.d.rr.brake, tint: root.d.rr.brake-color }
+                ];
+            }
             // Handbrake warning (shakes while pulled)
             hb := Rectangle {
-                vertical-stretch: 2;
+                vertical-stretch: 1.2;
                 min-height: 0px;
                 preferred-height: 0px;
                 property <bool> pulled: root.d.handbrake > 0.2;
@@ -131,7 +168,7 @@ component WrcStagePage inherits Rectangle {
                     y: hb.pulled ? (root.d.blink ? -5px : 5px) : 0px;
                     width: parent.width;
                     height: parent.height;
-                    background: hb.pulled ? #e3001b : #1a1a1a;
+                    background: hb.pulled ? #e3001b : WrcTheme.idle;
                     border-width: 4px;
                     border-color: hb.pulled ? #ffffff : #e3001b;
                     drop-shadow-blur: hb.pulled ? 40px : 0px;
@@ -143,7 +180,7 @@ component WrcStagePage inherits Rectangle {
                         text: "( ! )  HANDBRAKE";
                         color: hb.pulled ? #ffffff : #e3001b;
                         font-family: Fonts.russo;
-                        font-size: 72px;
+                        font-size: 48px;
                         font-italic: true;
                         horizontal-alignment: center;
                         vertical-alignment: center;
@@ -152,7 +189,7 @@ component WrcStagePage inherits Rectangle {
             }
             // RPM arc gauge
             Chop {
-                vertical-stretch: 6;
+                vertical-stretch: 4.5;
                 edge: WrcTheme.cyan;
                 Dial {
                     width: parent.width;
@@ -172,8 +209,8 @@ component WrcStagePage inherits Rectangle {
                     label-color: #d0d0d0;
                     value-color: WrcTheme.text;
                     unit-color: WrcTheme.magenta;
-                    value-size: 72px;
-                    arc-width: 22px;
+                    value-size: 52px;
+                    arc-width: 18px;
                     font: Fonts.russo;
                 }
             }
@@ -262,13 +299,22 @@ component WrcServicePage inherits Rectangle {
                 Text { text: "FLASHING = OVERHEAT"; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 18px; }
             }
         }
+        WrcStrip {
+            vertical-stretch: 1.2;
+            stats: [
+                { label: "FL TYRE", value: root.d.fl.temp == "" ? "--" : root.d.fl.temp, tint: root.d.fl.temp-color },
+                { label: "FR TYRE", value: root.d.fr.temp == "" ? "--" : root.d.fr.temp, tint: root.d.fr.temp-color },
+                { label: "RL TYRE", value: root.d.rl.temp == "" ? "--" : root.d.rl.temp, tint: root.d.rl.temp-color },
+                { label: "RR TYRE", value: root.d.rr.temp == "" ? "--" : root.d.rr.temp, tint: root.d.rr.temp-color }
+            ];
+        }
         HorizontalLayout {
-            vertical-stretch: 3;
+            vertical-stretch: 2.2;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
-            Slant { title: "BRAKES FRONT"; value: root.d.brake-front; size: 96px; }
-            Slant { title: "BRAKES REAR"; value: root.d.brake-rear; size: 96px; edge: WrcTheme.cyan; }
+            Slant { title: "BRAKES FRONT"; value: root.d.brake-front; size: 64px; }
+            Slant { title: "BRAKES REAR"; value: root.d.brake-rear; size: 64px; edge: WrcTheme.cyan; }
         }
     }
 }
@@ -279,12 +325,21 @@ component WrcSplitsPage inherits Rectangle {
         padding: 18px;
         spacing: 18px;
         HorizontalLayout {
-            vertical-stretch: 3;
+            vertical-stretch: 2.2;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
-            Slant { title: "STAGE TIME"; value: root.d.stage-time; size: 92px; value-color: WrcTheme.cyan; }
-            Slant { title: "LAST STAGE"; value: root.d.last-lap; size: 80px; }
+            Slant { title: "STAGE TIME"; value: root.d.stage-time; size: 64px; value-color: WrcTheme.cyan; }
+            Slant { title: "LAST STAGE"; value: root.d.last-lap; size: 56px; }
+        }
+        WrcStrip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: "PROGRESS", value: root.d.has-stage ? root.d.stage-pct : "--", tint: transparent },
+                { label: "BEST", value: root.d.best-lap, tint: transparent },
+                { label: "ALL-TIME", value: root.d.pb-lap, tint: WrcTheme.cyan },
+                { label: "LAST VS PB", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? WrcTheme.dim : (root.d.pb-gap-good ? #32d16a : WrcTheme.magenta) }
+            ];
         }
         // Live RPM trace
         Chop {

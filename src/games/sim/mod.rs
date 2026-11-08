@@ -531,6 +531,10 @@ pub struct SessionOptions {
     pub demo: bool,
     pub port: u16,
     pub imperial: bool,
+    /// Shift-light point as a fraction of max RPM.
+    pub shift_frac: f32,
+    /// Extra laps of fuel to keep in hand.
+    pub fuel_margin: f32,
     pub ip: String,
     /// Track map orientation, shared with the "rotate map" button.
     pub map_orient: Rc<Cell<u8>>,
@@ -565,7 +569,16 @@ impl SimSession {
         sim.set_game_name(game.name().into());
         sim.set_dial_track(dials::arc(1.0).into());
 
-        let mut renderer = view::Renderer::new(ui, opts.imperial, opts.map_orient.clone());
+        let mut renderer = view::Renderer::new(
+            ui,
+            view::Tuning {
+                imperial: opts.imperial,
+                shift_frac: opts.shift_frac,
+                fuel_margin: opts.fuel_margin,
+                log_laps: !opts.demo,
+            },
+            opts.map_orient.clone(),
+        );
         let timer = slint::Timer::default();
         let weak = ui.as_weak();
         timer.start(slint::TimerMode::Repeated, Duration::from_millis(33), move || {

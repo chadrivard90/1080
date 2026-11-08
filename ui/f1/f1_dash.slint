@@ -1,10 +1,13 @@
 // F1 25 - "The Halo MFD". Official-broadcast-meets-steering-wheel look: #15151E base, carbon
 // fibre, recessed MFD panels, neon teal / green / red / purple accents, Titillium Web.
-// Pages: THE WHEEL (drive), THE ENGINEER (temps & setup), THE STRATEGIST (map, fuel, relative).
+// Pages: THE WHEEL (drive), THE ENGINEER (temps, damage & setup), THE STRATEGIST (map, fuel,
+// session, relative).
+// Sized for a 16" screen about 50-60 cm from the driver: hero numbers stay large, secondary
+// data sits in compact stat strips.
 
-import { F1, F1Data, Tyre, StandingRow } from "f1_state.slint";
+import { F1, F1Data, Tyre, StandingRow, SectorInfo, Part } from "f1_state.slint";
 import { AppState } from "../globals.slint";
-import { Dock, FlagFrame, Fonts, Texture } from "../kit.slint";
+import { Dock, FlagFrame, Fonts, Texture, StatStrip, Stat } from "../kit.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -19,6 +22,14 @@ global FT {
     out property <color> yellow: #ffd400;
     out property <color> text: #ffffff;
     out property <color> dim: #8d8da3;
+    out property <color> bad: #ff5a5a;
+    // Panel fills, see-through per the PANELS setting so the background art shows.
+    out property <color> mfd-a: rgba(7, 7, 11, AppState.panel);
+    out property <color> mfd-b: rgba(16, 16, 26, AppState.panel);
+    out property <color> cell: rgba(11, 11, 18, AppState.panel);
+    out property <color> ok-bg: rgba(6, 52, 31, AppState.panel);
+    out property <color> bad-bg: rgba(61, 10, 10, AppState.panel);
+    out property <color> shadow: rgba(0, 0, 0, AppState.shade);
 }
 
 // Recessed MFD screen.
@@ -29,22 +40,51 @@ component MfdPanel inherits Rectangle {
     preferred-height: 0px;
     min-width: 0px;
     preferred-width: 100px;
-    border-radius: 18px;
-    background: @linear-gradient(180deg, #07070b 0%, #10101a 100%);
+    border-radius: 16px;
+    background: @linear-gradient(180deg, FT.mfd-a 0%, FT.mfd-b 100%);
     border-width: 2px;
     border-color: root.glow == transparent ? FT.edge : root.glow;
-    drop-shadow-blur: 22px;
-    drop-shadow-color: root.glow == transparent ? #000000 : root.glow.transparentize(0.5);
+    drop-shadow-blur: 18px;
+    drop-shadow-color: root.glow == transparent ? FT.shadow : root.glow.transparentize(1 - 0.5 * AppState.shade);
     clip: true;
     if root.title != "" : Text {
-        x: 20px;
-        y: 10px;
+        x: 16px;
+        y: 8px;
         text: root.title;
         color: FT.dim;
         font-family: Fonts.titillium;
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 900;
         letter-spacing: 3px;
+    }
+}
+
+// F1-styled stat strip.
+component F1Strip inherits StatStrip {
+    cell-bg: FT.cell;
+    edge: FT.edge;
+    label-color: FT.dim;
+    font: Fonts.titillium;
+    value-size: 34px;
+    label-size: 17px;
+    radius: 12px;
+}
+
+// Sector time box: purple / green / yellow once done, grey (last lap) while upcoming.
+component SectorBox inherits Rectangle {
+    in property <SectorInfo> s;
+    in property <string> label;
+    preferred-width: 100px;
+    min-width: 0px;
+    border-radius: 12px;
+    background: root.s.color.transparentize(AppState.fade * 0.4);
+    border-width: 1px;
+    border-color: FT.edge;
+    VerticalLayout {
+        alignment: center;
+        padding: 4px;
+        Text { text: root.label; color: root.s.text-color; font-family: Fonts.titillium; font-size: 17px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.s.time; color: root.s.text-color; font-family: Fonts.titillium; font-size: 36px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
     }
 }
 
@@ -52,12 +92,12 @@ component MfdPanel inherits Rectangle {
 component WheelPage inherits Rectangle {
     property <F1Data> d: F1.data;
     VerticalLayout {
-        padding: 20px;
-        spacing: 18px;
+        padding: 16px;
+        spacing: 12px;
 
         // RPM sweep + gear
         Rectangle {
-            vertical-stretch: 7;
+            vertical-stretch: 6;
             min-height: 0px;
             preferred-height: 0px;
             property <length> w: min(self.width, self.height * 1000 / 640);
@@ -72,7 +112,7 @@ component WheelPage inherits Rectangle {
                 viewbox-height: 600;
                 commands: root.d.rpm-track;
                 stroke: #1d1d28;
-                stroke-width: 70px;
+                stroke-width: 56px;
                 fill: transparent;
             }
             if root.d.rpm-arc != "" : Path {
@@ -84,7 +124,7 @@ component WheelPage inherits Rectangle {
                 viewbox-height: 600;
                 commands: root.d.rpm-arc;
                 stroke: root.d.rpm-color.transparentize(0.7);
-                stroke-width: 110px;
+                stroke-width: 90px;
                 fill: transparent;
             }
             if root.d.rpm-arc != "" : Path {
@@ -96,77 +136,109 @@ component WheelPage inherits Rectangle {
                 viewbox-height: 600;
                 commands: root.d.rpm-arc;
                 stroke: root.d.rpm-color;
-                stroke-width: 56px;
+                stroke-width: 44px;
                 fill: transparent;
             }
             Text {
                 x: parent.ox;
-                y: parent.h * 0.20;
+                y: parent.h * 0.18;
                 width: parent.w;
-                height: parent.h * 0.78;
+                height: parent.h * 0.7;
                 text: root.d.gear;
                 color: root.d.rev-max && root.d.blink ? #2f7bff : FT.text;
                 font-family: Fonts.titillium;
-                font-size: min(420px, parent.h * 0.78);
+                font-size: min(280px, parent.h * 0.62);
                 font-weight: 900;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
-            // Speed / position / lap along the bottom.
+            // Suggested gear (when the game's hint differs).
+            if root.d.shift-hint : Text {
+                x: parent.ox + parent.w * 0.68;
+                y: parent.h * 0.3;
+                width: 120px;
+                text: "> " + root.d.suggested-gear;
+                color: FT.yellow;
+                font-family: Fonts.titillium;
+                font-size: 44px;
+                font-weight: 900;
+            }
+            // Position / speed / lap along the bottom.
             HorizontalLayout {
-                y: parent.height - 160px;
-                height: 160px;
+                y: parent.height - 104px;
+                height: 104px;
                 width: parent.width;
                 VerticalLayout {
                     horizontal-stretch: 1;
                     preferred-width: 10px;
                     alignment: end;
-                    Text { text: "POSITION"; color: FT.dim; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; letter-spacing: 2px; }
-                    Text { text: "P\{root.d.position}"; color: FT.text; font-family: Fonts.titillium; font-size: 80px; font-weight: 900; }
+                    Text { text: "POSITION"; color: FT.dim; font-family: Fonts.titillium; font-size: 18px; font-weight: 900; letter-spacing: 2px; }
+                    Text { text: "P\{root.d.position}/\{root.d.num-cars}"; color: FT.text; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; }
                 }
                 VerticalLayout {
                     horizontal-stretch: 1;
                     preferred-width: 10px;
                     alignment: end;
-                    Text { text: "\{root.d.speed}"; color: FT.text; font-family: Fonts.titillium; font-size: 80px; font-weight: 900; horizontal-alignment: center; }
-                    Text { text: root.d.speed-unit; color: FT.dim; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; horizontal-alignment: center; }
+                    Text { text: "\{root.d.speed}"; color: FT.text; font-family: Fonts.titillium; font-size: 64px; font-weight: 900; horizontal-alignment: center; }
+                    Text { text: root.d.speed-unit; color: FT.dim; font-family: Fonts.titillium; font-size: 18px; font-weight: 900; horizontal-alignment: center; }
                 }
                 VerticalLayout {
                     horizontal-stretch: 1;
                     preferred-width: 10px;
                     alignment: end;
-                    Text { text: root.d.is-race ? "LAP" : "TIME LEFT"; color: FT.dim; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; letter-spacing: 2px; horizontal-alignment: right; }
-                    Text { text: root.d.is-race ? "\{root.d.lap}/\{root.d.total-laps}" : root.d.time-left; color: FT.text; font-family: Fonts.titillium; font-size: 64px; font-weight: 900; horizontal-alignment: right; }
+                    Text { text: root.d.is-race ? "LAP" : "TIME LEFT"; color: FT.dim; font-family: Fonts.titillium; font-size: 18px; font-weight: 900; letter-spacing: 2px; horizontal-alignment: right; }
+                    Text { text: root.d.is-race ? "\{root.d.lap}/\{root.d.total-laps}" : root.d.time-left; color: FT.text; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; horizontal-alignment: right; }
                 }
             }
         }
 
+        // Sectors
+        HorizontalLayout {
+            vertical-stretch: 1.1;
+            min-height: 0px;
+            preferred-height: 0px;
+            spacing: 10px;
+            SectorBox { s: root.d.s1; label: "SECTOR 1"; }
+            SectorBox { s: root.d.s2; label: "SECTOR 2"; }
+            SectorBox { s: root.d.s3; label: "SECTOR 3"; }
+        }
+
+        // Lap times
+        F1Strip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: root.d.lap-invalid ? "CURRENT · INVALID" : "CURRENT", value: root.d.current-lap, tint: root.d.lap-invalid ? FT.bad : transparent },
+                { label: "LAST", value: root.d.last-lap, tint: transparent },
+                { label: "SESSION BEST", value: root.d.best-lap, tint: FT.green },
+                { label: "ALL-TIME BEST", value: root.d.pb-lap, tint: FT.purple },
+                { label: "LAST VS BEST", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? FT.dim : (root.d.pb-gap-good ? FT.green : FT.bad) }
+            ];
+        }
+
         // Hybrid deployment
         MfdPanel {
-            vertical-stretch: 5;
+            vertical-stretch: 3.4;
             title: "HYBRID DEPLOYMENT";
             glow: FT.teal;
             VerticalLayout {
-                padding: 20px;
-                padding-top: 50px;
-                spacing: 16px;
+                padding: 14px;
+                padding-top: 36px;
+                spacing: 10px;
                 // ERS battery bar
                 Rectangle {
-                    vertical-stretch: 2;
+                    vertical-stretch: 1;
                     min-height: 0px;
                     preferred-height: 0px;
-                    border-radius: 14px;
-                    background: #05050a;
-                    border-width: 4px;
+                    border-radius: 12px;
+                    background: FT.mfd-a;
+                    border-width: 3px;
                     border-color: FT.teal;
-                    drop-shadow-blur: 24px;
-                    drop-shadow-color: FT.teal.transparentize(0.4);
                     clip: true;
                     Rectangle {
-                        x: 8px;
-                        y: 8px;
-                        height: parent.height - 16px;
-                        width: (parent.width - 16px) * root.d.ers-pct;
+                        x: 6px;
+                        y: 6px;
+                        height: parent.height - 12px;
+                        width: (parent.width - 12px) * root.d.ers-pct;
                         border-radius: 8px;
                         background: @linear-gradient(90deg, #008f82 0%, #00d2be 70%, #7ffff0 100%);
                         animate width { duration: 150ms; easing: ease-out; }
@@ -177,87 +249,122 @@ component WheelPage inherits Rectangle {
                         text: "ERS  " + root.d.ers-text;
                         color: #ffffff;
                         font-family: Fonts.titillium;
-                        font-size: 64px;
+                        font-size: 44px;
                         font-weight: 900;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
                 }
                 HorizontalLayout {
-                    vertical-stretch: 2;
+                    vertical-stretch: 1.3;
                     min-height: 0px;
                     preferred-height: 0px;
-                    spacing: 16px;
+                    spacing: 12px;
                     Rectangle {
-                        width: 300px;
-                        border-radius: 14px;
+                        width: 230px;
+                        border-radius: 12px;
                         background: root.d.ers-mode-color;
-                        drop-shadow-blur: 20px;
-                        drop-shadow-color: root.d.ers-mode-color.transparentize(0.4);
                         VerticalLayout {
                             alignment: center;
-                            Text { text: "DEPLOY MODE"; color: #000000aa; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
-                            Text { text: root.d.ers-mode; color: #000000; font-family: Fonts.titillium; font-size: 48px; font-weight: 900; horizontal-alignment: center; }
+                            Text { text: "DEPLOY MODE"; color: #000000aa; font-family: Fonts.titillium; font-size: 17px; font-weight: 900; horizontal-alignment: center; }
+                            Text { text: root.d.ers-mode; color: #000000; font-family: Fonts.titillium; font-size: 36px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
                         }
                     }
                     // Delta to best
                     Rectangle {
                         horizontal-stretch: 1;
                         min-width: 0px;
-                        border-radius: 14px;
-                        background: !root.d.has-delta ? #0b0b12 : (root.d.delta <= 0 ? #06341f : #3d0a0a);
+                        border-radius: 12px;
+                        background: !root.d.has-delta ? FT.cell : (root.d.delta <= 0 ? FT.ok-bg : FT.bad-bg);
                         border-width: 3px;
                         border-color: !root.d.has-delta ? FT.edge : (root.d.delta <= 0 ? FT.green : #ff3b3b);
                         VerticalLayout {
                             alignment: center;
-                            Text { text: "DELTA TO BEST"; color: FT.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
+                            Text { text: "DELTA TO SESSION BEST"; color: FT.dim; font-family: Fonts.titillium; font-size: 17px; font-weight: 900; horizontal-alignment: center; }
                             Text {
                                 text: root.d.delta-text;
-                                color: !root.d.has-delta ? FT.dim : (root.d.delta <= 0 ? FT.green : #ff5a5a);
+                                color: !root.d.has-delta ? FT.dim : (root.d.delta <= 0 ? FT.green : FT.bad);
                                 font-family: Fonts.titillium;
-                                font-size: 72px;
+                                font-size: 56px;
                                 font-weight: 900;
                                 horizontal-alignment: center;
                             }
+                        }
+                    }
+                    // Harvest / deploy this lap
+                    VerticalLayout {
+                        width: 200px;
+                        spacing: 6px;
+                        alignment: center;
+                        Text { text: "DEPLOYED"; color: FT.dim; font-family: Fonts.titillium; font-size: 16px; font-weight: 900; }
+                        Rectangle {
+                            height: 14px;
+                            border-radius: 7px;
+                            background: #ffffff1a;
+                            Rectangle { x: 0px; width: parent.width * root.d.ers-deployed-pct; height: parent.height; border-radius: 7px; background: FT.yellow; }
+                        }
+                        Text { text: "HARVESTED"; color: FT.dim; font-family: Fonts.titillium; font-size: 16px; font-weight: 900; }
+                        Rectangle {
+                            height: 14px;
+                            border-radius: 7px;
+                            background: #ffffff1a;
+                            Rectangle { x: 0px; width: parent.width * root.d.ers-harvested-pct; height: parent.height; border-radius: 7px; background: FT.green; }
                         }
                     }
                 }
             }
         }
 
-        // DRS activation zone
+        // Cars around you, tyres, fuel
+        F1Strip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: root.d.ahead-name == "" ? "AHEAD" : "AHEAD · " + root.d.ahead-name, value: root.d.gap-ahead, tint: transparent },
+                { label: root.d.behind-name == "" ? "BEHIND" : "BEHIND · " + root.d.behind-name, value: root.d.gap-behind, tint: transparent },
+                { label: "TO LEADER", value: root.d.gap-leader, tint: transparent },
+                { label: "TYRE · AGE · WEAR", value: root.d.tyre-compound + " · \{root.d.tyre-age}L · \{root.d.tyre-wear-avg}%", tint: root.d.tyre-color },
+                { label: "FUEL LAPS", value: root.d.fuel-laps, tint: root.d.fuel-ok ? FT.green : FT.bad }
+            ];
+        }
+
+        // DRS
         drs := Rectangle {
-            vertical-stretch: 4;
+            vertical-stretch: 1.6;
             min-height: 0px;
             preferred-height: 0px;
             property <bool> armed: root.d.drs-allowed && !root.d.drs-open;
             property <bool> lit: root.d.drs-open || (self.armed && root.d.blink);
-            border-radius: 26px;
-            background: self.lit ? FT.teal : #0b0b12;
-            border-width: 6px;
+            border-radius: 20px;
+            background: self.lit ? FT.teal : FT.cell;
+            border-width: 5px;
             border-color: root.d.drs-open || root.d.drs-allowed ? FT.teal : FT.edge;
-            drop-shadow-blur: self.lit ? 50px : 0px;
+            drop-shadow-blur: self.lit ? 40px : 0px;
             drop-shadow-color: FT.teal;
             animate background { duration: 90ms; }
-            VerticalLayout {
-                alignment: center;
+            HorizontalLayout {
+                padding-left: 30px;
+                padding-right: 30px;
+                spacing: 30px;
                 Text {
                     text: "DRS";
                     color: drs.lit ? #000000 : (root.d.drs-allowed ? FT.teal : #3a3a48);
                     font-family: Fonts.titillium;
-                    font-size: 190px;
+                    font-size: 110px;
                     font-weight: 900;
                     font-italic: true;
-                    horizontal-alignment: center;
+                    vertical-alignment: center;
                 }
                 Text {
-                    text: root.d.drs-fault ? "FAULT" : (root.d.drs-open ? "OPEN" : (root.d.drs-allowed ? "ACTIVATE" : "CLOSED"));
-                    color: drs.lit ? #000000 : (root.d.drs-fault ? FT.red : (root.d.drs-allowed ? FT.teal : #4a4a58));
+                    horizontal-stretch: 1;
+                    text: root.d.drs-fault ? "FAULT" : (root.d.drs-open ? "OPEN" : (root.d.drs-allowed ? "ACTIVATE" : (root.d.drs-distance > 0 ? "ZONE IN \{root.d.drs-distance} M" : "CLOSED")));
+                    color: drs.lit ? #000000 : (root.d.drs-fault ? FT.red : (root.d.drs-allowed ? FT.teal : #5a5a68));
                     font-family: Fonts.titillium;
                     font-size: 40px;
                     font-weight: 900;
-                    letter-spacing: 8px;
-                    horizontal-alignment: center;
+                    letter-spacing: 6px;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                    overflow: elide;
                 }
             }
         }
@@ -272,22 +379,30 @@ component TireTemp inherits Rectangle {
     preferred-height: 0px;
     min-width: 0px;
     preferred-width: 100px;
-    border-radius: 36px;
-    border-width: 14px;
+    border-radius: 28px;
+    border-width: 10px;
     border-color: root.t.surface-color;
-    background: root.t.inner-color.darker(0.45);
-    drop-shadow-blur: 26px;
-    drop-shadow-color: root.t.surface-color.transparentize(0.55);
+    background: root.t.inner-color.darker(0.45).transparentize(AppState.fade);
+    drop-shadow-blur: 20px;
+    drop-shadow-color: root.t.surface-color.transparentize(1 - 0.45 * AppState.shade);
     clip: true;
     VerticalLayout {
-        padding: 22px;
-        spacing: 2px;
+        padding: 14px;
+        spacing: 0px;
         alignment: center;
-        Text { text: root.label; color: #ffffffcc; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: "\{root.t.inner}°"; color: #ffffff; font-family: Fonts.titillium; font-size: 104px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: "CORE"; color: #ffffff99; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; letter-spacing: 3px; horizontal-alignment: center; }
-        Text { text: "SURFACE \{root.t.surface}°"; color: root.t.surface-color.brighter(0.3); font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: root.t.pressure + " PSI   \{root.t.wear}% WEAR"; color: #ffffffbb; font-family: Fonts.titillium; font-size: 24px; font-weight: 800; horizontal-alignment: center; overflow: elide; }
+        Text { text: root.label; color: #ffffffcc; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: "\{root.t.inner}°"; color: #ffffff; font-family: Fonts.titillium; font-size: 68px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: "CORE   ·   SURFACE \{root.t.surface}°"; color: root.t.surface-color.brighter(0.3); font-family: Fonts.titillium; font-size: 22px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
+        Text { text: root.t.pressure + " PSI   \{root.t.wear}% WEAR"; color: #ffffffcc; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; horizontal-alignment: center; overflow: elide; }
+        Text {
+            text: root.t.damage > 0 || root.t.blister > 0 ? "DAMAGE \{root.t.damage}%   BLISTER \{root.t.blister}%" : "";
+            color: FT.yellow;
+            font-family: Fonts.titillium;
+            font-size: 18px;
+            font-weight: 800;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
     }
 }
 
@@ -297,96 +412,134 @@ component BrakeBar inherits Rectangle {
     preferred-width: 100px;
     min-width: 0px;
     VerticalLayout {
-        spacing: 8px;
-        Text { text: "\{root.t.brake}°"; color: root.t.brake-color; font-family: Fonts.titillium; font-size: 40px; font-weight: 900; horizontal-alignment: center; }
+        spacing: 6px;
+        Text { text: "\{root.t.brake}°"; color: root.t.brake-color; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: center; }
         Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
-            border-radius: 14px;
-            background: #07070b;
+            border-radius: 12px;
+            background: FT.mfd-a;
             border-width: 2px;
             border-color: FT.edge;
             clip: true;
             Rectangle {
-                x: 8px;
-                width: parent.width - 16px;
-                height: (parent.height - 16px) * root.t.brake-pct;
-                y: parent.height - 8px - self.height;
+                x: 6px;
+                width: parent.width - 12px;
+                height: (parent.height - 12px) * root.t.brake-pct;
+                y: parent.height - 6px - self.height;
                 border-radius: 8px;
                 background: @linear-gradient(0deg, root.t.brake-color.darker(0.4) 0%, root.t.brake-color 100%);
-                drop-shadow-blur: 18px;
-                drop-shadow-color: root.t.brake-color.transparentize(0.4);
                 animate height { duration: 150ms; easing: ease-out; }
             }
         }
-        Text { text: root.label; color: FT.dim; font-family: Fonts.titillium; font-size: 26px; font-weight: 900; horizontal-alignment: center; }
+        Text { text: root.label; color: FT.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
     }
 }
 
-component BigReadout inherits Rectangle {
-    in property <string> title;
-    in property <string> value;
-    in property <color> color-value: #ffffff;
-    min-width: 0px;
+// Damage / wear cell: label over percent, coloured by severity.
+component PartCell inherits Rectangle {
+    in property <string> label;
+    in property <Part> p;
     preferred-width: 100px;
-    border-radius: 18px;
-    background: @linear-gradient(180deg, #07070b 0%, #10101a 100%);
+    min-width: 0px;
+    border-radius: 10px;
+    background: root.p.color.transparentize(0.75);
     border-width: 2px;
-    border-color: FT.edge;
-    drop-shadow-blur: 22px;
-    drop-shadow-color: #000000;
+    border-color: root.p.color;
     VerticalLayout {
         alignment: center;
-        Text { text: root.title; color: FT.dim; font-family: Fonts.titillium; font-size: 24px; font-weight: 900; letter-spacing: 3px; horizontal-alignment: center; }
-        Text { text: root.value; color: root.color-value; font-family: Fonts.titillium; font-size: 96px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
+        Text { text: root.label; color: FT.dim; font-family: Fonts.titillium; font-size: 16px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
+        Text { text: "\{root.p.pct}%"; color: #ffffff; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: center; }
     }
 }
 
 component EngineerPage inherits Rectangle {
     property <F1Data> d: F1.data;
     VerticalLayout {
-        padding: 20px;
-        spacing: 18px;
+        padding: 16px;
+        spacing: 12px;
         // Tyres 2x2
         VerticalLayout {
-            vertical-stretch: 9;
+            vertical-stretch: 7;
             min-height: 0px;
             preferred-height: 0px;
-            spacing: 18px;
+            spacing: 12px;
             HorizontalLayout {
-                spacing: 18px;
+                spacing: 12px;
                 TireTemp { t: root.d.fl; label: "FRONT LEFT"; }
                 TireTemp { t: root.d.fr; label: "FRONT RIGHT"; }
             }
             HorizontalLayout {
-                spacing: 18px;
+                spacing: 12px;
                 TireTemp { t: root.d.rl; label: "REAR LEFT"; }
                 TireTemp { t: root.d.rr; label: "REAR RIGHT"; }
             }
         }
+        if root.d.tyre-note != "" : Text {
+            height: 30px;
+            text: root.d.tyre-note;
+            color: FT.yellow;
+            font-family: Fonts.titillium;
+            font-size: 22px;
+            font-weight: 900;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
         // Brake temperatures
         MfdPanel {
-            vertical-stretch: 5;
+            vertical-stretch: 3.4;
             title: "BRAKE TEMPERATURES";
             HorizontalLayout {
-                padding: 20px;
-                padding-top: 50px;
-                spacing: 24px;
+                padding: 14px;
+                padding-top: 34px;
+                spacing: 20px;
                 BrakeBar { t: root.d.fl; label: "FL"; }
                 BrakeBar { t: root.d.fr; label: "FR"; }
                 BrakeBar { t: root.d.rl; label: "RL"; }
                 BrakeBar { t: root.d.rr; label: "RR"; }
             }
         }
+        // Damage + power unit wear
+        MfdPanel {
+            vertical-stretch: 3.4;
+            title: root.d.engine-failed ? "DAMAGE  ·  ENGINE FAILED" : (root.d.drs-fault || root.d.ers-fault ? "DAMAGE  ·  " + (root.d.drs-fault ? "DRS FAULT " : "") + (root.d.ers-fault ? "ERS FAULT" : "") : "DAMAGE  ·  POWER UNIT WEAR");
+            VerticalLayout {
+                padding: 12px;
+                padding-top: 34px;
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    PartCell { label: "FL WING"; p: root.d.wing-fl; }
+                    PartCell { label: "FR WING"; p: root.d.wing-fr; }
+                    PartCell { label: "REAR WING"; p: root.d.wing-rear; }
+                    PartCell { label: "FLOOR"; p: root.d.floor-dmg; }
+                    PartCell { label: "DIFFUSER"; p: root.d.diffuser; }
+                    PartCell { label: "SIDEPOD"; p: root.d.sidepod; }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    PartCell { label: "GEARBOX"; p: root.d.gearbox; }
+                    PartCell { label: "ICE"; p: root.d.wear-ice; }
+                    PartCell { label: "MGU-H"; p: root.d.wear-mguh; }
+                    PartCell { label: "MGU-K"; p: root.d.wear-mguk; }
+                    PartCell { label: "ES"; p: root.d.wear-es; }
+                    PartCell { label: "CE"; p: root.d.wear-ce; }
+                }
+            }
+        }
         // Setup
-        HorizontalLayout {
-            vertical-stretch: 3;
-            min-height: 0px;
-            preferred-height: 0px;
-            spacing: 18px;
-            BigReadout { title: "BRAKE BIAS"; value: "\{root.d.brake-bias}%"; color-value: FT.teal; }
-            BigReadout { title: "DIFFERENTIAL"; value: "\{root.d.diff}%"; }
-            BigReadout { title: "ENGINE"; value: root.d.engine-temp; color-value: FT.yellow; }
+        F1Strip {
+            vertical-stretch: 1.3;
+            value-size: 32px;
+            stats: [
+                { label: "BRAKE BIAS", value: "\{root.d.brake-bias}%", tint: FT.teal },
+                { label: "DIFF", value: "\{root.d.diff}%", tint: transparent },
+                { label: "ENG BRAKING", value: "\{root.d.engine-braking}%", tint: transparent },
+                { label: "TC", value: root.d.tc, tint: transparent },
+                { label: "ABS", value: root.d.abs-on ? "ON" : "OFF", tint: transparent },
+                { label: "ENGINE", value: root.d.engine-temp, tint: FT.yellow },
+                { label: "MIX", value: root.d.fuel-mix, tint: transparent }
+            ];
         }
     }
 }
@@ -396,44 +549,46 @@ component DriverRow inherits Rectangle {
     in property <StandingRow> entry;
     min-height: 0px;
     preferred-height: 0px;
-    border-radius: 14px;
-    background: root.entry.player ? @linear-gradient(90deg, #e10600aa 0%, #e1060022 100%) : #0b0b12;
+    border-radius: 12px;
+    background: root.entry.player ? @linear-gradient(90deg, #e10600aa 0%, #e1060022 100%) : FT.cell;
     border-width: 2px;
     border-color: root.entry.player ? FT.red : FT.edge;
     clip: true;
     HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 20px;
-        spacing: 16px;
-        Text { width: 80px; text: "P\{root.entry.pos}"; color: #ffffff; font-family: Fonts.titillium; font-size: 44px; font-weight: 900; vertical-alignment: center; }
-        Rectangle { width: 12px; border-radius: 4px; background: root.entry.team-color; }
-        Text { horizontal-stretch: 1; text: root.entry.name; color: #ffffff; font-family: Fonts.titillium; font-size: 40px; font-weight: root.entry.player ? 900 : 700; vertical-alignment: center; overflow: elide; }
+        padding-left: 14px;
+        padding-right: 16px;
+        spacing: 14px;
+        Text { width: 70px; text: "P\{root.entry.pos}"; color: #ffffff; font-family: Fonts.titillium; font-size: 34px; font-weight: 900; vertical-alignment: center; }
+        Rectangle { width: 10px; border-radius: 4px; background: root.entry.team-color; }
+        Text { horizontal-stretch: 1; text: root.entry.name; color: #ffffff; font-family: Fonts.titillium; font-size: 32px; font-weight: root.entry.player ? 900 : 700; vertical-alignment: center; overflow: elide; }
+        Text { width: 80px; text: root.entry.status; color: FT.yellow; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
         Rectangle {
-            width: 52px;
+            width: 44px;
             VerticalLayout {
                 alignment: center;
                 Rectangle {
-                    height: 52px;
-                    border-radius: 26px;
-                    border-width: 6px;
+                    height: 44px;
+                    border-radius: 22px;
+                    border-width: 5px;
                     border-color: root.entry.tyre-color;
                     background: #000000;
-                    Text { width: parent.width; height: parent.height; text: root.entry.tyre; color: #ffffff; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.entry.tyre; color: #ffffff; font-family: Fonts.titillium; font-size: 19px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
             }
         }
-        Text { width: 210px; text: root.entry.player ? "YOU" : root.entry.interval; color: root.entry.player ? FT.red.brighter(0.6) : #ffffff; font-family: Fonts.titillium; font-size: 44px; font-weight: 900; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
+        Text { width: 60px; text: "\{root.entry.tyre-age}L"; color: FT.dim; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; horizontal-alignment: center; vertical-alignment: center; }
+        Text { width: 170px; text: root.entry.player ? "YOU" : root.entry.interval; color: root.entry.player ? FT.red.brighter(0.6) : #ffffff; font-family: Fonts.titillium; font-size: 34px; font-weight: 900; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
     }
 }
 
 component StrategistPage inherits Rectangle {
     property <F1Data> d: F1.data;
     VerticalLayout {
-        padding: 20px;
-        spacing: 18px;
+        padding: 16px;
+        spacing: 12px;
         MfdPanel {
-            vertical-stretch: 8;
-            title: "TRACK MAP";
+            vertical-stretch: 7;
+            title: "TRACK MAP  ·  " + root.d.track-name;
             TrackMap {
                 width: parent.width;
                 height: parent.height;
@@ -445,44 +600,74 @@ component StrategistPage inherits Rectangle {
                 player-color: FT.red;
                 use-dot-colors: true;
                 label-color: #000000;
-                line-width: 16px;
-                dot-size: 40px;
+                line-width: 14px;
+                dot-size: 34px;
             }
         }
         // Fuel delta
         Rectangle {
-            vertical-stretch: 3;
+            vertical-stretch: 1.6;
             min-height: 0px;
             preferred-height: 0px;
-            border-radius: 18px;
-            background: root.d.fuel-ok ? @linear-gradient(90deg, #06341f 0%, #0b0b12 100%) : @linear-gradient(90deg, #3d0a0a 0%, #0b0b12 100%);
+            border-radius: 16px;
+            background: root.d.fuel-ok ? @linear-gradient(90deg, FT.ok-bg 0%, FT.cell 100%) : @linear-gradient(90deg, FT.bad-bg 0%, FT.cell 100%);
             border-width: 3px;
             border-color: root.d.fuel-ok ? FT.green : #ff3b3b;
             HorizontalLayout {
-                padding-left: 28px;
-                padding-right: 28px;
+                padding-left: 24px;
+                padding-right: 24px;
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    Text { text: "FUEL DELTA"; color: FT.dim; font-family: Fonts.titillium; font-size: 24px; font-weight: 900; letter-spacing: 3px; }
-                    Text { text: root.d.fuel-kg + "   " + root.d.fuel-mix; color: #ffffffbb; font-family: Fonts.titillium; font-size: 30px; font-weight: 800; }
+                    Text { text: "FUEL DELTA  ·  " + root.d.fuel-target; color: FT.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; letter-spacing: 2px; }
+                    Text { text: root.d.fuel-kg + "   " + root.d.fuel-mix; color: #ffffffcc; font-family: Fonts.titillium; font-size: 26px; font-weight: 800; }
                 }
                 Text {
                     text: root.d.fuel-laps + " LAPS";
                     color: root.d.fuel-ok ? FT.green : #ff4a4a;
                     font-family: Fonts.titillium;
-                    font-size: 110px;
+                    font-size: 72px;
                     font-weight: 900;
                     vertical-alignment: center;
                 }
             }
         }
+        // Session conditions
+        F1Strip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: "WEATHER", value: root.d.weather, tint: root.d.weather-color },
+                { label: "TRACK", value: root.d.track-temp, tint: transparent },
+                { label: "AIR", value: root.d.air-temp, tint: transparent },
+                { label: "RAIN NEXT", value: "\{root.d.rain-next}%", tint: root.d.rain-next > 40 ? #4fc3f7 : transparent },
+                { label: "PIT WINDOW", value: root.d.pit-window, tint: FT.yellow },
+                { label: "REJOIN", value: root.d.pit-rejoin > 0 ? "P\{root.d.pit-rejoin}" : "--", tint: transparent }
+            ];
+        }
+        // Race admin
+        F1Strip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: root.d.is-race ? "LAP" : "TIME LEFT", value: root.d.is-race ? "\{root.d.lap}/\{root.d.total-laps}" : root.d.time-left, tint: transparent },
+                { label: "STOPS", value: "\{root.d.pit-stops}", tint: transparent },
+                { label: "PENALTY", value: "\{root.d.penalties}s", tint: root.d.penalties > 0 ? FT.bad : transparent },
+                { label: "WARNINGS", value: "\{root.d.warnings} · \{root.d.cc-warnings} CC", tint: root.d.warnings > 0 ? FT.yellow : transparent },
+                { label: "SPEED TRAP", value: root.d.speed-trap, tint: transparent },
+                { label: "IDEAL LAP", value: root.d.ideal-lap, tint: FT.purple }
+            ];
+        }
+        if root.d.unserved != "" : Rectangle {
+            height: 44px;
+            border-radius: 10px;
+            background: FT.red;
+            Text { width: parent.width; height: parent.height; text: "UNSERVED  " + root.d.unserved; color: #ffffff; font-family: Fonts.titillium; font-size: 26px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+        }
         // Relative leaderboard
         VerticalLayout {
-            vertical-stretch: 6;
+            vertical-stretch: 5;
             min-height: 0px;
             preferred-height: 0px;
-            spacing: 10px;
+            spacing: 8px;
             for r in F1.relative : DriverRow { vertical-stretch: 1; entry: r; }
         }
     }
@@ -505,17 +690,17 @@ component F1Waiting inherits Rectangle {
         VerticalLayout {
             padding: 40px;
             spacing: 14px;
-            Text { text: "WAITING FOR F1 25"; color: #ffffff; font-family: Fonts.titillium; font-size: 56px; font-weight: 900; font-italic: true; }
-            Text { text: F1.data.status-text; color: FT.yellow; font-family: Fonts.titillium; font-size: 28px; font-weight: 800; wrap: word-wrap; }
+            Text { text: "WAITING FOR F1 25"; color: #ffffff; font-family: Fonts.titillium; font-size: 52px; font-weight: 900; font-italic: true; }
+            Text { text: F1.data.status-text; color: FT.yellow; font-family: Fonts.titillium; font-size: 26px; font-weight: 800; wrap: word-wrap; }
             Rectangle { height: 10px; }
-            Text { text: "IN GAME: SETTINGS > TELEMETRY SETTINGS"; color: FT.dim; font-family: Fonts.titillium; font-size: 26px; font-weight: 900; }
-            Text { text: "UDP Telemetry:  On"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 34px; font-weight: 700; }
-            Text { text: "UDP Broadcast Mode:  Off"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 34px; font-weight: 700; }
-            Text { text: "UDP IP Address:  " + AppState.ip-address; color: #ffffff; font-family: Fonts.titillium; font-size: 34px; font-weight: 900; }
-            Text { text: "UDP Port:  \{AppState.f1-port}"; color: #ffffff; font-family: Fonts.titillium; font-size: 34px; font-weight: 900; }
-            Text { text: "UDP Send Rate:  60Hz      UDP Format:  2025"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 34px; font-weight: 700; }
+            Text { text: "IN GAME: SETTINGS > TELEMETRY SETTINGS"; color: FT.dim; font-family: Fonts.titillium; font-size: 24px; font-weight: 900; }
+            Text { text: "UDP Telemetry:  On"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 30px; font-weight: 700; }
+            Text { text: "UDP Broadcast Mode:  Off"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 30px; font-weight: 700; }
+            Text { text: "UDP IP Address:  " + AppState.ip-address; color: #ffffff; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; }
+            Text { text: "UDP Port:  \{AppState.f1-port}"; color: #ffffff; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; }
+            Text { text: "UDP Send Rate:  60Hz      UDP Format:  2025"; color: #d0d0dc; font-family: Fonts.titillium; font-size: 30px; font-weight: 700; }
             Rectangle { vertical-stretch: 1; }
-            Text { text: "TIP: TURN ON DEMO ON THE TITLE SCREEN TO PREVIEW THE DASH"; color: FT.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; }
+            Text { text: "TIP: TURN ON DEMO IN SETTINGS TO PREVIEW THE DASH"; color: FT.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; }
         }
     }
 }
@@ -542,7 +727,7 @@ export component F1Dash inherits Rectangle {
             if !F1.data.connected : F1Waiting { width: parent.width; height: parent.height; }
         }
         Dock {
-            height: 120px;
+            height: 100px;
             tabs: [
                 { label: "WHEEL", icon: @image-url("../img/icons/wheel.svg") },
                 { label: "ENGINEER", icon: @image-url("../img/icons/wrench.svg") },

@@ -99,6 +99,8 @@ export struct F1Data {
     fuel-laps: string,
     fuel-ok: bool,
     fuel-mix: string,
+    // e.g. "TARGET +0.5": the fuel margin from the settings page
+    fuel-target: string,
 
     brake-bias: int,
     diff: int,
@@ -199,6 +201,12 @@ export struct F1Data {
     g-lat: float,
     g-long: float,
     speed-trap: string,
+
+    // All-time personal best at this track, from the lap log.
+    has-pb: bool,
+    pb-lap: string,
+    pb-gap: string,
+    pb-gap-good: bool,
 }
 
 export global F1 {

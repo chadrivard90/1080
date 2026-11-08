@@ -4,7 +4,8 @@
 
 import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts } from "../kit.slint";
+import { Fonts, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -15,11 +16,21 @@ global NascarTheme {
     out property <color> yellow: #ffd400;
     out property <color> paper: #f4f5f8;
     out property <color> ink: #0b1430;
+    // Banner opacity: light panels keep more body than dark ones so the ink text stays crisp.
+    out property <float> a: 0.3 + 0.7 * AppState.panel;
+    out property <brush> metal: @linear-gradient(180deg, rgba(255, 255, 255, root.a) 0%, rgba(212, 217, 226, root.a) 55%, rgba(247, 248, 251, root.a) 100%);
+    out property <brush> blue-fill: @linear-gradient(180deg, rgba(29, 79, 196, root.a) 0%, rgba(0, 51, 160, root.a) 60%, rgba(0, 26, 87, root.a) 100%);
+    out property <brush> red-fill: @linear-gradient(180deg, rgba(240, 71, 58, root.a) 0%, rgba(218, 41, 28, root.a) 60%, rgba(143, 21, 12, root.a) 100%);
+    out property <brush> map-fill: @linear-gradient(180deg, rgba(10, 42, 122, AppState.panel) 0%, rgba(0, 26, 87, AppState.panel) 100%);
+    out property <color> ink-fill: rgba(11, 20, 48, AppState.panel);
+    out property <color> row-a: rgba(221, 226, 234, root.a);
+    out property <color> row-b: rgba(244, 245, 248, root.a);
+    out property <color> shadow: rgba(11, 20, 48, 0.53 * AppState.shade);
 }
 
 // Metallic broadcast banner with a hard offset shadow.
 component Banner inherits Rectangle {
-    in property <brush> fill: @linear-gradient(180deg, #ffffff 0%, #d4d9e2 55%, #f7f8fb 100%);
+    in property <brush> fill: NascarTheme.metal;
     min-height: 0px;
     preferred-height: 0px;
     min-width: 0px;
@@ -30,8 +41,22 @@ component Banner inherits Rectangle {
     border-color: NascarTheme.ink;
     drop-shadow-offset-x: 8px;
     drop-shadow-offset-y: 10px;
-    drop-shadow-color: #0b143088;
+    drop-shadow-color: NascarTheme.shadow;
     drop-shadow-blur: 0px;
+}
+
+// Broadcast-style stat strip (metal cells, ink digits).
+component NascarStrip inherits StatStrip {
+    cell-bg: NascarTheme.metal;
+    edge: NascarTheme.ink;
+    label-color: NascarTheme.red;
+    value-color: NascarTheme.ink;
+    font: Fonts.anton;
+    label-font: Fonts.bebas;
+    value-size: 40px;
+    label-size: 24px;
+    radius: 4px;
+    gap: 12px;
 }
 
 // Blind-spot radar strip on the screen edge.
@@ -39,13 +64,13 @@ component RadarEdge inherits Rectangle {
     in property <int> cars;
     in property <string> side;
     border-radius: 10px;
-    background: root.cars == 0 ? #dfe3ea : (root.cars >= 2 ? #ff8a00 : NascarTheme.yellow);
+    background: root.cars == 0 ? NascarTheme.row-a : (root.cars >= 2 ? #ff8a00 : NascarTheme.yellow);
     opacity: root.cars > 0 && !Sim.data.blink ? 0.55 : 1.0;
     border-width: 4px;
     border-color: NascarTheme.ink;
     drop-shadow-offset-x: 6px;
     drop-shadow-offset-y: 8px;
-    drop-shadow-color: #0b143066;
+    drop-shadow-color: NascarTheme.shadow;
     VerticalLayout {
         alignment: center;
         spacing: 10px;
@@ -53,14 +78,14 @@ component RadarEdge inherits Rectangle {
             text: root.cars == 0 ? "" : ch;
             color: NascarTheme.ink;
             font-family: Fonts.anton;
-            font-size: 72px;
+            font-size: 56px;
             horizontal-alignment: center;
         }
         Text {
             text: root.cars >= 2 ? "x2" : root.side;
             color: root.cars == 0 ? #9aa3b5 : NascarTheme.ink;
             font-family: Fonts.anton;
-            font-size: 48px;
+            font-size: 40px;
             horizontal-alignment: center;
         }
     }
@@ -71,55 +96,66 @@ component PackPage inherits Rectangle {
     HorizontalLayout {
         padding: 16px;
         spacing: 16px;
-        RadarEdge { width: 130px; cars: root.d.spotter-left; side: "L"; }
+        RadarEdge { width: 100px; cars: root.d.spotter-left; side: "L"; }
         VerticalLayout {
-            spacing: 26px;
+            spacing: 20px;
             // Speedometer
             Banner {
-                vertical-stretch: 5;
+                vertical-stretch: 4;
                 VerticalLayout {
                     alignment: center;
-                    Text { text: "\{root.d.speed}"; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 280px; horizontal-alignment: center; }
-                    Text { text: root.d.speed-unit; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 60px; letter-spacing: 10px; horizontal-alignment: center; }
+                    Text { text: "\{root.d.speed}"; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 180px; horizontal-alignment: center; }
+                    Text { text: root.d.speed-unit; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 40px; letter-spacing: 10px; horizontal-alignment: center; }
                 }
             }
             // Gear + position
             HorizontalLayout {
-                vertical-stretch: 5;
+                vertical-stretch: 4;
                 min-height: 0px;
                 preferred-height: 0px;
-                spacing: 24px;
+                spacing: 20px;
                 Banner {
-                    fill: @linear-gradient(180deg, #1d4fc4 0%, #0033a0 60%, #001a57 100%);
+                    fill: NascarTheme.blue-fill;
                     VerticalLayout {
                         alignment: center;
-                        Text { text: "GEAR"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 6px; horizontal-alignment: center; }
-                        Text { text: root.d.gear; color: #ffffff; font-family: Fonts.anton; font-size: 300px; horizontal-alignment: center; }
+                        Text { text: "GEAR"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 30px; letter-spacing: 6px; horizontal-alignment: center; }
+                        Text { text: root.d.gear; color: #ffffff; font-family: Fonts.anton; font-size: 190px; horizontal-alignment: center; }
                     }
                 }
                 Banner {
-                    fill: @linear-gradient(180deg, #f0473a 0%, #da291c 60%, #8f150c 100%);
+                    fill: NascarTheme.red-fill;
                     VerticalLayout {
                         alignment: center;
-                        Text { text: "POS"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 6px; horizontal-alignment: center; }
-                        Text { text: root.d.position > 0 ? "\{root.d.position}" : "--"; color: #ffffff; font-family: Fonts.anton; font-size: 200px; horizontal-alignment: center; }
-                        Text { text: root.d.lap-text; color: #ffffffcc; font-family: Fonts.bebas; font-size: 40px; horizontal-alignment: center; }
+                        Text { text: "POS"; color: #ffffffbb; font-family: Fonts.bebas; font-size: 30px; letter-spacing: 6px; horizontal-alignment: center; }
+                        Text { text: root.d.position > 0 ? "\{root.d.position}" : "--"; color: #ffffff; font-family: Fonts.anton; font-size: 140px; horizontal-alignment: center; }
+                        Text { text: root.d.lap-text; color: #ffffffcc; font-family: Fonts.bebas; font-size: 32px; horizontal-alignment: center; }
+                        Text { text: "OF \{root.d.num-cars}"; color: #ffffff99; font-family: Fonts.bebas; font-size: 26px; horizontal-alignment: center; }
                     }
                 }
             }
-            // RPM light bar
-            Banner {
+            // RPM light bar follows the stat strip.
+            NascarStrip {
                 vertical-stretch: 2;
-                fill: NascarTheme.ink;
+                stats: [
+                    { label: "LAST", value: root.d.last-lap, tint: transparent },
+                    { label: "BEST", value: root.d.best-lap, tint: transparent },
+                    { label: "ALL-TIME", value: root.d.pb-lap, tint: #7a2cff },
+                    { label: "AHEAD", value: root.d.gap-ahead, tint: transparent },
+                    { label: "BEHIND", value: root.d.gap-behind, tint: transparent },
+                    { label: "FUEL LAPS", value: root.d.fuel-laps, tint: root.d.fuel-laps-num >= 0 && root.d.fuel-laps-num < 2 ? NascarTheme.red : transparent }
+                ];
+            }            Banner {
+                vertical-stretch: 2;
+                fill: NascarTheme.ink-fill;
                 VerticalLayout {
                     padding: 14px;
                     spacing: 6px;
                     ShiftLights { vertical-stretch: 1; low: #22c55e; mid: NascarTheme.yellow; high: NascarTheme.red; flash: NascarTheme.red; off: #1a2440; radius: 6px; gap: 6px; }
-                    Text { text: "\{root.d.rpm} RPM"; color: #ffffff; font-family: Fonts.bebas; font-size: 40px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: "\{root.d.rpm} RPM"; color: #ffffff; font-family: Fonts.bebas; font-size: 32px; letter-spacing: 4px; horizontal-alignment: center; }
                 }
             }
         }
-        RadarEdge { width: 130px; cars: root.d.spotter-right; side: "R"; }
+        RadarEdge { width: 100px; cars: root.d.spotter-right; side: "R"; }
     }
 }
 
@@ -131,27 +167,27 @@ component DraftPage inherits Rectangle {
         spacing: 22px;
         // The pylon: 3 ahead, you, 3 behind.
         Banner {
-            vertical-stretch: 8;
-            fill: NascarTheme.ink;
+            vertical-stretch: 7;
+            fill: NascarTheme.ink-fill;
             VerticalLayout {
                 padding: 10px;
                 spacing: 6px;
                 Rectangle {
-                    height: 64px;
+                    height: 52px;
                     background: NascarTheme.red;
-                    Text { width: parent.width; height: parent.height; text: "THE PYLON  ·  RELATIVE"; color: #ffffff; font-family: Fonts.bebas; font-size: 46px; letter-spacing: 4px; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: "THE PYLON  ·  RELATIVE"; color: #ffffff; font-family: Fonts.bebas; font-size: 36px; letter-spacing: 4px; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 for r[i] in Sim.relative : RowItem {
                     vertical-stretch: 1;
                     item: r;
-                    bg: i == 1 || i == 3 || i == 5 ? #dde2ea : NascarTheme.paper;
+                    bg: i == 1 || i == 3 || i == 5 ? NascarTheme.row-a : NascarTheme.row-b;
                     player-bg: NascarTheme.blue;
                     player-text: #ffffff;
                     text-color: NascarTheme.ink;
                     dim: #5b6680;
                     pit-color: NascarTheme.red;
                     font: Fonts.bebas;
-                    font-size: 48px;
+                    font-size: 40px;
                     radius: 2px;
                 }
             }
@@ -164,7 +200,7 @@ component DraftPage inherits Rectangle {
             spacing: 22px;
             Banner {
                 horizontal-stretch: 3;
-                fill: @linear-gradient(180deg, #0a2a7a 0%, #001a57 100%);
+                fill: NascarTheme.map-fill;
                 TrackMap {
                     width: parent.width;
                     height: parent.height;
@@ -184,15 +220,18 @@ component DraftPage inherits Rectangle {
                 horizontal-stretch: 2;
                 VerticalLayout {
                     alignment: center;
-                    Text { text: "CAR AHEAD"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
-                    Text { text: root.d.gap-ahead; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 90px; horizontal-alignment: center; overflow: elide; }
-                    Text { text: "BEHIND  " + root.d.gap-behind; color: #5b6680; font-family: Fonts.bebas; font-size: 36px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "CAR AHEAD"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 32px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.gap-ahead; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 64px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "BEHIND  " + root.d.gap-behind; color: #5b6680; font-family: Fonts.bebas; font-size: 32px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "LAST  " + root.d.last-lap; color: NascarTheme.ink; font-family: Fonts.bebas; font-size: 32px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "BEST  " + root.d.best-lap; color: NascarTheme.ink; font-family: Fonts.bebas; font-size: 32px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "ALL-TIME  " + root.d.pb-lap; color: #7a2cff; font-family: Fonts.bebas; font-size: 32px; horizontal-alignment: center; overflow: elide; }
                 }
             }
         }
         // Full-width caution flag
         Rectangle {
-            vertical-stretch: 3;
+            vertical-stretch: 1.6;
             min-height: 0px;
             preferred-height: 0px;
             border-radius: 6px;
@@ -201,14 +240,14 @@ component DraftPage inherits Rectangle {
             border-color: NascarTheme.ink;
             drop-shadow-offset-x: 8px;
             drop-shadow-offset-y: 10px;
-            drop-shadow-color: #0b143088;
+            drop-shadow-color: NascarTheme.shadow;
             Text {
                 width: parent.width;
                 height: parent.height;
                 text: root.caution ? "CAUTION" : "GREEN FLAG";
                 color: root.caution ? NascarTheme.ink : #ffffff;
                 font-family: Fonts.anton;
-                font-size: 150px;
+                font-size: 90px;
                 letter-spacing: 14px;
                 horizontal-alignment: center;
                 vertical-alignment: center;
@@ -224,12 +263,12 @@ component WearBar inherits Rectangle {
     preferred-height: 0px;
     HorizontalLayout {
         spacing: 20px;
-        Text { width: 120px; text: root.label; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 72px; vertical-alignment: center; }
+        Text { width: 90px; text: root.label; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 52px; vertical-alignment: center; }
         Rectangle {
             horizontal-stretch: 1;
             min-width: 0px;
             border-radius: 6px;
-            background: #dfe3ea;
+            background: NascarTheme.row-a;
             border-width: 4px;
             border-color: NascarTheme.ink;
             clip: true;
@@ -247,7 +286,7 @@ component WearBar inherits Rectangle {
                 text: root.c.wear != "" ? root.c.wear + " WORN" : "--";
                 color: #ffffff;
                 font-family: Fonts.anton;
-                font-size: 60px;
+                font-size: 44px;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
@@ -258,16 +297,16 @@ component WearBar inherits Rectangle {
 component PitPage inherits Rectangle {
     property <SimData> d: Sim.data;
     VerticalLayout {
-        padding: 24px;
-        spacing: 30px;
+        padding: 20px;
+        spacing: 20px;
         Banner {
-            vertical-stretch: 6;
-            fill: @linear-gradient(180deg, #1d4fc4 0%, #0033a0 60%, #001a57 100%);
+            vertical-stretch: 4;
+            fill: NascarTheme.blue-fill;
             VerticalLayout {
                 alignment: center;
-                Text { text: "FUEL - LAPS REMAINING"; color: NascarTheme.yellow; font-family: Fonts.bebas; font-size: 54px; letter-spacing: 6px; horizontal-alignment: center; }
-                Text { text: root.d.fuel-laps; color: #ffffff; font-family: Fonts.anton; font-size: 300px; horizontal-alignment: center; }
-                Text { text: root.d.fuel + "   ·   ADD " + root.d.fuel-to-add; color: #ffffffcc; font-family: Fonts.bebas; font-size: 48px; horizontal-alignment: center; }
+                Text { text: "FUEL - LAPS REMAINING"; color: NascarTheme.yellow; font-family: Fonts.bebas; font-size: 38px; letter-spacing: 6px; horizontal-alignment: center; }
+                Text { text: root.d.fuel-laps; color: #ffffff; font-family: Fonts.anton; font-size: 180px; horizontal-alignment: center; }
+                Text { text: root.d.fuel + "   ·   " + root.d.fuel-per-lap + " / LAP   ·   ADD " + root.d.fuel-to-add; color: #ffffffcc; font-family: Fonts.bebas; font-size: 38px; horizontal-alignment: center; overflow: elide; }
             }
         }
         Banner {
@@ -275,8 +314,10 @@ component PitPage inherits Rectangle {
             VerticalLayout {
                 padding: 24px;
                 spacing: 24px;
-                Text { text: "RIGHT-SIDE TIRE WEAR"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 50px; letter-spacing: 6px; horizontal-alignment: center; }
+                Text { text: "TIRE WEAR"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 36px; letter-spacing: 6px; horizontal-alignment: center; }
+                WearBar { vertical-stretch: 1; label: "LF"; c: root.d.fl; }
                 WearBar { vertical-stretch: 1; label: "RF"; c: root.d.fr; }
+                WearBar { vertical-stretch: 1; label: "LR"; c: root.d.rl; }
                 WearBar { vertical-stretch: 1; label: "RR"; c: root.d.rr; }
             }
         }
@@ -288,15 +329,16 @@ component PitPage inherits Rectangle {
             Banner {
                 VerticalLayout {
                     alignment: center;
-                    Text { text: "TRACK TEMP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
-                    Text { text: root.d.track-temp; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 130px; horizontal-alignment: center; }
+                    Text { text: "TRACK TEMP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 30px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.track-temp; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 80px; horizontal-alignment: center; }
                 }
             }
             Banner {
                 VerticalLayout {
                     alignment: center;
-                    Text { text: "BEST LAP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 44px; letter-spacing: 4px; horizontal-alignment: center; }
-                    Text { text: root.d.best-lap; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 90px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "BEST LAP"; color: NascarTheme.red; font-family: Fonts.bebas; font-size: 30px; letter-spacing: 4px; horizontal-alignment: center; }
+                    Text { text: root.d.best-lap; color: NascarTheme.ink; font-family: Fonts.anton; font-size: 64px; horizontal-alignment: center; overflow: elide; }
+                    Text { text: "ALL-TIME  " + root.d.pb-lap; color: #7a2cff; font-family: Fonts.bebas; font-size: 30px; horizontal-alignment: center; overflow: elide; }
                 }
             }
         }

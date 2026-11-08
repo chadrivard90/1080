@@ -11,6 +11,7 @@ use slint::{Color, ComponentHandle as _, Model as _, ModelRc, SharedString, VecM
 use super::{dials, Flag, Game, SimState, Tone};
 use crate::{CompassMark, DialLabel, DynoBar, MapDot, SimData, SimRow, TrailDot};
 use crate::games::map::MapCar;
+use crate::laplog::{self, LapInput, LapLog};
 
 type UiCorner = crate::Corner;
 
@@ -110,8 +111,26 @@ fn pressure_color(psi: f32, window: Option<(f32, f32)>) -> Color {
 }
 
 /// Keeps the per-session models and caches, and refreshes the UI every tick.
+/// Per-game options from the settings page.
+#[derive(Clone, Copy, Debug)]
+pub struct Tuning {
+    pub imperial: bool,
+    /// Fraction of max RPM where the shift lights are full (0.80..1.00).
+    pub shift_frac: f32,
+    /// Extra laps of fuel to keep in hand.
+    pub fuel_margin: f32,
+    /// Write finished laps to the lap log (off in demo mode).
+    pub log_laps: bool,
+}
+
 pub struct Renderer {
     imperial: bool,
+    shift_full: f32,
+    fuel_margin: f32,
+    laplog: LapLog,
+    log_enabled: bool,
+    last_vs_pb: Option<f32>,
+    pb_event: Option<(String, Instant)>,
     orient: Rc<Cell<u8>>,
     standings: Rc<VecModel<SimRow>>,
     relative: Rc<VecModel<SimRow>>,
@@ -146,9 +165,16 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(ui: &crate::AppWindow, imperial: bool, orient: Rc<Cell<u8>>) -> Self {
+    pub fn new(ui: &crate::AppWindow, tuning: Tuning, orient: Rc<Cell<u8>>) -> Self {
+        let imperial = tuning.imperial;
         let r = Self {
             imperial,
+            shift_full: tuning.shift_frac.clamp(0.8, 1.0),
+            fuel_margin: tuning.fuel_margin.clamp(0.0, 5.0),
+            laplog: LapLog::open(),
+            log_enabled: tuning.log_laps,
+            last_vs_pb: None,
+            pb_event: None,
             orient,
             standings: Rc::new(VecModel::default()),
             relative: Rc::new(VecModel::default()),
@@ -225,12 +251,49 @@ impl Renderer {
 
         let mut data = self.build_data(st, now, max_k);
         self.update_history(st, now, &mut data);
+        self.log_laps(st, now, &mut data);
         sim.set_data(data);
 
         sync(&self.standings, self.build_standings(st));
         sync(&self.relative, self.build_relative(st));
         sync(&self.compass, build_compass(st.yaw));
         self.update_map(&sim, st, now);
+    }
+
+    /// Append finished laps to the CSV log and show the all-time personal best.
+    fn log_laps(&mut self, st: &SimState, now: Instant, d: &mut SimData) {
+        let key = st.game.key();
+        if d.connected && self.log_enabled {
+            let input = LapInput {
+                game: key,
+                track: &st.track_name,
+                car: &st.car_info,
+                session: &st.session_name,
+                lap: st.lap,
+                last_lap_s: st.last_lap_s,
+                invalid_now: st.lap_invalid,
+                position: st.position,
+                fuel: st.fuel_l.or(st.fuel_frac.map(|f| f * 100.0)),
+            };
+            if let Some(done) = self.laplog.observe(&input) {
+                if done.new_best {
+                    self.pb_event = Some((format!("ALL-TIME BEST  {}", fmt_lap(done.time_s)), now));
+                }
+                self.last_vs_pb = done.previous_best.map(|b| done.time_s - b);
+            }
+        }
+        let pb = self.laplog.best(key, &st.track_name, &st.car_info);
+        d.pb_lap = pb.map_or_else(|| "-:--.---".to_string(), fmt_lap).into();
+        d.has_pb = pb.is_some();
+        d.pb_gap = self.last_vs_pb.map_or_else(String::new, laplog::fmt_diff).into();
+        d.pb_gap_good = self.last_vs_pb.is_some_and(|g| g <= 0.0);
+        if let Some((text, at)) = &self.pb_event {
+            if now.duration_since(*at) < Duration::from_secs(6) {
+                d.event_text = text.clone().into();
+                d.event_color = hex(0xB545FF);
+                d.event_text_color = hex(0xFFFFFF);
+            }
+        }
     }
 
     /// Rolling histories and records: RPM trace, G trail, equalizer, dyno, laps, drift, stint.
@@ -446,10 +509,12 @@ impl Renderer {
         d.rpm = st.rpm.max(0.0) as i32;
         let max_rpm = if st.max_rpm > 1000.0 { st.max_rpm } else { 8000.0 };
         d.rpm_pct = unit(st.rpm / max_rpm);
-        // Shift lights: game value if provided, else light up over the top 25% of the rev range.
-        let shift = st.shift_frac.unwrap_or_else(|| unit((d.rpm_pct - 0.75) / 0.22));
+        // Shift lights: game value if provided, else fill over the 22% of the rev range below the
+        // shift point chosen on the settings page.
+        let full = self.shift_full;
+        let shift = st.shift_frac.unwrap_or_else(|| unit((d.rpm_pct - (full - 0.22)) / 0.22));
         d.rev_count = (unit(shift) * 15.0).round() as i32;
-        d.shift = shift >= 0.99 || d.rpm_pct > 0.97;
+        d.shift = shift >= 0.99 || d.rpm_pct >= full;
         d.throttle = unit(st.throttle);
         d.brake = unit(st.brake);
         d.clutch = unit(st.clutch);
@@ -567,7 +632,7 @@ impl Renderer {
             if len > 10.0 {
                 d.has_stage = true;
                 d.stage_progress = unit(dist / len);
-                d.stage_pct = format!("{:.0}% COMPLETE", d.stage_progress * 100.0).into();
+                d.stage_pct = format!("{:.0}%", d.stage_progress * 100.0).into();
                 d.stage_text = if imp {
                     format!("{:.2} / {:.2} mi", dist.max(0.0) / 1609.34, len / 1609.34)
                 } else {
@@ -685,7 +750,7 @@ impl Renderer {
                 (Some(total), lap) if total > 0 => (total - lap + 1).max(0) as f32,
                 _ => 0.0,
             };
-            let need = laps_left * per_lap - st.fuel_l.unwrap_or(0.0);
+            let need = (laps_left + self.fuel_margin) * per_lap - st.fuel_l.unwrap_or(0.0);
             d.fuel_to_add = if laps_left <= 0.0 {
                 "--".to_string()
             } else if need <= 0.0 {

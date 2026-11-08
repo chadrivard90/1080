@@ -6,13 +6,18 @@
 
 import { Sim, SimData, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, Texture } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
 global HudTheme {
     out property <color> navy: #0a192f;
-    out property <color> panel: #0d2240cc;
+    // Panel fills, see-through per the PANELS setting.
+    out property <color> panel: rgba(13, 34, 64, 0.8 * AppState.panel);
+    out property <color> well: rgba(6, 22, 46, AppState.panel);
+    out property <color> cell: rgba(16, 42, 74, AppState.panel);
+    out property <color> row: rgba(10, 28, 54, AppState.panel);
     out property <color> line: #1f3a5f;
     out property <color> mint: #64ffda;
     out property <color> cyan: #4fc3f7;
@@ -49,10 +54,24 @@ component Tech inherits Rectangle {
     }
 }
 
+// HUD-style stat strip.
+component HudStrip inherits StatStrip {
+    cell-bg: HudTheme.panel;
+    edge: HudTheme.line;
+    label-color: HudTheme.mint;
+    value-color: HudTheme.text;
+    font: Fonts.russo;
+    label-font: Fonts.mono;
+    value-size: 34px;
+    label-size: 18px;
+    radius: 0px;
+    gap: 12px;
+}
+
 // Flag status square.
 component FlagSquare inherits Rectangle {
     property <bool> active: Sim.data.banner-text != "" && !Sim.data.pit-limiter;
-    background: self.active ? Sim.data.banner-color : #102a4a;
+    background: self.active ? Sim.data.banner-color : HudTheme.cell;
     border-width: 4px;
     border-color: self.active ? #ffffff : HudTheme.line;
     drop-shadow-blur: self.active ? 40px : 0px;
@@ -64,7 +83,7 @@ component FlagSquare inherits Rectangle {
         text: root.active ? Sim.data.banner-text : "GREEN";
         color: root.active ? Sim.data.banner-text-color : #2bd47a;
         font-family: Fonts.mono;
-        font-size: 30px;
+        font-size: 24px;
         wrap: word-wrap;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -75,13 +94,13 @@ component HudValue inherits Tech {
     in property <string> value;
     in property <string> sub;
     in property <color> value-color: HudTheme.text;
-    in property <length> size: 110px;
+    in property <length> size: 72px;
     VerticalLayout {
-        padding: 20px;
-        padding-top: 44px;
+        padding: 14px;
+        padding-top: 38px;
         alignment: center;
         Text { text: root.value; color: root.value-color; font-family: Fonts.russo; font-size: root.size; horizontal-alignment: center; overflow: elide; }
-        if root.sub != "" : Text { text: root.sub; color: HudTheme.dim; font-family: Fonts.mono; font-size: 28px; horizontal-alignment: center; overflow: elide; }
+        if root.sub != "" : Text { text: root.sub; color: HudTheme.dim; font-family: Fonts.mono; font-size: 22px; horizontal-alignment: center; overflow: elide; }
     }
 }
 
@@ -92,24 +111,24 @@ component HudDash inherits Rectangle {
         spacing: 18px;
         // Gear / RPM between flag squares
         Tech {
-            vertical-stretch: 7;
+            vertical-stretch: 5;
             title: "POWERTRAIN";
             HorizontalLayout {
                 padding: 20px;
                 padding-top: 50px;
                 spacing: 20px;
                 VerticalLayout {
-                    width: 200px;
-                    FlagSquare { height: 200px; }
+                    width: 170px;
+                    FlagSquare { height: 150px; }
                     Rectangle { vertical-stretch: 1; }
                 }
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    Text { text: root.d.gear; color: HudTheme.text; font-family: Fonts.russo; font-size: 300px; horizontal-alignment: center; }
+                    Text { text: root.d.gear; color: HudTheme.text; font-family: Fonts.russo; font-size: 200px; horizontal-alignment: center; }
                     Rectangle {
                         height: 26px;
-                        background: #061226;
+                        background: HudTheme.well;
                         border-width: 1px;
                         border-color: HudTheme.line;
                         Rectangle {
@@ -120,18 +139,18 @@ component HudDash inherits Rectangle {
                             animate width { duration: 60ms; }
                         }
                     }
-                    Text { text: "\{root.d.rpm} RPM   ·   \{root.d.speed} " + root.d.speed-unit; color: HudTheme.cyan; font-family: Fonts.mono; font-size: 36px; horizontal-alignment: center; }
+                    Text { text: "\{root.d.rpm} RPM   ·   \{root.d.speed} " + root.d.speed-unit; color: HudTheme.cyan; font-family: Fonts.mono; font-size: 30px; horizontal-alignment: center; }
                 }
                 VerticalLayout {
-                    width: 200px;
-                    FlagSquare { height: 200px; }
+                    width: 170px;
+                    FlagSquare { height: 150px; }
                     Rectangle { vertical-stretch: 1; }
                 }
             }
         }
         // Delta + position
         HorizontalLayout {
-            vertical-stretch: 3;
+            vertical-stretch: 2;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
@@ -147,22 +166,45 @@ component HudDash inherits Rectangle {
                 title-color: HudTheme.mint;
                 font: Fonts.russo;
                 radius: 0px;
-                font-size: 80px;
+                font-size: 60px;
             }
-            HudValue { horizontal-stretch: 1; title: "POSITION"; value: root.d.pos-text; size: 72px; }
+            HudValue { horizontal-stretch: 1; title: "POSITION"; value: root.d.pos-text; size: 56px; }
+        }
+        // Lap times
+        HudStrip {
+            vertical-stretch: 1.3;
+            stats: [
+                { label: root.d.lap-invalid ? "CURRENT · INV" : "CURRENT", value: root.d.current-lap, tint: root.d.lap-invalid ? #ff4d4d : transparent },
+                { label: "LAST", value: root.d.last-lap, tint: transparent },
+                { label: "BEST", value: root.d.best-lap, tint: HudTheme.mint },
+                { label: "ALL-TIME", value: root.d.pb-lap, tint: #c08bff },
+                { label: "LAST VS PB", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? HudTheme.dim : (root.d.pb-gap-good ? HudTheme.mint : #ff4d4d) }
+            ];
+        }
+        // Tyres
+        HudStrip {
+            vertical-stretch: 1.3;
+            stats: [
+                { label: "FL", value: root.d.fl.temp, tint: root.d.fl.temp-color },
+                { label: "FR", value: root.d.fr.temp, tint: root.d.fr.temp-color },
+                { label: "RL", value: root.d.rl.temp, tint: root.d.rl.temp-color },
+                { label: "RR", value: root.d.rr.temp, tint: root.d.rr.temp-color },
+                { label: "AHEAD", value: root.d.gap-ahead, tint: transparent },
+                { label: "BEHIND", value: root.d.gap-behind, tint: transparent }
+            ];
         }
         // Fuel
         HorizontalLayout {
-            vertical-stretch: 4;
+            vertical-stretch: 3;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
-            HudValue { title: "FUEL REMAINING"; value: root.d.fuel; sub: root.d.fuel-per-lap + " / LAP"; size: 90px; }
+            HudValue { title: "FUEL REMAINING"; value: root.d.fuel; sub: root.d.fuel-per-lap + " / LAP"; size: 64px; }
             HudValue {
                 title: "LAPS OF FUEL";
                 value: root.d.fuel-laps;
                 sub: "ADD " + root.d.fuel-to-add;
-                size: 110px;
+                size: 72px;
                 value-color: root.d.fuel-laps-num >= 0 && root.d.fuel-laps-num < 2 ? #ff4d4d : HudTheme.mint;
             }
         }
@@ -180,12 +222,12 @@ component HudWeather inherits Rectangle {
         padding: 18px;
         spacing: 18px;
         HorizontalLayout {
-            vertical-stretch: 4;
+            vertical-stretch: 3;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
-            HudValue { title: "TRACK SURFACE"; value: root.d.track-temp; size: 130px; value-color: #ffb36b; }
-            HudValue { title: "AMBIENT"; value: root.d.air-temp; size: 130px; value-color: HudTheme.cyan; }
+            HudValue { title: "TRACK SURFACE"; value: root.d.track-temp; size: 80px; value-color: #ffb36b; }
+            HudValue { title: "AMBIENT"; value: root.d.air-temp; size: 80px; value-color: HudTheme.cyan; }
         }
         // Water on track tank
         Tech {
@@ -197,7 +239,7 @@ component HudWeather inherits Rectangle {
                 spacing: 30px;
                 Rectangle {
                     width: 280px;
-                    background: #06162e;
+                    background: HudTheme.well;
                     border-width: 3px;
                     border-color: HudTheme.cyan;
                     clip: true;
@@ -214,15 +256,15 @@ component HudWeather inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    if root.has-icon : Image { height: 220px; source: root.icon; image-fit: contain; }
-                    Text { text: "\{root.d.rain-pct}%"; color: root.d.rain-pct > 40 ? HudTheme.cyan : HudTheme.text; font-family: Fonts.russo; font-size: 160px; }
-                    Text { text: root.d.rain-pct > 40 ? "WETS ADVISED" : (root.d.rain-pct > 10 ? "MONITOR" : "DRY RUNNING"); color: root.d.rain-pct > 40 ? #ffb000 : HudTheme.mint; font-family: Fonts.mono; font-size: 40px; }
+                    if root.has-icon : Image { height: 150px; source: root.icon; image-fit: contain; }
+                    Text { text: "\{root.d.rain-pct}%"; color: root.d.rain-pct > 40 ? HudTheme.cyan : HudTheme.text; font-family: Fonts.russo; font-size: 100px; }
+                    Text { text: root.d.rain-pct > 40 ? "WETS ADVISED" : (root.d.rain-pct > 10 ? "MONITOR" : "DRY RUNNING"); color: root.d.rain-pct > 40 ? #ffb000 : HudTheme.mint; font-family: Fonts.mono; font-size: 30px; }
                 }
             }
         }
         // Wind
         Tech {
-            vertical-stretch: 5;
+            vertical-stretch: 4;
             title: "WIND";
             HorizontalLayout {
                 padding: 26px;
@@ -237,7 +279,7 @@ component HudWeather inherits Rectangle {
                         width: parent.side;
                         height: parent.side;
                         border-radius: parent.side / 2;
-                        background: #06162e;
+                        background: HudTheme.well;
                         border-width: 3px;
                         border-color: HudTheme.line;
                         Text { y: 6px; width: parent.width; text: "N"; color: HudTheme.mint; font-family: Fonts.mono; font-size: 28px; horizontal-alignment: center; }
@@ -256,12 +298,21 @@ component HudWeather inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    Text { text: root.d.wind; color: HudTheme.text; font-family: Fonts.russo; font-size: 110px; overflow: elide; }
-                    Text { text: root.d.has-wind-dir ? "DIRECTION SHOWN" : "NO DIRECTION DATA"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 28px; }
+                    Text { text: root.d.wind; color: HudTheme.text; font-family: Fonts.russo; font-size: 72px; overflow: elide; }
+                    Text { text: root.d.has-wind-dir ? "DIRECTION SHOWN" : "NO DIRECTION DATA"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 24px; }
                 }
             }
         }
-    }
+        HudStrip {
+            vertical-stretch: 1.3;
+            stats: [
+                { label: "SESSION LEFT", value: root.d.time-left == "" ? "--" : root.d.time-left, tint: transparent },
+                { label: "STINT", value: root.d.stint-time, tint: transparent },
+                { label: "FUEL LAPS", value: root.d.fuel-laps, tint: transparent },
+                { label: "POSITION", value: root.d.pos-text, tint: transparent },
+                { label: "LAST", value: root.d.last-lap, tint: transparent }
+            ];
+        }    }
 }
 
 component HudStrategy inherits Rectangle {
@@ -301,9 +352,9 @@ component HudStrategy inherits Rectangle {
                     Text { text: "TYRE WEAR"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 24px; }
                 }
                 Row {
-                    Text { text: root.d.fuel-to-add; color: HudTheme.mint; font-family: Fonts.russo; font-size: 48px; overflow: elide; }
-                    Text { text: root.d.fuel-per-lap; color: HudTheme.text; font-family: Fonts.russo; font-size: 48px; overflow: elide; }
-                    Text { text: root.d.fl.wear + " / " + root.d.rr.wear; color: HudTheme.text; font-family: Fonts.russo; font-size: 48px; overflow: elide; }
+                    Text { text: root.d.fuel-to-add; color: HudTheme.mint; font-family: Fonts.russo; font-size: 40px; overflow: elide; }
+                    Text { text: root.d.fuel-per-lap; color: HudTheme.text; font-family: Fonts.russo; font-size: 40px; overflow: elide; }
+                    Text { text: root.d.fl.wear + " / " + root.d.rr.wear; color: HudTheme.text; font-family: Fonts.russo; font-size: 40px; overflow: elide; }
                 }
             }
         }
@@ -318,11 +369,11 @@ component HudStrategy inherits Rectangle {
                 for r in Sim.standings : RowItem {
                     vertical-stretch: 1;
                     item: r;
-                    bg: #0a1c36;
+                    bg: HudTheme.row;
                     player-bg: #64ffda44;
                     dim: HudTheme.dim;
                     font: Fonts.mono;
-                    font-size: 26px;
+                    font-size: 30px;
                     radius: 0px;
                 }
                 Rectangle { vertical-stretch: 0.01; }
@@ -333,7 +384,7 @@ component HudStrategy inherits Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
             preferred-height: 0px;
-            background: #06162e;
+            background: HudTheme.well;
             border-width: 1px;
             border-color: HudTheme.line;
             Rectangle {

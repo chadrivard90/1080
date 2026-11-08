@@ -129,16 +129,39 @@ Push changes to GitHub and wait for the Actions build to go green. Then double-c
 
 Tap **DEMO** on the title screen, then any game. Each dash runs simulated data (a race with a field of cars, a rally stage, or an open-world drive) so you can try every tab without the game.
 
+## Settings page
+
+Tap **SETTINGS** on the title screen:
+
+- **Display:** panel see-through level (Solid / Glass / Clear) and demo mode.
+- **Per game:** units, UDP port, shift-light point (% of max RPM, for games that don't send
+  their own shift lights) and fuel margin (extra laps of fuel to keep in hand; used for
+  "fuel to add" and for when F1's fuel delta turns red). Changes apply the next time you open
+  that game's dash.
+- **Lap log:** the all-time best per track and car for the selected game.
+
+## Lap log
+
+Every completed lap is appended to `~/race-dash-logs/laps.csv` (outside the install folder, so
+updates never touch it). Columns: UTC time, game, track, car, session, lap, lap time, seconds,
+valid, position, fuel used, personal best. The fastest valid lap per game + track + car is
+shown on the dashes as **ALL-TIME**, with the last lap compared against it, and a purple
+pop-up appears when you beat it. Rally games log a stage only if the game reports a finished
+stage time.
+
 ## Settings file
 
 `~/.config/race-dash/config.txt` (written automatically):
 
 ```
 demo=0
+glass=1              # panels: 0 solid, 1 glass, 2 clear
 layout_f1=0          # last tab per game: f1, nascar, acevo, ams2, dr2, wrc, fm, fh6
 map_f1=0             # map rotation 0-7 per game
 port_fm=20440        # optional UDP port override per game
 units_nascar=imperial  # optional: metric | imperial per game (NASCAR defaults to imperial)
+shift_acevo=97       # shift lights full at this % of max RPM
+fuelmargin_f1=0.5    # extra laps of fuel to keep in hand
 ```
 
 ## Development

@@ -6,7 +6,8 @@
 
 import { Sim, SimData, Corner, DialLabel } from "../sim/sim_state.slint";
 import { DashShell, Dial, GMeter } from "../sim/sim_widgets.slint";
-import { Fonts, Texture } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -17,6 +18,10 @@ global Dr2Theme {
     out property <color> orange: #ff7a0a;
     out property <color> dim: #8a8573;
     out property <color> lcd: #7dff7a;
+    // Fills, see-through per the PANELS setting (the LCD keeps a little more body).
+    out property <color> lcd-bg: rgba(10, 22, 10, 0.2 + 0.8 * AppState.panel);
+    out property <color> well: rgba(11, 11, 10, AppState.panel);
+    out property <color> plate-bg: rgba(13, 13, 12, AppState.panel);
 }
 
 struct LabelPos {
@@ -25,14 +30,26 @@ struct LabelPos {
     t: string,
 }
 
-// Backlit LCD readout.
-component Lcd inherits Rectangle {
+// Printed-plate stat strip.
+component Dr2Strip inherits StatStrip {
+    cell-bg: Dr2Theme.plate-bg;
+    edge: #3a362a;
+    label-color: Dr2Theme.dim;
+    value-color: Dr2Theme.cream;
+    font: Fonts.russo;
+    value-size: 32px;
+    label-size: 17px;
+    radius: 10px;
+    gap: 12px;
+}
+
+// Backlit LCD readout.component Lcd inherits Rectangle {
     in property <string> text;
     in property <string> label;
     in property <length> size: 150px;
     min-height: 0px;
     preferred-height: 0px;
-    background: #0a160a;
+    background: Dr2Theme.lcd-bg;
     border-radius: 14px;
     border-width: 10px;
     border-color: #262622;
@@ -76,14 +93,23 @@ component Dr2TachPage inherits Rectangle {
         padding: 18px;
         spacing: 22px;
         Rectangle {
-            vertical-stretch: 11;
+            vertical-stretch: 9;
             min-height: 0px;
             preferred-height: 0px;
             property <length> side: min(self.width, self.height);
             property <length> ox: (self.width - self.side) / 2;
             property <length> oy: (self.height - self.side) / 2;
             property <float> k: self.side / 800px;
-            Image { x: parent.ox; y: parent.oy; width: parent.side; height: parent.side; source: Art.dr2-tach-face; image-fit: contain; }
+            // Round clip hides the black corners of an AI tach face.
+            Rectangle {
+                x: parent.ox;
+                y: parent.oy;
+                width: parent.side;
+                height: parent.side;
+                border-radius: parent.side / 2;
+                clip: true;
+                Image { width: parent.width; height: parent.height; source: Art.dr2-tach-face; image-fit: contain; }
+            }
             Image { x: parent.ox; y: parent.oy; width: parent.side; height: parent.side; source: @image-url("../img/tach_ticks.svg"); }
             for n in root.nums : Text {
                 x: parent.ox + (n.x - 45) * parent.k * 1px;
@@ -145,12 +171,22 @@ component Dr2TachPage inherits Rectangle {
             }
         }
         HorizontalLayout {
-            vertical-stretch: 3;
+            vertical-stretch: 2.4;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 18px;
-            Lcd { horizontal-stretch: 3; label: "STAGE"; text: root.d.stage-time; size: 130px; }
-            Lcd { horizontal-stretch: 2; label: root.d.speed-unit; text: "\{root.d.speed}"; size: 130px; }
+            Lcd { horizontal-stretch: 3; label: "STAGE"; text: root.d.stage-time; size: 92px; }
+            Lcd { horizontal-stretch: 2; label: root.d.speed-unit; text: "\{root.d.speed}"; size: 92px; }
+        }
+        Dr2Strip {
+            vertical-stretch: 1.4;
+            stats: [
+                { label: "PROGRESS", value: root.d.has-stage ? root.d.stage-pct : "--", tint: transparent },
+                { label: "DISTANCE", value: root.d.has-stage ? root.d.stage-text : "--", tint: transparent },
+                { label: "POSITION", value: root.d.pos-text, tint: transparent },
+                { label: "LAST STAGE", value: root.d.last-lap, tint: transparent },
+                { label: "ALL-TIME", value: root.d.pb-lap, tint: Dr2Theme.orange }
+            ];
         }
     }
 }
@@ -169,13 +205,15 @@ component GlassGauge inherits Rectangle {
         Rectangle {
             property <length> side: min(self.width, self.height);
             width: root.height;
-            if Art.dr2-gauge-face-custom : Image {
+            // Clipped to a circle so the AI image's square corners don't show.
+            if Art.dr2-gauge-face-custom : Rectangle {
                 x: (parent.width - parent.side) / 2;
                 y: (parent.height - parent.side) / 2;
                 width: parent.side;
                 height: parent.side;
-                source: Art.dr2-gauge-face;
-                image-fit: contain;
+                border-radius: parent.side / 2;
+                clip: true;
+                Image { width: parent.width; height: parent.height; source: Art.dr2-gauge-face; image-fit: contain; }
             }
             Dial {
                 show-face: !Art.dr2-gauge-face-custom;
@@ -210,8 +248,8 @@ component GlassGauge inherits Rectangle {
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
-            Text { text: root.title; color: Dr2Theme.dim; font-family: Fonts.russo; font-size: 30px; }
-            Text { text: root.value; color: Dr2Theme.cream; font-family: Fonts.russo; font-size: 96px; overflow: elide; }
+            Text { text: root.title; color: Dr2Theme.dim; font-family: Fonts.russo; font-size: 24px; }
+            Text { text: root.value; color: Dr2Theme.cream; font-family: Fonts.russo; font-size: 64px; overflow: elide; }
         }
     }
 }
@@ -219,11 +257,29 @@ component GlassGauge inherits Rectangle {
 component Dr2SurvivalPage inherits Rectangle {
     property <SimData> d: Sim.data;
     VerticalLayout {
-        padding: 24px;
-        spacing: 30px;
+        padding: 20px;
+        spacing: 18px;
         GlassGauge { vertical-stretch: 1; title: "BRAKES FRONT"; value: root.d.brake-front; needle: root.d.brake-front-needle; ticks: Sim.speed-ticks; labels: []; }
         GlassGauge { vertical-stretch: 1; title: "BRAKES REAR"; value: root.d.brake-rear; needle: root.d.brake-rear-needle; ticks: Sim.speed-ticks; labels: []; }
         GlassGauge { vertical-stretch: 1; title: "SPEED  " + root.d.speed-unit; value: "\{root.d.speed}"; needle: root.d.speed-needle; ticks: Sim.speed-ticks; labels: Sim.speed-labels; }
+        Dr2Strip {
+            vertical-stretch: 0.32;
+            stats: [
+                { label: "FL BRAKE", value: root.d.fl.brake == "" ? "--" : root.d.fl.brake, tint: root.d.fl.brake-color },
+                { label: "FR BRAKE", value: root.d.fr.brake == "" ? "--" : root.d.fr.brake, tint: root.d.fr.brake-color },
+                { label: "RL BRAKE", value: root.d.rl.brake == "" ? "--" : root.d.rl.brake, tint: root.d.rl.brake-color },
+                { label: "RR BRAKE", value: root.d.rr.brake == "" ? "--" : root.d.rr.brake, tint: root.d.rr.brake-color }
+            ];
+        }
+        Dr2Strip {
+            vertical-stretch: 0.32;
+            stats: [
+                { label: "GEAR", value: root.d.gear, tint: transparent },
+                { label: "RPM", value: "\{root.d.rpm}", tint: root.d.shift ? #ff5a3a : transparent },
+                { label: "TOP SPEED", value: root.d.max-speed, tint: transparent },
+                { label: "STAGE TIME", value: root.d.stage-time, tint: Dr2Theme.lcd }
+            ];
+        }
     }
 }
 
@@ -238,7 +294,7 @@ component Dr2Bar inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
-            background: #0b0b0a;
+            background: Dr2Theme.well;
             border-radius: 8px;
             border-width: 3px;
             border-color: #3a362a;
@@ -279,10 +335,19 @@ component Dr2PhysicsPage inherits Rectangle {
                 horizontal-stretch: 2;
                 alignment: center;
                 spacing: 10px;
-                Text { text: "LATERAL"; color: Dr2Theme.dim; font-family: Fonts.russo; font-size: 26px; }
-                Text { text: root.d.g-text; color: Dr2Theme.cream; font-family: Fonts.russo; font-size: 72px; }
+                Text { text: "LATERAL"; color: Dr2Theme.dim; font-family: Fonts.russo; font-size: 22px; }
+                Text { text: root.d.g-text; color: Dr2Theme.cream; font-family: Fonts.russo; font-size: 56px; }
                 Text { text: "PEAK  " + root.d.peak-lat-g; color: Dr2Theme.orange; font-family: Fonts.russo; font-size: 30px; }
             }
+        }
+        Dr2Strip {
+            vertical-stretch: 1.1;
+            stats: [
+                { label: "YAW RATE", value: root.d.yaw-rate, tint: transparent },
+                { label: "DRIFT", value: root.d.drift-text, tint: transparent },
+                { label: "TOP SPEED", value: root.d.max-speed, tint: transparent },
+                { label: "DISTANCE", value: root.d.distance, tint: transparent }
+            ];
         }
         // Suspension compression + wheel slip
         HorizontalLayout {
@@ -304,7 +369,7 @@ component Dr2PhysicsPage inherits Rectangle {
             vertical-stretch: 5;
             min-height: 0px;
             preferred-height: 0px;
-            background: #0d0d0c;
+            background: Dr2Theme.plate-bg;
             border-radius: 14px;
             border-width: 3px;
             border-color: #3a362a;
