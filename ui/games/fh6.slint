@@ -5,7 +5,7 @@
 
 import { Sim, SimData } from "../sim/sim_state.slint";
 import { DashShell } from "../sim/sim_widgets.slint";
-import { Fonts, StatStrip, Stat } from "../kit.slint";
+import { Fonts, StatStrip, Stat, FadePage } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -36,6 +36,7 @@ component Frost inherits Rectangle {
     drop-shadow-blur: 30px;
     drop-shadow-color: FestTheme.shadow;
     clip: true;
+    if Art.panel-fh6-custom : Image { width: parent.width; height: parent.height; source: Art.panel-fh6; image-fit: cover; opacity: 0.25; }
     if root.title != "" : Text {
         x: 28px;
         y: 10px;
@@ -48,6 +49,8 @@ component Frost inherits Rectangle {
 
 // Frosted stat strip.
 component FestStrip inherits StatStrip {
+    texture: Art.panel-fh6;
+    textured: Art.panel-fh6-custom;
     cell-bg: FestTheme.frost;
     edge: FestTheme.frost-edge;
     label-color: FestTheme.yellow;
@@ -60,7 +63,7 @@ component FestStrip inherits StatStrip {
     italic: true;
 }
 
-component FestCruise inherits Rectangle {
+component FestCruise inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 22px;
@@ -174,7 +177,7 @@ component FestCruise inherits Rectangle {
     }
 }
 
-component FestDrift inherits Rectangle {
+component FestDrift inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 22px;
@@ -250,7 +253,7 @@ component FestDrift inherits Rectangle {
     }
 }
 
-component FestExplorer inherits Rectangle {
+component FestExplorer inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 22px;
@@ -321,6 +324,10 @@ component FestExplorer inherits Rectangle {
 }
 
 export component Fh6Dash inherits DashShell {
+    waiting-art: Art.tile-fh6;
+    waiting-has-art: Art.tile-fh6-custom;
+    waiting-emblem: Art.emblem-fh6;
+    waiting-card: #1f0b36;
     background: #2a0632;
     tabs: [
         { label: "CRUISE", icon: @image-url("../img/icons/music.svg") },

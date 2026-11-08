@@ -8,6 +8,7 @@
 //! Games that only report lap progress (0..1) for other cars, not coordinates (iRacing-based
 //! NASCAR), get their cars placed by looking up that progress along the recorded line.
 
+use std::collections::VecDeque;
 use std::fmt::Write as _;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,7 +36,15 @@ pub struct Dot {
     pub player: bool,
     pub label: String,
     pub color: Option<u32>,
+    /// 0 = car, 1 = trail point behind the player, 2 = start / finish marker.
+    pub kind: u8,
+    /// Fade for trail points (1 = newest).
+    pub alpha: f32,
 }
+
+/// Trail points kept behind the player, and their minimum spacing in metres.
+const TRAIL_LEN: usize = 14;
+const TRAIL_SPACING: f32 = 6.0;
 
 impl Default for MapRecorder {
     fn default() -> Self {
@@ -51,6 +60,8 @@ pub struct MapRecorder {
     pct_covered: f32,
     last_pct: Option<f32>,
     path_len: f32,
+    /// The player's most recent positions (kept even after the outline is frozen).
+    recent: VecDeque<(f32, f32)>,
     /// Bumped whenever the outline changes, so the SVG path is only rebuilt when needed.
     pub version: u64,
 }
@@ -68,6 +79,7 @@ impl MapRecorder {
             pct_covered: 0.0,
             last_pct: None,
             path_len: 0.0,
+            recent: VecDeque::with_capacity(TRAIL_LEN + 1),
             version: 0,
         }
     }
@@ -90,6 +102,16 @@ impl MapRecorder {
     pub fn add(&mut self, x: f32, z: f32, pct: Option<f32>) {
         if !x.is_finite() || !z.is_finite() || (x == 0.0 && z == 0.0) {
             return;
+        }
+        let far_enough = self
+            .recent
+            .back()
+            .map_or(true, |&(lx, lz)| ((x - lx).powi(2) + (z - lz).powi(2)).sqrt() >= TRAIL_SPACING);
+        if far_enough {
+            self.recent.push_back((x, z));
+            while self.recent.len() > TRAIL_LEN {
+                self.recent.pop_front();
+            }
         }
         if self.frozen {
             return;
@@ -273,11 +295,27 @@ impl MapRecorder {
                 if !(0.0..=VIEW).contains(&x) || !(0.0..=VIEW).contains(&y) {
                     return None;
                 }
-                Some(Dot { x, y, player: c.player, label: c.label.clone(), color: c.color })
+                Some(Dot { x, y, player: c.player, label: c.label.clone(), color: c.color, kind: 0, alpha: 1.0 })
             })
             .collect();
-        // Draw the player last so it is on top.
-        dots.sort_by_key(|d| d.player);
+        // Start / finish marker at the first recorded point.
+        if self.mode != MapMode::OpenWorld && self.has_outline() {
+            let (x, y) = to_view(self.pts[0].0, self.pts[0].1);
+            if (0.0..=VIEW).contains(&x) && (0.0..=VIEW).contains(&y) {
+                dots.push(Dot { x, y, player: false, label: String::new(), color: None, kind: 2, alpha: 1.0 });
+            }
+        }
+        // Fading trail behind the player (newest last; the newest sits under the player dot).
+        let n = self.recent.len();
+        for (i, &(wx, wz)) in self.recent.iter().enumerate().take(n.saturating_sub(1)) {
+            let (x, y) = to_view(wx, wz);
+            if (0.0..=VIEW).contains(&x) && (0.0..=VIEW).contains(&y) {
+                let alpha = (i + 1) as f32 / n as f32;
+                dots.push(Dot { x, y, player: false, label: String::new(), color: None, kind: 1, alpha });
+            }
+        }
+        // Markers and trail first, then cars, with the player on top.
+        dots.sort_by_key(|d| (d.kind == 0, d.player));
         (path, dots)
     }
 }
@@ -309,6 +347,7 @@ mod tests {
         }
         let cars = vec![MapCar { pct: Some(0.25), label: "1".into(), ..Default::default() }];
         let (_, dots) = m.render(&cars, 0, None);
-        assert_eq!(dots.len(), 1);
+        assert_eq!(dots.iter().filter(|d| d.kind == 0).count(), 1);
+        assert!(dots.iter().any(|d| d.kind == 2));
     }
 }

@@ -21,14 +21,14 @@ pub fn hex(rgb: u32) -> Color {
 
 pub fn fmt_lap(secs: f32) -> String {
     if !secs.is_finite() || secs <= 0.0 {
-        return "-:--.---".into();
+        return "NO TIME".into();
     }
     let ms = (secs * 1000.0).round() as u64;
     format!("{}:{:02}.{:03}", ms / 60_000, (ms % 60_000) / 1000, ms % 1000)
 }
 
 fn fmt_opt_lap(s: Option<f32>) -> String {
-    s.map_or_else(|| "-:--.---".to_string(), fmt_lap)
+    s.map_or_else(|| "NO TIME".to_string(), fmt_lap)
 }
 
 fn fmt_gap(secs: f32) -> String {
@@ -283,7 +283,7 @@ impl Renderer {
             }
         }
         let pb = self.laplog.best(key, &st.track_name, &st.car_info);
-        d.pb_lap = pb.map_or_else(|| "-:--.---".to_string(), fmt_lap).into();
+        d.pb_lap = pb.map_or_else(|| "NO TIME".to_string(), fmt_lap).into();
         d.has_pb = pb.is_some();
         d.pb_gap = self.last_vs_pb.map_or_else(String::new, laplog::fmt_diff).into();
         d.pb_gap_good = self.last_vs_pb.is_some_and(|g| g <= 0.0);
@@ -465,6 +465,8 @@ impl Renderer {
                 player: d.player,
                 label: d.label.into(),
                 color: d.color.map_or(hex(0xFFFFFF), hex),
+                kind: d.kind as i32,
+                alpha: d.alpha,
             })
             .collect();
         sync(&self.dots, ui_dots);
@@ -621,7 +623,7 @@ impl Renderer {
                 d.delta = dl.clamp(-99.0, 99.0);
                 d.delta_text = format!("{:+.3}", d.delta).into();
             }
-            _ => d.delta_text = "--.---".into(),
+            _ => d.delta_text = "NO REF".into(),
         }
         d.lap_invalid = st.lap_invalid;
         d.session_name = st.session_name.clone().into();
@@ -942,7 +944,7 @@ mod tests {
     #[test]
     fn formats() {
         assert_eq!(fmt_lap(83.456), "1:23.456");
-        assert_eq!(fmt_lap(0.0), "-:--.---");
+        assert_eq!(fmt_lap(0.0), "NO TIME");
         assert_eq!(fmt_gap(0.5), "+0.500");
         assert_eq!(fmt_clock(754.0), "12:34");
         let c = build_compass(0.0);

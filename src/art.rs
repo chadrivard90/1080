@@ -98,6 +98,17 @@ pub fn load(ui: &crate::AppWindow) -> String {
     img!("car-gt", set_car_gt);
     img!("car-drift", set_car_drift);
     img!("car-rally", set_car_rally);
+    img!("car-f1", set_car_f1, set_car_f1_custom);
+    img!("car-stock", set_car_stock, set_car_stock_custom);
+
+    img!("panel-f1", set_panel_f1, set_panel_f1_custom);
+    img!("panel-nascar", set_panel_nascar, set_panel_nascar_custom);
+    img!("panel-acevo", set_panel_acevo, set_panel_acevo_custom);
+    img!("panel-ams2", set_panel_ams2, set_panel_ams2_custom);
+    img!("panel-dr2", set_panel_dr2, set_panel_dr2_custom);
+    img!("panel-wrc", set_panel_wrc, set_panel_wrc_custom);
+    img!("panel-fm", set_panel_fm, set_panel_fm_custom);
+    img!("panel-fh6", set_panel_fh6, set_panel_fh6_custom);
 
     if count == 0 {
         "built-in art".into()

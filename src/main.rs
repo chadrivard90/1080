@@ -268,6 +268,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Animation clock: a gentle pulse for highlights everywhere, plus the title screen's slow
+    // hero pan and tile light sweep (only while the title screen is showing).
+    let anim_timer = slint::Timer::default();
+    anim_timer.start(slint::TimerMode::Repeated, Duration::from_millis(40), {
+        let weak = ui.as_weak();
+        let started = std::time::Instant::now();
+        move || {
+            let Some(ui) = weak.upgrade() else { return };
+            let t = started.elapsed().as_secs_f32();
+            let app = ui.global::<AppState>();
+            app.set_pulse(0.5 + 0.5 * (t * std::f32::consts::TAU / 1.2).sin());
+            if ui.get_page() == 0 {
+                app.set_hero_shift((t * std::f32::consts::TAU / 24.0).sin());
+                app.set_sweep((t / 5.0).fract());
+            }
+        }
+    });
+
     ui.show()?;
     // Fullscreen on the Pi. Set RACE_DASH_WINDOWED=1 to run in a normal window for development.
     if std::env::var_os("RACE_DASH_WINDOWED").is_none() {

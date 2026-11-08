@@ -44,6 +44,11 @@ export global AppState {
     in property <string> ip-address: "--";
     in property <string> version: "";
     in property <string> art-status: "";
+    // Animation clock from Rust (src/main.rs): pulse 0..1 (about 1.2 s), hero-shift -1..1
+    // (slow title-screen pan) and sweep 0..1 (title tile light sweep).
+    in property <float> pulse: 0.5;
+    in property <float> hero-shift: 0;
+    in property <float> sweep: 0;
     in property <int> f1-port: 20777;
     in-out property <bool> demo-mode: false;
     // Dash panel see-through level: 0 solid, 1 glass, 2 clear (title screen PANELS button).

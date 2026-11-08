@@ -1,5 +1,6 @@
 // Track map shared by every game. Rust supplies the outline as an SVG path in a 1000x1000
-// view box (recorded from your driving line) and the car dots in the same coordinates.
+// view box (recorded from your driving line) and the dots in the same coordinates: cars,
+// a fading trail behind the player, and the start / finish marker.
 // Tap the map to rotate / mirror it.
 
 import { AppState } from "globals.slint";
@@ -10,6 +11,9 @@ export struct MapDot {
     player: bool,
     label: string,
     color: color,
+    // 0 car, 1 trail point, 2 start / finish
+    kind: int,
+    alpha: float,
 }
 
 export component TrackMap inherits Rectangle {
@@ -25,12 +29,45 @@ export component TrackMap inherits Rectangle {
     in property <bool> use-dot-colors: false;
     in property <length> line-width: 12px;
     in property <length> dot-size: 38px;
+    // Soft glow under the track line.
+    in property <color> glow-color: root.track-color;
 
     property <length> side: min(self.width, self.height) - 20px;
     property <length> ox: (self.width - self.side) / 2;
     property <length> oy: (self.height - self.side) / 2;
     clip: true;
 
+    // Empty state: a faint ring and the note in the middle until there is a line to draw.
+    if root.path == "" : Rectangle {
+        x: root.width / 2 - self.width / 2;
+        y: root.height / 2 - self.height / 2 - 20px;
+        width: min(root.width, root.height) * 0.45;
+        height: self.width;
+        border-radius: self.width / 2;
+        border-width: 4px;
+        border-color: root.note-color.transparentize(0.6);
+        Rectangle {
+            x: parent.width / 2 - 14px;
+            y: parent.height / 2 - 14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 14px;
+            background: root.player-color.transparentize(0.6 - 0.4 * AppState.pulse);
+        }
+    }
+
+    if root.path != "" : Path {
+        x: root.ox;
+        y: root.oy;
+        width: root.side;
+        height: root.side;
+        viewbox-width: 1000;
+        viewbox-height: 1000;
+        commands: root.path;
+        stroke: root.glow-color.transparentize(0.82);
+        stroke-width: root.line-width + 28px;
+        fill: transparent;
+    }
     if root.path != "" : Path {
         x: root.ox;
         y: root.oy;
@@ -57,30 +94,67 @@ export component TrackMap inherits Rectangle {
     }
 
     for dot in root.dots : Rectangle {
-        property <length> size: dot.player ? root.dot-size + 12px : root.dot-size;
+        property <length> size: dot.kind == 1 ? root.line-width * 0.9 : (dot.kind == 2 ? root.dot-size * 0.8 : (dot.player ? root.dot-size + 12px : root.dot-size));
         x: root.ox + root.side * dot.x / 1000 - self.size / 2;
         y: root.oy + root.side * dot.y / 1000 - self.size / 2;
         width: self.size;
         height: self.size;
-        border-radius: self.size / 2;
-        border-width: 3px;
-        border-color: dot.player ? #ffffff : #000000;
-        background: dot.player ? root.player-color : (root.use-dot-colors ? dot.color : root.car-color);
-        Text {
+
+        // Trail point
+        if dot.kind == 1 : Rectangle {
             width: parent.width;
             height: parent.height;
-            text: dot.label;
-            color: dot.player ? #ffffff : root.label-color;
-            font-size: 18px;
-            font-weight: 900;
-            horizontal-alignment: center;
-            vertical-alignment: center;
+            border-radius: self.width / 2;
+            background: root.player-color.transparentize(1 - 0.75 * dot.alpha);
+        }
+        // Start / finish: small chequered flag tile
+        if dot.kind == 2 : Rectangle {
+            width: parent.width;
+            height: parent.height;
+            border-radius: 4px;
+            border-width: 2px;
+            border-color: #000000;
+            background: #ffffff;
+            clip: true;
+            Rectangle { x: 0px; y: 0px; width: parent.width / 2; height: parent.height / 2; background: #000000; }
+            Rectangle { x: parent.width / 2; y: parent.height / 2; width: parent.width / 2; height: parent.height / 2; background: #000000; }
+        }
+        // Player halo (pulses)
+        if dot.kind == 0 && dot.player : Rectangle {
+            x: -10px - 8px * AppState.pulse;
+            y: -10px - 8px * AppState.pulse;
+            width: parent.width + 20px + 16px * AppState.pulse;
+            height: self.width;
+            border-radius: self.width / 2;
+            border-width: 3px;
+            border-color: root.player-color.transparentize(0.3 + 0.6 * AppState.pulse);
+        }
+        // Car
+        if dot.kind == 0 : Rectangle {
+            width: parent.width;
+            height: parent.height;
+            border-radius: self.width / 2;
+            border-width: 3px;
+            border-color: dot.player ? #ffffff : #000000;
+            background: dot.player ? root.player-color : (root.use-dot-colors ? dot.color : root.car-color);
+            drop-shadow-blur: dot.player ? 18px : 0px;
+            drop-shadow-color: root.player-color;
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: dot.label;
+                color: dot.player ? #ffffff : root.label-color;
+                font-size: 18px;
+                font-weight: 900;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
         }
     }
 
     if root.note != "" : Text {
         x: 20px;
-        y: root.height - 56px;
+        y: root.path == "" ? root.height / 2 + min(root.width, root.height) * 0.25 : root.height - 56px;
         width: root.width - 40px;
         height: 40px;
         text: root.note;

@@ -6,7 +6,7 @@
 
 import { Sim, SimData, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat, FadePage } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -35,6 +35,7 @@ component Tech inherits Rectangle {
     background: HudTheme.panel;
     border-width: 1px;
     border-color: HudTheme.line;
+    if Art.panel-ams2-custom : Image { width: parent.width; height: parent.height; source: Art.panel-ams2; image-fit: cover; opacity: 0.25; }
     // Corner crosshairs.
     Rectangle { x: 0px; y: 0px; width: 30px; height: 4px; background: HudTheme.mint; }
     Rectangle { x: 0px; y: 0px; width: 4px; height: 30px; background: HudTheme.mint; }
@@ -56,6 +57,8 @@ component Tech inherits Rectangle {
 
 // HUD-style stat strip.
 component HudStrip inherits StatStrip {
+    texture: Art.panel-ams2;
+    textured: Art.panel-ams2-custom;
     cell-bg: HudTheme.panel;
     edge: HudTheme.line;
     label-color: HudTheme.mint;
@@ -104,7 +107,7 @@ component HudValue inherits Tech {
     }
 }
 
-component HudDash inherits Rectangle {
+component HudDash inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 18px;
@@ -211,7 +214,7 @@ component HudDash inherits Rectangle {
     }
 }
 
-component HudWeather inherits Rectangle {
+component HudWeather inherits FadePage {
     property <SimData> d: Sim.data;
     // Weather icon (only if the matching AI icon exists in the art folder).
     property <bool> snow: root.d.weather == "SNOW";
@@ -315,7 +318,7 @@ component HudWeather inherits Rectangle {
         }    }
 }
 
-component HudStrategy inherits Rectangle {
+component HudStrategy inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 18px;
@@ -366,6 +369,13 @@ component HudStrategy inherits Rectangle {
                 padding: 14px;
                 padding-top: 48px;
                 spacing: 4px;
+                if Sim.standings.length == 0 : VerticalLayout {
+                    vertical-stretch: 1;
+                    alignment: center;
+                    spacing: 8px;
+                    Text { text: "// AWAITING TIMING FEED"; color: HudTheme.mint; font-family: Fonts.mono; font-size: 28px; horizontal-alignment: center; }
+                    Text { text: "THE FIELD APPEARS ONCE THE SESSION STARTS"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 20px; horizontal-alignment: center; }
+                }
                 for r in Sim.standings : RowItem {
                     vertical-stretch: 1;
                     item: r;
@@ -409,6 +419,10 @@ component HudStrategy inherits Rectangle {
 }
 
 export component Ams2Dash inherits DashShell {
+    waiting-art: Art.tile-ams2;
+    waiting-has-art: Art.tile-ams2-custom;
+    waiting-emblem: Art.emblem-ams2;
+    waiting-card: #0a192f;
     background: HudTheme.navy;
     tabs: [
         { label: "DASH", icon: @image-url("../img/icons/gauge.svg") },

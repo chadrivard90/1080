@@ -5,7 +5,7 @@
 
 import { Sim, SimData, Corner, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip } from "../sim/sim_widgets.slint";
-import { Fonts, GhostText, StatStrip, Stat } from "../kit.slint";
+import { Fonts, GhostText, StatStrip, Stat, FadePage } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -37,6 +37,7 @@ component Cell inherits Rectangle {
     background: EvoTheme.cell;
     border-width: 2px;
     border-color: EvoTheme.line;
+    if Art.panel-acevo-custom : Image { width: parent.width; height: parent.height; source: Art.panel-acevo; image-fit: cover; opacity: 0.25; }
     if root.caption != "" : Text {
         x: 12px;
         y: 6px;
@@ -49,6 +50,8 @@ component Cell inherits Rectangle {
 
 // MoTeC-style stat strip.
 component EvoStrip inherits StatStrip {
+    texture: Art.panel-acevo;
+    textured: Art.panel-acevo-custom;
     cell-bg: EvoTheme.cell;
     edge: EvoTheme.line;
     label-color: EvoTheme.dim;
@@ -76,7 +79,7 @@ component AssistSquare inherits Rectangle {
     }
 }
 
-component EvoDash inherits Rectangle {
+component EvoDash inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 14px;
@@ -239,7 +242,7 @@ component SuspGauge inherits Rectangle {
     }
 }
 
-component EvoRig inherits Rectangle {
+component EvoRig inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 14px;
@@ -334,7 +337,7 @@ component EvoRig inherits Rectangle {
     }
 }
 
-component EvoPitBox inherits Rectangle {
+component EvoPitBox inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 14px;
@@ -369,6 +372,17 @@ component EvoPitBox inherits Rectangle {
                     Text { width: 160px; text: "LAP"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 26px; }
                     Text { horizontal-stretch: 1; text: "TIME"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 26px; horizontal-alignment: center; }
                     Text { width: 260px; text: "GAP"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 26px; horizontal-alignment: right; }
+                }
+                if Sim.lap-list.length == 0 : Rectangle {
+                    vertical-stretch: 1;
+                    border-width: 1px;
+                    border-color: EvoTheme.line;
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 8px;
+                        Text { text: "NO COMPLETED LAPS YET"; color: EvoTheme.white; font-family: Fonts.mono; font-size: 32px; horizontal-alignment: center; }
+                        Text { text: "EACH LAP IS LISTED HERE AS YOU CROSS THE LINE"; color: EvoTheme.dim; font-family: Fonts.mono; font-size: 20px; horizontal-alignment: center; }
+                    }
                 }
                 for l in Sim.lap-list : Rectangle {
                     vertical-stretch: 1;
@@ -426,6 +440,10 @@ component EvoPitBox inherits Rectangle {
 }
 
 export component AcEvoDash inherits DashShell {
+    waiting-art: Art.tile-acevo;
+    waiting-has-art: Art.tile-acevo-custom;
+    waiting-emblem: Art.emblem-acevo;
+    waiting-card: #0a0a0a;
     background: EvoTheme.black;
     tabs: [
         { label: "DASH", icon: @image-url("../img/icons/gauge.svg") },

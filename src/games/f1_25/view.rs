@@ -58,7 +58,7 @@ impl Models {
 
 pub fn fmt_lap(ms: u32) -> String {
     if ms == 0 {
-        return "-:--.---".into();
+        return "NO TIME".into();
     }
     format!("{}:{:02}.{:03}", ms / 60_000, (ms % 60_000) / 1000, ms % 1000)
 }
@@ -69,7 +69,7 @@ pub fn fmt_lap_secs(secs: f32) -> String {
 
 fn fmt_sector(ms: u32) -> String {
     if ms == 0 {
-        "--.---".into()
+        "NO TIME".into()
     } else if ms >= 60_000 {
         fmt_lap(ms)
     } else {
@@ -200,7 +200,7 @@ fn log_laps(st: &F1State, models: &Models, d: &mut F1Data) {
     }
     let pb = log.best("f1", track, "");
     d.has_pb = pb.is_some();
-    d.pb_lap = pb.map_or_else(|| "-:--.---".to_string(), fmt_lap_secs).into();
+    d.pb_lap = pb.map_or_else(|| "NO TIME".to_string(), fmt_lap_secs).into();
     let gap = models.last_vs_pb.get();
     d.pb_gap = gap.map_or_else(String::new, laplog::fmt_diff).into();
     d.pb_gap_good = gap.is_some_and(|g| g <= 0.0);
@@ -254,6 +254,8 @@ fn apply_map(f1: &crate::F1<'_>, st: &F1State, models: &Models) {
             player: d.player,
             label: d.label.into(),
             color: d.color.map_or(hex(0xFFFFFF), hex),
+            kind: d.kind as i32,
+            alpha: d.alpha,
         })
         .collect();
     sync_model(&models.map_dots, ui_dots);
@@ -456,7 +458,7 @@ fn build_data(st: &F1State, blink: bool, fuel_margin: f32) -> F1Data {
         }
         _ => {
             d.has_delta = false;
-            d.delta_text = "--.---".into();
+            d.delta_text = "NO REF".into();
         }
     }
 
@@ -735,7 +737,7 @@ mod tests {
 
     #[test]
     fn formats_times() {
-        assert_eq!(fmt_lap(0), "-:--.---");
+        assert_eq!(fmt_lap(0), "NO TIME");
         assert_eq!(fmt_lap(83_456), "1:23.456");
         assert_eq!(fmt_sector(28_001), "28.001");
         assert_eq!(fmt_gap(512), "+0.512");

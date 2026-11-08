@@ -25,6 +25,11 @@ foreach ($g in "f1", "nascar", "acevo", "ams2", "dr2", "wrc", "fm", "fh6") {
 $src = Load "title-bg"; if ($src) { SaveJpg ([ArtTool]::Cover($src, 1080, 1920)) "title-bg"; $src.Dispose() }
 $src = Load "title-hero"; if ($src) { SaveJpg ([ArtTool]::Cover($src, 1080, 600)) "title-hero"; $src.Dispose() }
 
+Write-Host "Panel textures"
+foreach ($g in "f1", "nascar", "acevo", "ams2", "dr2", "wrc", "fm", "fh6") {
+    $src = Load "panel-$g"; if ($src) { SaveJpg ([ArtTool]::Cover($src, 1024, 1024)) "panel-$g"; $src.Dispose() }
+}
+
 Write-Host "Title button art"
 foreach ($g in "f1", "nascar", "acevo", "ams2", "dr2", "wrc", "fm", "fh6") {
     $src = Load "tile-$g"; if ($src) { SaveJpg ([ArtTool]::Cover($src, 800, 450)) "tile-$g"; $src.Dispose() }
@@ -63,7 +68,7 @@ $src = Load "dr2-tach-face"
 if ($src) { $box = [ArtTool]::BrightBox($src, 40); SaveJpg ([ArtTool]::SquareAround($src, $box, 0.0, 1024)) "dr2-tach-face"; $src.Dispose() }
 
 Write-Host "Cars (background removed, fitted to 600 x 1200)"
-foreach ($c in "car-gt", "car-drift", "car-rally") {
+foreach ($c in "car-gt", "car-drift", "car-rally", "car-f1", "car-stock") {
     $src = Load $c
     if ($src) {
         $cut = if ($c -eq "car-drift") { [ArtTool]::RemoveBlackGlow($src, 110) } else { [ArtTool]::RemoveBlack($src, 22, 70) }

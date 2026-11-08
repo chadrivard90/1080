@@ -28,8 +28,26 @@ component GameButton inherits Rectangle {
         height: parent.height;
         background: @linear-gradient(180deg, #00000000 0%, #00000000 52%, #000000b0 80%, #000000e6 100%);
     }
-    // Accent bar down the left edge.
-    Rectangle { x: 0px; y: 0px; width: 8px; height: parent.height; background: root.game.accent; }
+    // Pressed: brighten the whole tile.
+    if touch.pressed : Rectangle { width: parent.width; height: parent.height; background: #ffffff22; }
+    // Accent bar down the left edge, with a light sweeping down it (staggered per tile).
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 8px;
+        height: parent.height;
+        background: root.game.accent;
+        clip: true;
+        property <float> s: AppState.sweep + root.index * 0.125;
+        property <float> f: self.s >= 1.0 ? self.s - 1.0 : self.s;
+        Rectangle {
+            x: 0px;
+            width: parent.width;
+            height: 140px;
+            y: (parent.height + 280px) * parent.f - 140px;
+            background: @linear-gradient(180deg, transparent 0%, #ffffffdd 50%, transparent 100%);
+        }
+    }
 
     // Label anchored bottom-left: round emblem, then name over subtitle.
     HorizontalLayout {
@@ -118,7 +136,8 @@ export component TitleScreen inherits Rectangle {
             min-height: 0px;
             preferred-height: 0px;
             clip: true;
-            Image { width: parent.width; height: parent.height; source: Art.title-hero; image-fit: cover; }
+            // Slow pan across the hero art.
+            Image { x: -40px + 40px * AppState.hero-shift; width: parent.width + 80px; height: parent.height; source: Art.title-hero; image-fit: cover; }
             VerticalLayout {
                 padding-left: 56px;
                 alignment: center;

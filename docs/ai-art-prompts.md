@@ -218,6 +218,34 @@ Make all five in one session so they match.
 > Subject: **[a bright sun with rays]** / **[a cloud]** / **[a cloud with rain drops]** /
 > **[a storm cloud with a lightning bolt and heavy rain]** / **[a cloud with snowflakes]**
 
+### Panel textures: `panel-f1` … `panel-fh6` (square 1:1)
+A subtle material drawn at 25% strength inside each theme's panels and stat cells. Keep them
+**dark, even and low-contrast** with no focal point (they are cropped to every panel shape).
+
+> **panel-f1:** Seamless close-up of glossy black carbon-fibre weave with a faint teal sheen, even lighting, no focal point, square 1:1, no text
+>
+> **panel-nascar:** Seamless brushed aluminium plate with fine horizontal grain and a soft white sheen, even lighting, square 1:1, no text
+>
+> **panel-acevo:** Seamless matte black anodised metal with an ultra-faint hexagonal carbon pattern, almost black, square 1:1, no text
+>
+> **panel-ams2:** Seamless deep navy HUD glass with a faint cyan hexagon grid and scan lines, very dark, square 1:1, no text
+>
+> **panel-dr2:** Seamless worn matte black painted steel with light scratches and dust, very dark, square 1:1, no text
+>
+> **panel-wrc:** Seamless dark charcoal gravel-dust texture with faint magenta speckles, gritty, very dark, square 1:1, no text
+>
+> **panel-fm:** Seamless frosted dark glass with a soft magenta-to-cyan light leak in one corner, smooth, square 1:1, no text
+>
+> **panel-fh6:** Seamless dark purple velvet with tiny scattered neon pink and yellow confetti sparkles, square 1:1, no text
+
+### Extra cars: `car-f1`, `car-stock` (portrait 1:2, *transparent*)
+`car-f1` sits between the four tyre cards on the F1 Engineer page; `car-stock` lights up the
+NASCAR spotter radar when a car is alongside.
+
+> **car-f1:** Top-down orthographic view of a modern Formula 1 car, nose pointing straight up, red and black livery, halo visible, car fills the frame, on a solid pure black (#000000) background, no text, no logos, no numbers
+>
+> **car-stock:** Top-down orthographic view of an American stock car, nose pointing straight up, bold blue, red and yellow livery, car fills the frame, on a solid pure black (#000000) background, no text, no logos, no numbers
+
 ### Desktop icons: `icon-app`, `icon-update` (square, *transparent*)
 > **icon-app:** App icon of an analog racing tachometer with a red needle in the redline and a small chequered-flag stripe across the top, glossy rounded-square badge, dark carbon background inside the badge, bold and readable at small size, centred on a solid pure black (#000000) background, square 1:1, no text
 >

@@ -4,7 +4,7 @@
 
 import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, StatStrip, Stat } from "../kit.slint";
+import { Fonts, StatStrip, Stat, FadePage } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -43,10 +43,14 @@ component Banner inherits Rectangle {
     drop-shadow-offset-y: 10px;
     drop-shadow-color: NascarTheme.shadow;
     drop-shadow-blur: 0px;
+    clip: true;
+    if Art.panel-nascar-custom : Image { width: parent.width; height: parent.height; source: Art.panel-nascar; image-fit: cover; opacity: 0.25; }
 }
 
 // Broadcast-style stat strip (metal cells, ink digits).
 component NascarStrip inherits StatStrip {
+    texture: Art.panel-nascar;
+    textured: Art.panel-nascar-custom;
     cell-bg: NascarTheme.metal;
     edge: NascarTheme.ink;
     label-color: NascarTheme.red;
@@ -74,8 +78,10 @@ component RadarEdge inherits Rectangle {
     VerticalLayout {
         alignment: center;
         spacing: 10px;
+        // A car alongside: the stock-car art if present, otherwise the letters C A R.
+        if root.cars > 0 && Art.car-stock-custom : Image { height: 240px; source: Art.car-stock; image-fit: contain; }
         for ch in ["C", "A", "R"] : Text {
-            text: root.cars == 0 ? "" : ch;
+            text: root.cars == 0 || Art.car-stock-custom ? "" : ch;
             color: NascarTheme.ink;
             font-family: Fonts.anton;
             font-size: 56px;
@@ -91,7 +97,7 @@ component RadarEdge inherits Rectangle {
     }
 }
 
-component PackPage inherits Rectangle {
+component PackPage inherits FadePage {
     property <SimData> d: Sim.data;
     HorizontalLayout {
         padding: 16px;
@@ -161,7 +167,7 @@ component PackPage inherits Rectangle {
     }
 }
 
-component DraftPage inherits Rectangle {
+component DraftPage inherits FadePage {
     property <SimData> d: Sim.data;
     property <bool> caution: root.d.banner-text == "CAUTION" || root.d.banner-text == "YELLOW FLAG";
     VerticalLayout {
@@ -296,7 +302,7 @@ component WearBar inherits Rectangle {
     }
 }
 
-component PitPage inherits Rectangle {
+component PitPage inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 20px;
@@ -348,6 +354,10 @@ component PitPage inherits Rectangle {
 }
 
 export component NascarDash inherits DashShell {
+    waiting-art: Art.tile-nascar;
+    waiting-has-art: Art.tile-nascar-custom;
+    waiting-emblem: Art.emblem-nascar;
+    waiting-card: #0b1838;
     background: NascarTheme.paper;
     tabs: [
         { label: "THE PACK", icon: @image-url("../img/icons/radar.svg") },

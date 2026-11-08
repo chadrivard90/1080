@@ -53,6 +53,7 @@ component TabButton inherits Rectangle {
             font-family: root.font;
             font-size: 21px;
             font-weight: 800;
+            letter-spacing: 1px;
             horizontal-alignment: center;
             overflow: elide;
         }
@@ -149,6 +150,23 @@ export component FlagFrame inherits Rectangle {
     border-color: root.active && root.blink ? root.flag-color : root.flag-color.transparentize(0.35);
 }
 
+// Pulsing coloured frame while a pop-up (personal best, position change...) is showing.
+export component PulseFrame inherits Rectangle {
+    in property <bool> active;
+    in property <color> tint;
+    background: transparent;
+    border-width: root.active ? 10px : 0px;
+    border-color: root.tint.transparentize(0.15 + 0.6 * AppState.pulse);
+}
+
+// Base for every dash page: fades in when the page opens.
+export component FadePage inherits Rectangle {
+    property <bool> shown: false;
+    opacity: self.shown ? 1.0 : 0.0;
+    animate opacity { duration: 220ms; easing: ease-out; }
+    init => { self.shown = true; }
+}
+
 // Monospace readout with dim "8888" segments behind the live value (digits never jump).
 export component GhostText inherits Rectangle {
     in property <string> text;
@@ -163,7 +181,7 @@ export component GhostText inherits Rectangle {
         height: parent.height;
         text: root.ghost;
         // Placeholders such as "--" don't line up with the segments, so hide them then.
-        visible: root.text != "--" && root.text != "--.---" && root.text != "-:--.---" && root.text != "--:--" && root.text != "";
+        visible: root.text != "--" && root.text != "NO TIME" && root.text != "NO REF" && root.text != "--:--" && root.text != "";
         color: root.color-off;
         font-family: root.font;
         font-size: root.size;
@@ -204,6 +222,10 @@ export component StatStrip inherits Rectangle {
     in property <length> label-size: 18px;
     in property <length> gap: 10px;
     in property <bool> italic: false;
+    // Optional material texture inside each cell (Art.panel-* slots).
+    in property <image> texture;
+    in property <bool> textured: false;
+    in property <float> texture-opacity: 0.25;
     min-height: 0px;
     preferred-height: 0px;
     min-width: 0px;
@@ -218,6 +240,7 @@ export component StatStrip inherits Rectangle {
             border-width: root.edge == transparent ? 0px : 1px;
             border-color: root.edge;
             clip: true;
+            if root.textured : Image { width: parent.width; height: parent.height; source: root.texture; image-fit: cover; opacity: root.texture-opacity; }
             VerticalLayout {
                 padding: 4px;
                 spacing: 0px;
@@ -227,6 +250,7 @@ export component StatStrip inherits Rectangle {
                     color: root.label-color;
                     font-size: root.label-size;
                     font-weight: 800;
+                    letter-spacing: 1.5px;
                     font-family: root.label-font;
                     horizontal-alignment: center;
                     overflow: elide;

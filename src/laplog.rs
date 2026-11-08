@@ -92,7 +92,7 @@ fn track_or_unknown(track: &str) -> String {
 
 pub fn fmt_lap(secs: f32) -> String {
     if !secs.is_finite() || secs <= 0.0 {
-        return "-:--.---".into();
+        return "NO TIME".into();
     }
     let ms = (secs * 1000.0).round() as u64;
     format!("{}:{:02}.{:03}", ms / 60_000, (ms % 60_000) / 1000, ms % 1000)

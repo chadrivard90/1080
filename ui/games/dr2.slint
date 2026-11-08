@@ -6,7 +6,7 @@
 
 import { Sim, SimData, Corner, DialLabel } from "../sim/sim_state.slint";
 import { DashShell, Dial, GMeter } from "../sim/sim_widgets.slint";
-import { Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat, FadePage } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -32,6 +32,8 @@ struct LabelPos {
 
 // Printed-plate stat strip.
 component Dr2Strip inherits StatStrip {
+    texture: Art.panel-dr2;
+    textured: Art.panel-dr2-custom;
     cell-bg: Dr2Theme.plate-bg;
     edge: #3a362a;
     label-color: Dr2Theme.dim;
@@ -81,7 +83,7 @@ component Lcd inherits Rectangle {
     }
 }
 
-component Dr2TachPage inherits Rectangle {
+component Dr2TachPage inherits FadePage {
     property <SimData> d: Sim.data;
     // Number positions on the 800 x 800 dial face (0..9 x1000 rpm).
     property <[LabelPos]> nums: [
@@ -255,7 +257,7 @@ component GlassGauge inherits Rectangle {
     }
 }
 
-component Dr2SurvivalPage inherits Rectangle {
+component Dr2SurvivalPage inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 20px;
@@ -314,7 +316,7 @@ component Dr2Bar inherits Rectangle {
     }
 }
 
-component Dr2PhysicsPage inherits Rectangle {
+component Dr2PhysicsPage inherits FadePage {
     property <SimData> d: Sim.data;
     VerticalLayout {
         padding: 20px;
@@ -391,6 +393,10 @@ component Dr2PhysicsPage inherits Rectangle {
 }
 
 export component Dr2Dash inherits DashShell {
+    waiting-art: Art.tile-dr2;
+    waiting-has-art: Art.tile-dr2-custom;
+    waiting-emblem: Art.emblem-dr2;
+    waiting-card: #141412;
     background: Dr2Theme.base;
     tabs: [
         { label: "TACH", icon: @image-url("../img/icons/gauge.svg") },

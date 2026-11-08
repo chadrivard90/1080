@@ -43,6 +43,9 @@ committed or shipped to the Pi.
 | `car-gt` | 600 x 1200, *transparent* | Top-down GT car, nose up (AC EVO brake-bias view) |
 | `car-drift` | 600 x 1200, *transparent* | Top-down car, nose up (Forza Horizon drift zone) |
 | `car-rally` | 600 x 1200, *transparent* | Top-down rally car, nose up (WRC health matrix) |
+| `car-f1` | 600 x 1200, *transparent* | Optional top-down F1 car, nose up (F1 tyre layout) |
+| `car-stock` | 600 x 1200, *transparent* | Optional top-down stock car, nose up (NASCAR spotter radar) |
+| `panel-f1` … `panel-fh6` | 1024 x 1024 | Optional subtle material texture inside each theme's panels |
 | `tile-f1` … `tile-fh6` | 800 x 450 (16:9) | Optional art filling each title-screen button |
 | `weather-clear`, `-cloud`, `-rain`, `-storm`, `-snow` | 512 x 512, *transparent* | Optional AMS2 weather desk icons |
 | `icon-app`, `icon-update` | 256 x 256, *transparent* | Optional desktop icons for Race Dash and Update Race Dash |
