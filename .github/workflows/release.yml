@@ -71,7 +71,8 @@ jobs:
         run: |
           mkdir -p dist/race-dash
           cp target/release/race-dash dist/race-dash/
-          cp -r scripts assets docs README.md dist/race-dash/
+          cp -r scripts assets docs art README.md dist/race-dash/
+          rm -rf dist/race-dash/art/raw
           echo "${GITHUB_SHA}" > dist/race-dash/VERSION
           echo "${GITHUB_REPOSITORY}" > dist/race-dash/REPO
           tar -C dist/race-dash -czf race-dash-aarch64.tar.gz .

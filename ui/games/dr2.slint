@@ -8,6 +8,7 @@ import { Sim, SimData, Corner, DialLabel } from "../sim/sim_state.slint";
 import { DashShell, Dial, GMeter } from "../sim/sim_widgets.slint";
 import { Fonts, Texture } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global Dr2Theme {
     out property <color> base: #111111;
@@ -45,9 +46,9 @@ component Lcd inherits Rectangle {
         width: parent.width * 0.8;
         height: parent.height * 0.5;
         border-radius: self.height / 2;
-        background: #00ff0018;
-        drop-shadow-blur: 40px;
-        drop-shadow-color: #00ff0055;
+        background: #00ff000a;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #00ff0026;
     }
     Text { x: 24px; y: 14px; text: root.label; color: #3f7f3c; font-family: Fonts.mono; font-size: 24px; }
     Text {
@@ -66,10 +67,10 @@ component Dr2TachPage inherits Rectangle {
     property <SimData> d: Sim.data;
     // Number positions on the 800 x 800 dial face (0..9 x1000 rpm).
     property <[LabelPos]> nums: [
-        { x: 219.7, y: 580.3, t: "0" }, { x: 153.7, y: 466.0, t: "1" }, { x: 153.7, y: 334.0, t: "2" },
-        { x: 219.7, y: 219.7, t: "3" }, { x: 334.0, y: 153.7, t: "4" }, { x: 466.0, y: 153.7, t: "5" },
-        { x: 580.3, y: 219.7, t: "6" }, { x: 646.3, y: 334.0, t: "7" }, { x: 646.3, y: 466.0, t: "8" },
-        { x: 580.3, y: 580.3, t: "9" }
+        { x: 248.0, y: 552.0, t: "0" }, { x: 192.3, y: 455.6, t: "1" }, { x: 192.3, y: 344.4, t: "2" },
+        { x: 248.0, y: 248.0, t: "3" }, { x: 344.4, y: 192.3, t: "4" }, { x: 455.6, y: 192.3, t: "5" },
+        { x: 552.0, y: 248.0, t: "6" }, { x: 607.7, y: 344.4, t: "7" }, { x: 607.7, y: 455.6, t: "8" },
+        { x: 552.0, y: 552.0, t: "9" }
     ];
     VerticalLayout {
         padding: 18px;
@@ -82,7 +83,8 @@ component Dr2TachPage inherits Rectangle {
             property <length> ox: (self.width - self.side) / 2;
             property <length> oy: (self.height - self.side) / 2;
             property <float> k: self.side / 800px;
-            Image { x: parent.ox; y: parent.oy; width: parent.side; height: parent.side; source: @image-url("../img/tach_face.svg"); }
+            Image { x: parent.ox; y: parent.oy; width: parent.side; height: parent.side; source: Art.dr2-tach-face; image-fit: contain; }
+            Image { x: parent.ox; y: parent.oy; width: parent.side; height: parent.side; source: @image-url("../img/tach_ticks.svg"); }
             for n in root.nums : Text {
                 x: parent.ox + (n.x - 45) * parent.k * 1px;
                 y: parent.oy + (n.y - 40) * parent.k * 1px;
@@ -109,7 +111,7 @@ component Dr2TachPage inherits Rectangle {
             }
             Text {
                 x: parent.ox;
-                y: parent.oy + parent.side * 0.29;
+                y: parent.oy + parent.side * 0.36;
                 width: parent.side;
                 height: 40px;
                 text: "RPM x1000";
@@ -120,9 +122,9 @@ component Dr2TachPage inherits Rectangle {
             }
             // Shift lamp
             Rectangle {
-                x: parent.ox + parent.side * 0.44;
-                y: parent.oy + parent.side * 0.37;
-                width: parent.side * 0.12;
+                x: parent.ox + parent.side * 0.465;
+                y: parent.oy + parent.side * 0.27;
+                width: parent.side * 0.07;
                 height: self.width;
                 border-radius: self.width / 2;
                 background: root.d.shift ? (root.d.blink ? #ff3b1a : #5a1408) : #2a1a14;
@@ -136,7 +138,8 @@ component Dr2TachPage inherits Rectangle {
                 y: parent.oy;
                 width: parent.side;
                 height: parent.side;
-                source: @image-url("../img/needle.svg");
+                source: Art.dr2-needle;
+                image-fit: contain;
                 transform-rotation: root.d.tach9-angle * 1deg;
                 animate transform-rotation { duration: 40ms; }
             }
@@ -166,7 +169,16 @@ component GlassGauge inherits Rectangle {
         Rectangle {
             property <length> side: min(self.width, self.height);
             width: root.height;
+            if Art.dr2-gauge-face-custom : Image {
+                x: (parent.width - parent.side) / 2;
+                y: (parent.height - parent.side) / 2;
+                width: parent.side;
+                height: parent.side;
+                source: Art.dr2-gauge-face;
+                image-fit: contain;
+            }
             Dial {
+                show-face: !Art.dr2-gauge-face-custom;
                 width: parent.width;
                 height: parent.height;
                 ticks: root.ticks;
@@ -177,9 +189,10 @@ component GlassGauge inherits Rectangle {
                 unit: "";
                 face: @radial-gradient(circle, #22211d 0%, #0a0a09 100%);
                 rim: #6c685e;
-                track-color: #2a2720;
-                tick-color: Dr2Theme.cream;
-                label-color: Dr2Theme.cream;
+                // Dark markings on a custom (cream) gauge face, cream on the built-in black one.
+                tick-color: Art.dr2-gauge-face-custom ? #2a2620 : Dr2Theme.cream;
+                label-color: Art.dr2-gauge-face-custom ? #2a2620 : Dr2Theme.cream;
+                track-color: Art.dr2-gauge-face-custom ? transparent : #2a2720;
                 needle-color: Dr2Theme.orange;
                 label-size: 20px;
                 font: Fonts.russo;
@@ -327,8 +340,8 @@ export component Dr2Dash inherits DashShell {
     font: Fonts.russo;
     radius: 10px;
 
-    Texture { width: parent.width; height: parent.height; source: @image-url("../img/grunge.svg"); opacity: 0.85; }
-    if Sim.layout == 0 : Dr2TachPage { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : Dr2SurvivalPage { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : Dr2PhysicsPage { width: parent.width; height: parent.height; }
+    Texture { y: 0px; width: root.width; height: root.page-height; source: Art.bg-dr2; opacity: Art.bg-dr2-custom ? 1.0 : 0.85; }
+    if Sim.layout == 0 : Dr2TachPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : Dr2SurvivalPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : Dr2PhysicsPage { y: 0px; width: root.width; height: root.page-height; }
 }

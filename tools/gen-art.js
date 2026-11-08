@@ -92,6 +92,7 @@ write(
     ticks += `<path d="M${f(x0)} ${f(y0)}L${f(x1)} ${f(y1)}" stroke="${red ? "#e8361c" : "#efe7cf"}" stroke-width="${major ? 10 : 4}" stroke-linecap="round"/>`;
   }
   const [rx0, ry0] = pt(7 / 9, R + 14), [rx1, ry1] = pt(1, R + 14);
+  // Plain face + bezel (replaceable by AI art: art/dr2-tach-face.png).
   write(
     "tach_face.svg",
     `<defs>
@@ -101,9 +102,16 @@ write(
 <circle cx="400" cy="400" r="396" fill="url(#bezel)"/>
 <circle cx="400" cy="400" r="372" fill="#050505"/>
 <circle cx="400" cy="400" r="362" fill="url(#face)"/>
-<path d="M${f(rx0)} ${f(ry0)} A ${R + 14} ${R + 14} 0 0 1 ${f(rx1)} ${f(ry1)}" fill="none" stroke="#c4250f" stroke-width="22"/>
-${ticks}
 <circle cx="400" cy="400" r="150" fill="none" stroke="#efe7cf" stroke-opacity="0.08" stroke-width="2"/>`,
+    800,
+    800
+  );
+  // Tick marks + redline only (transparent), always drawn on top of the face so the numbers
+  // and needle line up whatever face art is used.
+  write(
+    "tach_ticks.svg",
+    `<path d="M${f(rx0)} ${f(ry0)} A ${R + 14} ${R + 14} 0 0 1 ${f(rx1)} ${f(ry1)}" fill="none" stroke="#c4250f" stroke-width="22"/>
+${ticks}`,
     800,
     800
   );

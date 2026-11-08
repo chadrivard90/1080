@@ -7,6 +7,7 @@ import { Sim, SimData, Corner, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip } from "../sim/sim_widgets.slint";
 import { Fonts, GhostText } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global EvoTheme {
     out property <color> black: #000000;
@@ -248,7 +249,7 @@ component EvoRig inherits Rectangle {
                 spacing: 30px;
                 Rectangle {
                     width: 240px;
-                    Image { width: parent.width; height: parent.height; source: @image-url("../img/car_gt.svg"); image-fit: contain; }
+                    Image { width: parent.width; height: parent.height; source: Art.car-gt; image-fit: contain; }
                     // Bias bar: front share in blue from the nose, rear share in red.
                     Rectangle {
                         x: parent.width * 0.42;
@@ -379,7 +380,8 @@ export component AcEvoDash inherits DashShell {
     font: Fonts.mono;
     radius: 0px;
 
-    if Sim.layout == 0 : EvoDash { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : EvoRig { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : EvoPitBox { width: parent.width; height: parent.height; }
+    if Art.bg-acevo-custom : Image { y: 0px; width: root.width; height: root.page-height; source: Art.bg-acevo; image-fit: cover; }
+    if Sim.layout == 0 : EvoDash { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : EvoRig { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : EvoPitBox { y: 0px; width: root.width; height: root.page-height; }
 }

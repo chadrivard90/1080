@@ -9,6 +9,7 @@ import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, Dial } from "../sim/sim_widgets.slint";
 import { Fonts, Texture } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global WrcTheme {
     out property <color> base: #2c2c2c;
@@ -218,7 +219,7 @@ component WrcServicePage inherits Rectangle {
                 height: self.ch;
                 x: (parent.width - self.width) / 2;
                 y: 80px;
-                Image { width: parent.width; height: parent.height; source: @image-url("../img/car_rally.svg"); }
+                Image { width: parent.width; height: parent.height; source: Art.car-rally; image-fit: contain; }
                 Zone {
                     x: parent.width * 0.30; y: parent.height * 0.035; width: parent.width * 0.40; height: parent.height * 0.06;
                     zone-color: #7a7a7a; alarm: false; label: "RAD";
@@ -339,8 +340,8 @@ export component WrcDash inherits DashShell {
     font: Fonts.russo;
     radius: 0px;
 
-    Texture { width: parent.width; height: parent.height; source: @image-url("../img/grunge.svg"); opacity: 0.9; }
-    if Sim.layout == 0 : WrcStagePage { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : WrcServicePage { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : WrcSplitsPage { width: parent.width; height: parent.height; }
+    Texture { y: 0px; width: root.width; height: root.page-height; source: Art.bg-wrc; opacity: Art.bg-wrc-custom ? 1.0 : 0.9; }
+    if Sim.layout == 0 : WrcStagePage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : WrcServicePage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : WrcSplitsPage { y: 0px; width: root.width; height: root.page-height; }
 }

@@ -7,6 +7,7 @@ import { Sim, SimData } from "../sim/sim_state.slint";
 import { DashShell } from "../sim/sim_widgets.slint";
 import { Fonts } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global FestTheme {
     out property <brush> sky: @linear-gradient(155deg, #ff2d87 0%, #ff7a59 30%, #ffe14d 60%, #3dffc5 100%);
@@ -123,7 +124,7 @@ component FestCruise inherits Rectangle {
                     width: 200px;
                     border-radius: 24px;
                     background: @linear-gradient(135deg, #ff2d87 0%, #ffe14d 100%);
-                    Image { width: parent.width * 0.6; height: parent.height * 0.8; x: parent.width * 0.2; y: parent.height * 0.1; source: @image-url("../img/car_drift.svg"); image-fit: contain; }
+                    Image { width: parent.width * 0.6; height: parent.height * 0.8; x: parent.width * 0.2; y: parent.height * 0.1; source: Art.car-drift; image-fit: contain; }
                 }
                 VerticalLayout {
                     horizontal-stretch: 1;
@@ -163,7 +164,7 @@ component FestDrift inherits Rectangle {
                     y: parent.height * 0.12;
                     width: parent.width * 0.5;
                     height: parent.height * 0.76;
-                    source: @image-url("../img/car_drift.svg");
+                    source: Art.car-drift;
                     image-fit: contain;
                     transform-rotation: root.d.drift-deg * 1deg;
                     animate transform-rotation { duration: 80ms; }
@@ -291,16 +292,17 @@ export component Fh6Dash inherits DashShell {
     font: Fonts.russo;
     radius: 30px;
 
-    Rectangle { width: parent.width; height: parent.height; background: FestTheme.sky; }
+    Rectangle { y: 0px; width: root.width; height: root.page-height; background: FestTheme.sky; }
     // Light streaks drift with your heading.
     Image {
         x: -200px - (Sim.data.heading-deg / 360) * 400px;
-        width: parent.width + 400px;
-        height: parent.height;
-        source: @image-url("../img/festival.svg");
-        image-fit: fill;
+        y: 0px;
+        width: root.width + 400px;
+        height: root.page-height;
+        source: Art.bg-fh6;
+        image-fit: Art.bg-fh6-custom ? ImageFit.cover : ImageFit.fill;
     }
-    if Sim.layout == 0 : FestCruise { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : FestDrift { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : FestExplorer { width: parent.width; height: parent.height; }
+    if Sim.layout == 0 : FestCruise { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : FestDrift { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : FestExplorer { y: 0px; width: root.width; height: root.page-height; }
 }

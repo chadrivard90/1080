@@ -485,7 +485,7 @@ component SimWaiting inherits Rectangle {
 }
 
 // Shared frame for every non-F1 dash: dashboard area (children) + flag frame + bottom dock.
-// Children are page backgrounds and `if Sim.layout == N : Page { width: parent.width; height: parent.height; }`.
+// Children are page backgrounds and `if Sim.layout == N : Page { y: 0px; width: root.width; height: root.page-height; }`.
 export component DashShell inherits Rectangle {
     in property <[TabDef]> tabs;
     in property <color> accent: #e10600;
@@ -497,9 +497,12 @@ export component DashShell inherits Rectangle {
     in property <color> pill-idle-text: #8d8da3;
     in property <string> font: "";
     in property <length> radius: 16px;
+    // Height of the dashboard area above the dock. Children of a DashShell resolve parent to
+    // the shell itself, so pages must size with oot.page-height, not parent.height.
+    out property <length> page-height: content.height;
 
     VerticalLayout {
-        Rectangle {
+        content := Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
             clip: true;

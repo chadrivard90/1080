@@ -5,3 +5,4 @@
 /.rustup-home
 *.log
 /fonts/*.ttf
+/art/raw/

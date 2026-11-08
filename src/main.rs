@@ -5,6 +5,7 @@
 
 slint::include_modules!();
 
+mod art;
 mod config;
 mod games;
 mod net;
@@ -47,6 +48,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         app.set_demo_mode(cfg.demo());
         app.set_f1_port(cfg.port("f1", 20777) as i32);
     }
+
+    // Custom artwork from the art folder (falls back to the built-in vector art).
+    let art_status = art::load(&ui);
+    ui.global::<AppState>().set_art_status(art_status.into());
 
     let active: Rc<RefCell<Option<Active>>> = Rc::new(RefCell::new(None));
 

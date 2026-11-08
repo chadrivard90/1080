@@ -8,6 +8,7 @@ import { Sim, SimData, Corner, SimRow, DynoBar } from "../sim/sim_state.slint";
 import { DashShell, GMeter, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
 import { Fonts } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global FmTheme {
     out property <color> slate: #2b2e33;
@@ -392,11 +393,13 @@ export component FmDash inherits DashShell {
     radius: 25px;
 
     Rectangle {
-        width: parent.width;
-        height: parent.height;
+        y: 0px;
+        width: root.width;
+        height: root.page-height;
         background: @radial-gradient(circle, #3a3f47 0%, #2b2e33 55%, #1c1e22 100%);
     }
-    if Sim.layout == 0 : FmApexPage { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : FmPhysicsPage { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : FmDynoPage { width: parent.width; height: parent.height; }
+    if Art.bg-fm-custom : Image { y: 0px; width: root.width; height: root.page-height; source: Art.bg-fm; image-fit: cover; }
+    if Sim.layout == 0 : FmApexPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : FmPhysicsPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : FmDynoPage { y: 0px; width: root.width; height: root.page-height; }
 }

@@ -6,11 +6,14 @@ export struct GameInfo {
     accent: color,
     enabled: bool,
     emblem: image,
+    art: image,
+    has-art: bool,
 }
 
 export global AppState {
     in property <string> ip-address: "--";
     in property <string> version: "";
+    in property <string> art-status: "";
     in property <int> f1-port: 20777;
     in-out property <bool> demo-mode: false;
 

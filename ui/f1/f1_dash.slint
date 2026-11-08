@@ -6,6 +6,7 @@ import { F1, F1Data, Tyre, StandingRow } from "f1_state.slint";
 import { AppState } from "../globals.slint";
 import { Dock, FlagFrame, Fonts, Texture } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global FT {
     out property <color> base: #15151e;
@@ -113,8 +114,8 @@ component WheelPage inherits Rectangle {
             }
             // Speed / position / lap along the bottom.
             HorizontalLayout {
-                y: parent.height - 120px;
-                height: 120px;
+                y: parent.height - 160px;
+                height: 160px;
                 width: parent.width;
                 VerticalLayout {
                     horizontal-stretch: 1;
@@ -527,7 +528,7 @@ export component F1Dash inherits Rectangle {
             vertical-stretch: 1;
             min-height: 0px;
             clip: true;
-            Texture { width: parent.width; height: parent.height; source: @image-url("../img/carbon.svg"); opacity: 0.3; }
+            Texture { width: parent.width; height: parent.height; source: Art.bg-f1; opacity: Art.bg-f1-custom ? 1.0 : 0.3; }
             if F1.layout == 0 : WheelPage { width: parent.width; height: parent.height; }
             if F1.layout == 1 : EngineerPage { width: parent.width; height: parent.height; }
             if F1.layout >= 2 : StrategistPage { width: parent.width; height: parent.height; }

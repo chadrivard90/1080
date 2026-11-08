@@ -1,0 +1,78 @@
+// Swappable artwork. Every slot defaults to the built-in vector art; at start-up Rust replaces
+// any slot that has a matching image in the `art` folder (see art/README.md and
+// docs/ai-art-prompts.md). The *-custom flags tell layouts a custom image is in use, so they
+// can show it at full strength instead of as a faint texture.
+
+export global Art {
+    // Title screen
+    in property <image> title-bg: @image-url("img/carbon.svg");
+    in property <bool> title-bg-custom: false;
+    in property <image> title-hero: @image-url("img/hero.svg");
+
+    // Title button background art (optional; buttons use a gradient without it)
+    in property <image> tile-f1;
+    in property <bool> tile-f1-custom: false;
+    in property <image> tile-nascar;
+    in property <bool> tile-nascar-custom: false;
+    in property <image> tile-acevo;
+    in property <bool> tile-acevo-custom: false;
+    in property <image> tile-ams2;
+    in property <bool> tile-ams2-custom: false;
+    in property <image> tile-dr2;
+    in property <bool> tile-dr2-custom: false;
+    in property <image> tile-wrc;
+    in property <bool> tile-wrc-custom: false;
+    in property <image> tile-fm;
+    in property <bool> tile-fm-custom: false;
+    in property <image> tile-fh6;
+    in property <bool> tile-fh6-custom: false;
+
+    // Game emblems (title buttons)
+    in property <image> emblem-f1: @image-url("img/emblems/f1.svg");
+    in property <image> emblem-nascar: @image-url("img/emblems/nascar.svg");
+    in property <image> emblem-acevo: @image-url("img/emblems/acevo.svg");
+    in property <image> emblem-ams2: @image-url("img/emblems/ams2.svg");
+    in property <image> emblem-dr2: @image-url("img/emblems/dr2.svg");
+    in property <image> emblem-wrc: @image-url("img/emblems/wrc.svg");
+    in property <image> emblem-fm: @image-url("img/emblems/fm.svg");
+    in property <image> emblem-fh6: @image-url("img/emblems/fh6.svg");
+
+    // Dash backgrounds (dashboard area above the dock, 1080 x 1800)
+    in property <image> bg-f1: @image-url("img/carbon.svg");
+    in property <bool> bg-f1-custom: false;
+    in property <image> bg-nascar: @image-url("img/carbon.svg");
+    in property <bool> bg-nascar-custom: false;
+    in property <image> bg-acevo: @image-url("img/carbon.svg");
+    in property <bool> bg-acevo-custom: false;
+    in property <image> bg-ams2: @image-url("img/blueprint.svg");
+    in property <bool> bg-ams2-custom: false;
+    in property <image> bg-dr2: @image-url("img/grunge.svg");
+    in property <bool> bg-dr2-custom: false;
+    in property <image> bg-wrc: @image-url("img/grunge.svg");
+    in property <bool> bg-wrc-custom: false;
+    in property <image> bg-fm: @image-url("img/carbon.svg");
+    in property <bool> bg-fm-custom: false;
+    in property <image> bg-fh6: @image-url("img/festival.svg");
+    in property <bool> bg-fh6-custom: false;
+
+    // Instruments and vehicles
+    in property <image> dr2-tach-face: @image-url("img/tach_face.svg");
+    in property <image> dr2-needle: @image-url("img/needle.svg");
+    in property <image> dr2-gauge-face: @image-url("img/tach_face.svg");
+    in property <bool> dr2-gauge-face-custom: false;
+    in property <image> car-gt: @image-url("img/car_gt.svg");
+    in property <image> car-drift: @image-url("img/car_drift.svg");
+    in property <image> car-rally: @image-url("img/car_rally.svg");
+
+    // AMS2 weather icons (optional; shown on the weather desk when present)
+    in property <image> weather-clear;
+    in property <bool> weather-clear-custom: false;
+    in property <image> weather-cloud;
+    in property <bool> weather-cloud-custom: false;
+    in property <image> weather-rain;
+    in property <bool> weather-rain-custom: false;
+    in property <image> weather-storm;
+    in property <bool> weather-storm-custom: false;
+    in property <image> weather-snow;
+    in property <bool> weather-snow-custom: false;
+}

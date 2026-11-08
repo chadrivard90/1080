@@ -8,6 +8,7 @@ import { Sim, SimData, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
 import { Fonts, Texture } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global HudTheme {
     out property <color> navy: #0a192f;
@@ -170,6 +171,11 @@ component HudDash inherits Rectangle {
 
 component HudWeather inherits Rectangle {
     property <SimData> d: Sim.data;
+    // Weather icon (only if the matching AI icon exists in the art folder).
+    property <bool> snow: root.d.weather == "SNOW";
+    property <int> level: root.snow ? 4 : (root.d.rain-pct > 60 ? 3 : (root.d.rain-pct > 20 ? 2 : (root.d.rain-pct > 2 ? 1 : 0)));
+    property <image> icon: root.level == 4 ? Art.weather-snow : (root.level == 3 ? Art.weather-storm : (root.level == 2 ? Art.weather-rain : (root.level == 1 ? Art.weather-cloud : Art.weather-clear)));
+    property <bool> has-icon: root.level == 4 ? Art.weather-snow-custom : (root.level == 3 ? Art.weather-storm-custom : (root.level == 2 ? Art.weather-rain-custom : (root.level == 1 ? Art.weather-cloud-custom : Art.weather-clear-custom)));
     VerticalLayout {
         padding: 18px;
         spacing: 18px;
@@ -208,6 +214,7 @@ component HudWeather inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
+                    if root.has-icon : Image { height: 220px; source: root.icon; image-fit: contain; }
                     Text { text: "\{root.d.rain-pct}%"; color: root.d.rain-pct > 40 ? HudTheme.cyan : HudTheme.text; font-family: Fonts.russo; font-size: 160px; }
                     Text { text: root.d.rain-pct > 40 ? "WETS ADVISED" : (root.d.rain-pct > 10 ? "MONITOR" : "DRY RUNNING"); color: root.d.rain-pct > 40 ? #ffb000 : HudTheme.mint; font-family: Fonts.mono; font-size: 40px; }
                 }
@@ -367,8 +374,8 @@ export component Ams2Dash inherits DashShell {
     font: Fonts.mono;
     radius: 0px;
 
-    Texture { width: parent.width; height: parent.height; source: @image-url("../img/blueprint.svg"); }
-    if Sim.layout == 0 : HudDash { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : HudWeather { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : HudStrategy { width: parent.width; height: parent.height; }
+    Texture { y: 0px; width: root.width; height: root.page-height; source: Art.bg-ams2; }
+    if Sim.layout == 0 : HudDash { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : HudWeather { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : HudStrategy { y: 0px; width: root.width; height: root.page-height; }
 }

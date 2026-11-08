@@ -24,11 +24,16 @@ EOF
     gio set "$file" metadata::trusted true >/dev/null 2>&1 || true
 }
 
+APP_ICON="$REPO_DIR/assets/race-dash.svg"
+UPDATE_ICON="$REPO_DIR/assets/race-dash-update.svg"
+[ -f "$REPO_DIR/art/icon-app.png" ] && APP_ICON="$REPO_DIR/art/icon-app.png"
+[ -f "$REPO_DIR/art/icon-update.png" ] && UPDATE_ICON="$REPO_DIR/art/icon-update.png"
+
 for dir in "$DESKTOP_DIR" "$APPS_DIR"; do
     write_entry "$dir/race-dash.desktop" "Race Dash" "Sim racing telemetry dashboard" \
-        "bash \"$REPO_DIR/scripts/launch.sh\"" "$REPO_DIR/assets/race-dash.svg" false
+        "bash \"$REPO_DIR/scripts/launch.sh\"" "$APP_ICON" false
     write_entry "$dir/race-dash-update.desktop" "Update Race Dash" "Download the latest Race Dash from GitHub and rebuild" \
-        "bash \"$REPO_DIR/scripts/update.sh\"" "$REPO_DIR/assets/race-dash-update.svg" true
+        "bash \"$REPO_DIR/scripts/update.sh\"" "$UPDATE_ICON" true
 done
 
 # Raspberry Pi OS desktop (pcmanfm): launch desktop icons directly instead of asking
@@ -43,6 +48,10 @@ elif grep -q '^\[config\]' "$LIBFM_CONF"; then
     sed -i '/^\[config\]/a quick_exec=1' "$LIBFM_CONF"
 else
     printf '\n[config]\nquick_exec=1\n' >>"$LIBFM_CONF"
+fi
+# The desktop only reads libfm.conf at startup; ask the running file manager to reload it.
+if pgrep -x pcmanfm >/dev/null 2>&1; then
+    pcmanfm --reconfigure >/dev/null 2>&1 || true
 fi
 
 echo "==> Desktop icons created in $DESKTOP_DIR"

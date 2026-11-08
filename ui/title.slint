@@ -3,6 +3,7 @@
 
 import { AppState, GameInfo } from "globals.slint";
 import { Fonts, Texture } from "kit.slint";
+import { Art } from "art.slint";
 
 component GameButton inherits Rectangle {
     in property <GameInfo> game;
@@ -19,6 +20,13 @@ component GameButton inherits Rectangle {
     drop-shadow-blur: touch.pressed ? 34px : 16px;
     drop-shadow-color: root.game.accent.transparentize(0.55);
 
+    // Optional AI art filling the button, darkened so the name stays readable.
+    if root.game.has-art : Image { width: parent.width; height: parent.height; source: root.game.art; image-fit: cover; }
+    if root.game.has-art : Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: @linear-gradient(180deg, #00000022 0%, #00000088 55%, #000000dd 100%);
+    }
     // Accent slash in the corner.
     Path {
         x: parent.width - 170px;
@@ -34,10 +42,16 @@ component GameButton inherits Rectangle {
         padding: 18px;
         spacing: 10px;
         alignment: center;
-        Image {
-            height: 140px;
-            source: root.game.emblem;
-            image-fit: contain;
+        // Emblem in a round frame (AI emblems can be square; the frame crops them).
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 140px;
+                height: 140px;
+                border-radius: 70px;
+                clip: true;
+                Image { width: parent.width; height: parent.height; source: root.game.emblem; image-fit: cover; }
+            }
         }
         Text {
             text: root.game.name;
@@ -87,17 +101,17 @@ export component TitleScreen inherits Rectangle {
     background: #07070a;
 
     property <[GameInfo]> games: [
-        { name: "F1 25", subtitle: "FORMULA 1", accent: #e10600, enabled: true, emblem: @image-url("img/emblems/f1.svg") },
-        { name: "NASCAR 26", subtitle: "STOCK CAR", accent: #1f5bd8, enabled: true, emblem: @image-url("img/emblems/nascar.svg") },
-        { name: "AC EVO", subtitle: "GT / ROAD", accent: #d7263d, enabled: true, emblem: @image-url("img/emblems/acevo.svg") },
-        { name: "AUTOMOBILISTA 2", subtitle: "ENDURANCE", accent: #00b140, enabled: true, emblem: @image-url("img/emblems/ams2.svg") },
-        { name: "DIRT RALLY 2.0", subtitle: "RALLY", accent: #ff6a00, enabled: true, emblem: @image-url("img/emblems/dr2.svg") },
-        { name: "EA SPORTS WRC", subtitle: "RALLY", accent: #00c2c7, enabled: true, emblem: @image-url("img/emblems/wrc.svg") },
-        { name: "FORZA MOTORSPORT", subtitle: "CIRCUIT", accent: #2f7bff, enabled: true, emblem: @image-url("img/emblems/fm.svg") },
-        { name: "FORZA HORIZON 6", subtitle: "OPEN WORLD", accent: #ff2d87, enabled: true, emblem: @image-url("img/emblems/fh6.svg") }
+        { name: "F1 25", subtitle: "FORMULA 1", accent: #e10600, enabled: true, emblem: Art.emblem-f1, art: Art.tile-f1, has-art: Art.tile-f1-custom },
+        { name: "NASCAR 26", subtitle: "STOCK CAR", accent: #1f5bd8, enabled: true, emblem: Art.emblem-nascar, art: Art.tile-nascar, has-art: Art.tile-nascar-custom },
+        { name: "AC EVO", subtitle: "GT / ROAD", accent: #d7263d, enabled: true, emblem: Art.emblem-acevo, art: Art.tile-acevo, has-art: Art.tile-acevo-custom },
+        { name: "AUTOMOBILISTA 2", subtitle: "ENDURANCE", accent: #00b140, enabled: true, emblem: Art.emblem-ams2, art: Art.tile-ams2, has-art: Art.tile-ams2-custom },
+        { name: "DIRT RALLY 2.0", subtitle: "RALLY", accent: #ff6a00, enabled: true, emblem: Art.emblem-dr2, art: Art.tile-dr2, has-art: Art.tile-dr2-custom },
+        { name: "EA SPORTS WRC", subtitle: "RALLY", accent: #00c2c7, enabled: true, emblem: Art.emblem-wrc, art: Art.tile-wrc, has-art: Art.tile-wrc-custom },
+        { name: "FORZA MOTORSPORT", subtitle: "CIRCUIT", accent: #2f7bff, enabled: true, emblem: Art.emblem-fm, art: Art.tile-fm, has-art: Art.tile-fm-custom },
+        { name: "FORZA HORIZON 6", subtitle: "OPEN WORLD", accent: #ff2d87, enabled: true, emblem: Art.emblem-fh6, art: Art.tile-fh6, has-art: Art.tile-fh6-custom }
     ];
 
-    Texture { width: parent.width; height: parent.height; source: @image-url("img/carbon.svg"); opacity: 0.55; }
+    Texture { width: parent.width; height: parent.height; source: Art.title-bg; opacity: Art.title-bg-custom ? 1.0 : 0.55; }
 
     VerticalLayout {
         // Hero header
@@ -106,7 +120,7 @@ export component TitleScreen inherits Rectangle {
             min-height: 0px;
             preferred-height: 0px;
             clip: true;
-            Image { width: parent.width; height: parent.height; source: @image-url("img/hero.svg"); image-fit: cover; }
+            Image { width: parent.width; height: parent.height; source: Art.title-hero; image-fit: cover; }
             VerticalLayout {
                 padding-left: 56px;
                 alignment: center;
@@ -166,7 +180,7 @@ export component TitleScreen inherits Rectangle {
                     alignment: center;
                     Text { text: "SEND TELEMETRY TO"; color: #8d8da3; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; letter-spacing: 3px; }
                     Text { text: AppState.ip-address; color: #ffffff; font-family: Fonts.russo; font-size: 50px; overflow: elide; }
-                    Text { text: "v" + AppState.version; color: #5c5c6c; font-family: Fonts.titillium; font-size: 18px; font-weight: 800; }
+                    Text { text: "v" + AppState.version + "  ·  " + AppState.art-status; color: #5c5c6c; font-family: Fonts.titillium; font-size: 18px; font-weight: 800; }
                 }
             }
             FooterButton {

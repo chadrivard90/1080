@@ -6,6 +6,7 @@ import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, RowItem } from "../sim/sim_widgets.slint";
 import { Fonts } from "../kit.slint";
 import { TrackMap } from "../map.slint";
+import { Art } from "../art.slint";
 
 global NascarTheme {
     out property <color> blue: #0033a0;
@@ -319,11 +320,13 @@ export component NascarDash inherits DashShell {
     radius: 6px;
 
     Rectangle {
-        width: parent.width;
-        height: parent.height;
+        y: 0px;
+        width: root.width;
+        height: root.page-height;
         background: @linear-gradient(180deg, #ffffff 0%, #e9ecf2 100%);
     }
-    if Sim.layout == 0 : PackPage { width: parent.width; height: parent.height; }
-    if Sim.layout == 1 : DraftPage { width: parent.width; height: parent.height; }
-    if Sim.layout >= 2 : PitPage { width: parent.width; height: parent.height; }
+    if Art.bg-nascar-custom : Image { y: 0px; width: root.width; height: root.page-height; source: Art.bg-nascar; image-fit: cover; }
+    if Sim.layout == 0 : PackPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout == 1 : DraftPage { y: 0px; width: root.width; height: root.page-height; }
+    if Sim.layout >= 2 : PitPage { y: 0px; width: root.width; height: root.page-height; }
 }
