@@ -110,6 +110,33 @@ pub fn load(ui: &crate::AppWindow) -> String {
     img!("panel-fm", set_panel_fm, set_panel_fm_custom);
     img!("panel-fh6", set_panel_fh6, set_panel_fh6_custom);
 
+    img!("flag-yellow", set_flag_yellow, set_flag_yellow_custom);
+    img!("flag-blue", set_flag_blue, set_flag_blue_custom);
+    img!("flag-green", set_flag_green, set_flag_green_custom);
+    img!("flag-white", set_flag_white, set_flag_white_custom);
+    img!("flag-red", set_flag_red, set_flag_red_custom);
+    img!("flag-black", set_flag_black, set_flag_black_custom);
+    img!("flag-chequered", set_flag_chequered, set_flag_chequered_custom);
+    img!("tyre-soft", set_tyre_soft, set_tyre_soft_custom);
+    img!("tyre-medium", set_tyre_medium, set_tyre_medium_custom);
+    img!("tyre-hard", set_tyre_hard, set_tyre_hard_custom);
+    img!("tyre-inter", set_tyre_inter, set_tyre_inter_custom);
+    img!("tyre-wet", set_tyre_wet, set_tyre_wet_custom);
+    img!("pb-medal", set_pb_medal, set_pb_medal_custom);
+    img!("dock-f1", set_dock_f1, set_dock_f1_custom);
+    img!("dock-nascar", set_dock_nascar, set_dock_nascar_custom);
+    img!("dock-acevo", set_dock_acevo, set_dock_acevo_custom);
+    img!("dock-ams2", set_dock_ams2, set_dock_ams2_custom);
+    img!("dock-dr2", set_dock_dr2, set_dock_dr2_custom);
+    img!("dock-wrc", set_dock_wrc, set_dock_wrc_custom);
+    img!("dock-fm", set_dock_fm, set_dock_fm_custom);
+    img!("dock-fh6", set_dock_fh6, set_dock_fh6_custom);
+    img!("logo", set_logo, set_logo_custom);
+    img!("wrc-gauge-face", set_wrc_gauge_face, set_wrc_gauge_face_custom);
+    img!("fm-gauge-face", set_fm_gauge_face, set_fm_gauge_face_custom);
+    img!("weather-puddle", set_weather_puddle, set_weather_puddle_custom);
+    img!("weather-wetline", set_weather_wetline, set_weather_wetline_custom);
+
     if count == 0 {
         "built-in art".into()
     } else {

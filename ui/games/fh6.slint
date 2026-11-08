@@ -226,10 +226,29 @@ component FestDrift inherits FadePage {
             vertical-stretch: 3;
             border-color: root.d.drifting ? FestTheme.pink : FestTheme.frost-edge;
             drop-shadow-color: root.d.drifting ? FestTheme.pink : FestTheme.shadow;
-            HorizontalLayout {
-                padding: 24px;
-                Text { text: root.d.drifting ? "DRIFT!" : "SCORE"; color: root.d.drifting ? FestTheme.pink : FestTheme.yellow; font-family: Fonts.marker; font-size: 48px; vertical-alignment: center; }
-                Text { horizontal-stretch: 1; text: root.d.drift-score; color: FestTheme.text; font-family: Fonts.russo; font-size: 96px; font-italic: true; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
+            VerticalLayout {
+                padding: 22px;
+                spacing: 8px;
+                HorizontalLayout {
+                    vertical-stretch: 1;
+                    Text { text: root.d.drifting ? "DRIFT!" : "SCORE"; color: root.d.drifting ? FestTheme.pink : FestTheme.yellow; font-family: Fonts.marker; font-size: 48px; vertical-alignment: center; }
+                    Text { horizontal-stretch: 1; text: root.d.drift-score; color: FestTheme.text; font-family: Fonts.russo; font-size: 96px; font-italic: true; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
+                }
+                // Time left before the current drift resets (full while sliding).
+                Rectangle {
+                    height: 14px;
+                    border-radius: 7px;
+                    background: #ffffff1f;
+                    Rectangle {
+                        x: 0px;
+                        height: parent.height;
+                        width: parent.width * root.d.drift-hold;
+                        border-radius: 7px;
+                        background: @linear-gradient(90deg, #3dffc5 0%, #ffe14d 50%, #ff2d87 100%);
+                        animate width { duration: 100ms; }
+                    }
+                }
+                Text { text: "SESSION BEST  " + root.d.drift-best; color: FestTheme.dim; font-family: Fonts.russo; font-size: 26px; font-italic: true; horizontal-alignment: right; }
             }
         }
         HorizontalLayout {
@@ -325,6 +344,8 @@ component FestExplorer inherits FadePage {
 
 export component Fh6Dash inherits DashShell {
     waiting-art: Art.tile-fh6;
+    dock-texture: Art.dock-fh6;
+    dock-textured: Art.dock-fh6-custom;
     waiting-has-art: Art.tile-fh6-custom;
     waiting-emblem: Art.emblem-fh6;
     waiting-card: #1f0b36;

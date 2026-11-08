@@ -36,6 +36,17 @@ export global AppState {
     in property <[BestRow]> bests;
     in property <string> log-path: "";
     in property <string> log-summary: "";
+    // Lap log detail (tap a track in the lap log list). log-detail-top reuses BestRow as
+    // rank / date / time / session.
+    in-out property <bool> log-detail-open: false;
+    in property <string> log-detail-title;
+    in property <string> log-detail-sub;
+    in property <string> log-detail-chart;
+    in property <int> log-detail-count;
+    in property <string> log-detail-best;
+    in property <string> log-detail-worst;
+    in property <[BestRow]> log-detail-top;
+    callback open-log-detail(int);
     callback open-settings();
     callback settings-pick-game(int);
     // A per-game value on the settings page changed: save it.
@@ -49,6 +60,8 @@ export global AppState {
     in property <float> pulse: 0.5;
     in property <float> hero-shift: 0;
     in property <float> sweep: 0;
+    // Start-up splash showing (Rust clears it after ~2 s; tapping skips it).
+    in-out property <bool> splash: true;
     in property <int> f1-port: 20777;
     in-out property <bool> demo-mode: false;
     // Dash panel see-through level: 0 solid, 1 glass, 2 clear (title screen PANELS button).

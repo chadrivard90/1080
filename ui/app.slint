@@ -9,7 +9,7 @@ import "../fonts/Anton-Regular.ttf";
 import "../fonts/BebasNeue-Regular.ttf";
 import "../fonts/PermanentMarker-Regular.ttf";
 
-import { TitleScreen } from "title.slint";
+import { TitleScreen, SplashScreen } from "title.slint";
 import { SettingsScreen } from "settings.slint";
 import { F1Dash } from "f1/f1_dash.slint";
 import { NascarDash } from "games/nascar.slint";
@@ -45,4 +45,5 @@ export component AppWindow inherits Window {
     if root.page == 7 : FmDash { width: root.width; height: root.height; }
     if root.page == 8 : Fh6Dash { width: root.width; height: root.height; }
     if root.page == 9 : SettingsScreen { width: root.width; height: root.height; }
+    SplashScreen { width: root.width; height: root.height; }
 }

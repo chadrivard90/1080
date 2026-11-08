@@ -138,13 +138,22 @@ export component TitleScreen inherits Rectangle {
             clip: true;
             // Slow pan across the hero art.
             Image { x: -40px + 40px * AppState.hero-shift; width: parent.width + 80px; height: parent.height; source: Art.title-hero; image-fit: cover; }
+            HorizontalLayout {
+                padding-left: 44px;
+                spacing: 28px;
+                alignment: start;
+                // Logo mark (optional art).
+                if Art.logo-custom : VerticalLayout {
+                    alignment: center;
+                    Image { width: 230px; height: 230px; source: Art.logo; image-fit: contain; }
+                }
             VerticalLayout {
-                padding-left: 56px;
                 alignment: center;
                 spacing: 0px;
                 Text { text: "SIDE"; color: #ffffff; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
                 Text { text: "POD"; color: #e10600; font-family: Fonts.russo; font-size: 150px; font-italic: true; }
                 Text { text: "SIM RACING TELEMETRY"; color: #b8b8c8; font-family: Fonts.titillium; font-size: 30px; font-weight: 800; letter-spacing: 8px; }
+            }
             }
             Rectangle { x: 0px; y: parent.height - 5px; width: parent.width; height: 5px; background: #e10600; }
         }
@@ -229,4 +238,33 @@ export component TitleScreen inherits Rectangle {
             }
         }
     }
+}
+
+// Start-up splash: logo (if present) and the SIDEPOD wordmark, fading out after ~2 s.
+// Tap to skip.
+export component SplashScreen inherits Rectangle {
+    background: #000000;
+    opacity: AppState.splash ? 1.0 : 0.0;
+    visible: self.opacity > 0.01;
+    animate opacity { duration: 600ms; easing: ease-in; }
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: @radial-gradient(circle, #e1060033 0%, transparent 60%);
+    }
+    VerticalLayout {
+        alignment: center;
+        spacing: 20px;
+        if Art.logo-custom : HorizontalLayout {
+            alignment: center;
+            Image { width: 420px; height: 420px; source: Art.logo; image-fit: contain; }
+        }
+        HorizontalLayout {
+            alignment: center;
+            Text { text: "SIDE"; color: #ffffff; font-family: Fonts.russo; font-size: 130px; font-italic: true; }
+            Text { text: "POD"; color: #e10600; font-family: Fonts.russo; font-size: 130px; font-italic: true; }
+        }
+        Text { text: "SIM RACING TELEMETRY"; color: #b8b8c8; font-family: Fonts.titillium; font-size: 30px; font-weight: 800; letter-spacing: 8px; horizontal-alignment: center; }
+    }
+    TouchArea { clicked => { AppState.splash = false; } }
 }

@@ -6,7 +6,7 @@
 
 import { Sim, SimData, Corner, SimRow, DynoBar } from "../sim/sim_state.slint";
 import { DashShell, GMeter, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, StatStrip, Stat, FadePage } from "../kit.slint";
+import { Fonts, StatStrip, Stat, FadePage, LapChart } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -79,6 +79,16 @@ component FmApexPage inherits FadePage {
                 property <length> side: min(self.width, self.height) * 1.05;
                 width: parent.width;
                 height: parent.height;
+                // Printed dial face (optional art) behind the arc.
+                if Art.fm-gauge-face-custom : Rectangle {
+                    x: (parent.width - parent.side) / 2;
+                    y: (parent.height - parent.side) / 2 + 30px;
+                    width: parent.side;
+                    height: parent.side;
+                    border-radius: parent.side / 2;
+                    clip: true;
+                    Image { width: parent.width; height: parent.height; source: Art.fm-gauge-face; image-fit: cover; }
+                }
                 Path {
                     x: (parent.width - parent.side) / 2;
                     y: (parent.height - parent.side) / 2 + 30px;
@@ -172,15 +182,15 @@ component FmApexPage inherits FadePage {
                 spacing: 20px;
                 FmGlass {
                     title: "LAST LAP";
-                    Text { width: parent.width; height: parent.height; text: root.d.last-lap; color: FmTheme.text; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.last-lap; color: root.d.last-lap == "NO TIME" ? FmTheme.dim : FmTheme.text; font-family: Fonts.titillium; font-size: root.d.last-lap == "NO TIME" ? 28px : 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 FmGlass {
                     title: "BEST LAP";
-                    Text { width: parent.width; height: parent.height; text: root.d.best-lap; color: FmTheme.magenta; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.best-lap; color: root.d.best-lap == "NO TIME" ? FmTheme.dim : FmTheme.magenta; font-family: Fonts.titillium; font-size: root.d.best-lap == "NO TIME" ? 28px : 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 FmGlass {
                     title: "ALL-TIME BEST";
-                    Text { width: parent.width; height: parent.height; text: root.d.pb-lap; color: #b98cff; font-family: Fonts.titillium; font-size: 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    Text { width: parent.width; height: parent.height; text: root.d.pb-lap; color: root.d.pb-lap == "NO TIME" ? FmTheme.dim : #b98cff; font-family: Fonts.titillium; font-size: root.d.pb-lap == "NO TIME" ? 28px : 42px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
                 }
                 FmGlass {
                     title: "POSITION";
@@ -238,6 +248,21 @@ component HeatTile inherits Rectangle {
         Text { text: root.c.inner != "" ? "CORE " + root.c.inner : ""; color: root.c.inner-color.brighter(0.25); font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; }
         Text { text: root.c.wear != "" ? root.c.wear + " WORN" : ""; color: FmTheme.text; font-family: Fonts.titillium; font-size: 19px; font-weight: 800; horizontal-alignment: center; }
         Text { text: root.c.pressure != "" ? root.c.pressure + " PSI" : ""; color: FmTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 800; horizontal-alignment: center; }
+        // 30-second temperature trend
+        Rectangle {
+            height: 30px;
+            if root.c.trend != "" : Path {
+                x: parent.width * 0.15;
+                width: parent.width * 0.7;
+                height: parent.height;
+                viewbox-width: 300;
+                viewbox-height: 60;
+                commands: root.c.trend;
+                stroke: root.c.temp-color;
+                stroke-width: 3px;
+                fill: transparent;
+            }
+        }
     }
 }
 component LoadBar inherits Rectangle {
@@ -354,7 +379,7 @@ component FmDynoPage inherits FadePage {
         spacing: 20px;
         // Power band equalizer
         FmGlass {
-            vertical-stretch: 5;
+            vertical-stretch: 3.6;
             title: "POWER BAND";
             Text { x: parent.width - 420px; y: 12px; width: 400px; text: root.d.power + "   " + root.d.torque; color: FmTheme.cyan; font-family: Fonts.titillium; font-size: 30px; font-weight: 900; horizontal-alignment: right; }
             HorizontalLayout {
@@ -373,6 +398,21 @@ component FmDynoPage inherits FadePage {
                         animate height { duration: 150ms; easing: ease-out; }
                     }
                 }
+            }
+        }
+        FmGlass {
+            vertical-stretch: 2.4;
+            LapChart {
+                width: parent.width;
+                height: parent.height;
+                path: root.d.lap-chart;
+                count: root.d.lap-chart-count;
+                best: root.d.lap-chart-best;
+                worst: root.d.lap-chart-worst;
+                line-color: FmTheme.cyan;
+                best-color: FmTheme.cyan;
+                text-color: FmTheme.dim;
+                font: Fonts.titillium;
             }
         }
         // Lap history + map
@@ -440,6 +480,8 @@ component FmDynoPage inherits FadePage {
 
 export component FmDash inherits DashShell {
     waiting-art: Art.tile-fm;
+    dock-texture: Art.dock-fm;
+    dock-textured: Art.dock-fm-custom;
     waiting-has-art: Art.tile-fm-custom;
     waiting-emblem: Art.emblem-fm;
     waiting-card: #22252a;

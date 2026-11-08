@@ -7,7 +7,7 @@
 
 import { F1, F1Data, Tyre, StandingRow, SectorInfo, Part } from "f1_state.slint";
 import { AppState } from "../globals.slint";
-import { Dock, FlagFrame, PulseFrame, FadePage, Fonts, Texture, StatStrip, Stat } from "../kit.slint";
+import { Dock, FlagFrame, PulseFrame, FlagBadge, FadePage, Fonts, Texture, StatStrip, Stat, LapChart } from "../kit.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
 
@@ -60,6 +60,22 @@ component MfdPanel inherits Rectangle {
     }
 }
 
+// Tyre compound sidewall image (soft / medium / hard / inter / wet), when that art exists.
+component CompoundIcon inherits Image {
+    in property <string> letter;
+    out property <bool> has: root.letter == "S" || root.letter == "SS" ? Art.tyre-soft-custom
+        : (root.letter == "M" ? Art.tyre-medium-custom
+        : (root.letter == "H" ? Art.tyre-hard-custom
+        : (root.letter == "I" ? Art.tyre-inter-custom
+        : (root.letter == "W" ? Art.tyre-wet-custom : false))));
+    source: root.letter == "S" || root.letter == "SS" ? Art.tyre-soft
+        : (root.letter == "M" ? Art.tyre-medium
+        : (root.letter == "H" ? Art.tyre-hard
+        : (root.letter == "I" ? Art.tyre-inter : Art.tyre-wet)));
+    image-fit: contain;
+    visible: self.has;
+}
+
 // F1-styled stat strip.
 component F1Strip inherits StatStrip {
     texture: Art.panel-f1;
@@ -90,7 +106,7 @@ component SectorBox inherits Rectangle {
         alignment: center;
         padding: 4px;
         Text { text: root.label; color: root.s.text-color; font-family: Fonts.titillium; font-size: 17px; font-weight: 900; horizontal-alignment: center; }
-        Text { text: root.s.time; color: root.s.text-color; font-family: Fonts.titillium; font-size: 36px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
+        Text { text: root.s.time; color: root.s.text-color; font-family: Fonts.titillium; font-size: root.s.time == "NO TIME" ? 22px : 36px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
     }
 }
 
@@ -174,6 +190,8 @@ component WheelPage inherits FadePage {
                 y: parent.height - 104px;
                 height: 104px;
                 width: parent.width;
+                padding-left: 14px;
+                padding-right: 14px;
                 VerticalLayout {
                     horizontal-stretch: 1;
                     preferred-width: 10px;
@@ -381,6 +399,7 @@ component WheelPage inherits FadePage {
 component TireTemp inherits Rectangle {
     in property <Tyre> t;
     in property <string> label;
+    in property <string> compound;
     min-height: 0px;
     preferred-height: 0px;
     min-width: 0px;
@@ -402,6 +421,7 @@ component TireTemp inherits Rectangle {
         border-radius: self.height / 2;
         background: @radial-gradient(circle, root.t.inner-color.transparentize(0.72) 0%, transparent 70%);
     }
+    CompoundIcon { x: parent.width - 66px; y: 12px; width: 54px; height: 54px; letter: root.compound; }
     VerticalLayout {
         padding: 14px;
         spacing: 0px;
@@ -428,6 +448,21 @@ component TireTemp inherits Rectangle {
             }
         }
         Text { text: root.t.pressure + " PSI   \{root.t.wear}% WEAR"; color: #ffffffcc; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; horizontal-alignment: center; overflow: elide; }
+        // 30-second core temperature trend
+        Rectangle {
+            height: 34px;
+            if root.t.trend != "" : Path {
+                x: parent.width * 0.15;
+                width: parent.width * 0.7;
+                height: parent.height;
+                viewbox-width: 300;
+                viewbox-height: 60;
+                commands: root.t.trend;
+                stroke: root.t.inner-color;
+                stroke-width: 3px;
+                fill: transparent;
+            }
+        }
         Text {
             text: root.t.damage > 0 || root.t.blister > 0 ? "DAMAGE \{root.t.damage}%   BLISTER \{root.t.blister}%" : "";
             color: FT.yellow;
@@ -502,15 +537,15 @@ component EngineerPage inherits FadePage {
                 spacing: 12px;
                 VerticalLayout {
                     spacing: 12px;
-                    TireTemp { t: root.d.fl; label: "FRONT LEFT"; }
-                    TireTemp { t: root.d.rl; label: "REAR LEFT"; }
+                    TireTemp { t: root.d.fl; label: "FRONT LEFT"; compound: root.d.tyre-compound; }
+                    TireTemp { t: root.d.rl; label: "REAR LEFT"; compound: root.d.tyre-compound; }
                 }
                 // Top-down car between the tyres (only with the car-f1 art).
                 if Art.car-f1-custom : Image { width: 150px; source: Art.car-f1; image-fit: contain; }
                 VerticalLayout {
                     spacing: 12px;
-                    TireTemp { t: root.d.fr; label: "FRONT RIGHT"; }
-                    TireTemp { t: root.d.rr; label: "REAR RIGHT"; }
+                    TireTemp { t: root.d.fr; label: "FRONT RIGHT"; compound: root.d.tyre-compound; }
+                    TireTemp { t: root.d.rr; label: "REAR RIGHT"; compound: root.d.tyre-compound; }
                 }
             }
         }
@@ -601,12 +636,17 @@ component DriverRow inherits Rectangle {
         Rectangle { width: 10px; border-radius: 4px; background: root.entry.team-color; }
         Text { horizontal-stretch: 1; text: root.entry.name; color: #ffffff; font-family: Fonts.titillium; font-size: 32px; font-weight: root.entry.player ? 900 : 700; vertical-alignment: center; overflow: elide; }
         Text { width: 80px; text: root.entry.status; color: FT.yellow; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; overflow: elide; }
+        // Tyre: compound art if present, otherwise a coloured ring with the letter.
         Rectangle {
             width: 44px;
-            VerticalLayout {
-                alignment: center;
-                Rectangle {
-                    height: 44px;
+            Rectangle {
+                y: (parent.height - 44px) / 2;
+                width: 44px;
+                height: 44px;
+                ci := CompoundIcon { width: parent.width; height: parent.height; letter: root.entry.tyre; }
+                if !ci.has : Rectangle {
+                    width: parent.width;
+                    height: parent.height;
                     border-radius: 22px;
                     border-width: 5px;
                     border-color: root.entry.tyre-color;
@@ -626,7 +666,7 @@ component StrategistPage inherits FadePage {
         padding: 16px;
         spacing: 12px;
         MfdPanel {
-            vertical-stretch: 7;
+            vertical-stretch: 5.4;
             title: "TRACK MAP  ·  " + root.d.track-name;
             TrackMap {
                 width: parent.width;
@@ -694,6 +734,21 @@ component StrategistPage inherits FadePage {
                 { label: "SPEED TRAP", value: root.d.speed-trap, tint: transparent },
                 { label: "IDEAL LAP", value: root.d.ideal-lap, tint: FT.purple }
             ];
+        }
+        MfdPanel {
+            vertical-stretch: 2.2;
+            LapChart {
+                width: parent.width;
+                height: parent.height;
+                path: root.d.lap-chart;
+                count: root.d.lap-chart-count;
+                best: root.d.lap-chart-best;
+                worst: root.d.lap-chart-worst;
+                line-color: FT.teal;
+                best-color: FT.green;
+                text-color: FT.dim;
+                font: Fonts.titillium;
+            }
         }
         if root.d.unserved != "" : Rectangle {
             height: 44px;
@@ -796,6 +851,10 @@ component F1Waiting inherits Rectangle {
 }
 export component F1Dash inherits Rectangle {
     background: FT.base;
+    property <int> fk: F1.data.flag-kind;
+    property <image> flag-img: root.fk == 1 ? Art.flag-yellow : (root.fk == 2 ? Art.flag-blue : Art.flag-red);
+    property <bool> flag-has: root.fk == 1 ? Art.flag-yellow-custom : (root.fk == 2 ? Art.flag-blue-custom : (root.fk == 5 ? Art.flag-red-custom : false));
+    property <bool> medal: F1.data.event-text != "" && F1.data.event-color == #b545ff && Art.pb-medal-custom;
 
     VerticalLayout {
         Rectangle {
@@ -816,8 +875,15 @@ export component F1Dash inherits Rectangle {
             PulseFrame {
                 width: parent.width;
                 height: parent.height;
-                active: F1.data.banner-text == "" && F1.data.event-text != "";
+                // Only celebrate: purple (records) and green (gains) pop-ups.
+                active: F1.data.banner-text == "" && F1.data.event-text != "" && (F1.data.event-color == #b545ff || F1.data.event-color == #00d26a);
                 tint: F1.data.event-color;
+            }
+            FlagBadge {
+                x: parent.width - self.width - 24px;
+                y: 24px;
+                source: root.flag-has ? root.flag-img : Art.pb-medal;
+                show: root.flag-has || root.medal;
             }
             if !F1.data.connected : F1Waiting { width: parent.width; height: parent.height; }
         }
@@ -834,6 +900,10 @@ export component F1Dash inherits Rectangle {
             idle: #191922;
             font: Fonts.titillium;
             blink: F1.data.blink;
+            pill-icon: root.flag-has ? root.flag-img : Art.pb-medal;
+            pill-has-icon: root.flag-has || root.medal;
+            texture: Art.dock-f1;
+            textured: Art.dock-f1-custom;
             pill-alert: F1.data.banner-text != "" || F1.data.event-text != "";
             pill-text: F1.data.banner-text != "" ? F1.data.banner-text
                 : (F1.data.event-text != "" ? F1.data.event-text

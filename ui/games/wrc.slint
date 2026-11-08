@@ -75,7 +75,7 @@ component Slant inherits Chop {
         padding-left: 40px;
         alignment: center;
         Text { text: root.title; color: WrcTheme.magenta; font-family: Fonts.russo; font-size: 22px; font-italic: true; }
-        Text { text: root.value; color: root.value-color; font-family: Fonts.russo; font-size: root.size; font-italic: true; overflow: elide; }
+        Text { text: root.value; color: root.value == "NO TIME" ? WrcTheme.dim : root.value-color; font-family: Fonts.russo; font-size: root.value == "NO TIME" ? root.size * 0.6 : root.size; font-italic: true; overflow: elide; }
     }
 }
 
@@ -194,6 +194,17 @@ component WrcStagePage inherits FadePage {
             Chop {
                 vertical-stretch: 4.5;
                 edge: WrcTheme.cyan;
+                // Printed dial face (optional art) behind the drawn ticks and arc.
+                if Art.wrc-gauge-face-custom : Rectangle {
+                    property <length> side: min(parent.width, parent.height - 30px);
+                    x: (parent.width - self.side) / 2;
+                    y: 15px + (parent.height - 30px - self.side) / 2;
+                    width: self.side;
+                    height: self.side;
+                    border-radius: self.side / 2;
+                    clip: true;
+                    Image { width: parent.width; height: parent.height; source: Art.wrc-gauge-face; image-fit: cover; }
+                }
                 Dial {
                     width: parent.width;
                     height: parent.height - 30px;
@@ -230,7 +241,7 @@ component Zone inherits Rectangle {
     background: root.alarm ? (Sim.data.blink ? #ff8a00 : #ff1f1f) : root.zone-color;
     border-width: 3px;
     border-color: #000000;
-    opacity: 0.88;
+    opacity: 0.72;
     Text {
         width: parent.width;
         height: parent.height;
@@ -269,19 +280,19 @@ component WrcServicePage inherits FadePage {
                     zone-color: root.d.rpm-pct > 0.9 ? #ffb000 : #32d16a; alarm: root.d.shift; label: "ENGINE";
                 }
                 Zone {
-                    x: parent.width * 0.0; y: parent.height * 0.15; width: parent.width * 0.2; height: parent.height * 0.18;
+                    x: parent.width * 0.03; y: parent.height * 0.17; width: parent.width * 0.17; height: parent.height * 0.14;
                     zone-color: root.d.fl.brake-color; alarm: root.d.fl.brake-pct > 0.88; label: "FL";
                 }
                 Zone {
-                    x: parent.width * 0.8; y: parent.height * 0.15; width: parent.width * 0.2; height: parent.height * 0.18;
+                    x: parent.width * 0.80; y: parent.height * 0.17; width: parent.width * 0.17; height: parent.height * 0.14;
                     zone-color: root.d.fr.brake-color; alarm: root.d.fr.brake-pct > 0.88; label: "FR";
                 }
                 Zone {
-                    x: parent.width * 0.0; y: parent.height * 0.69; width: parent.width * 0.2; height: parent.height * 0.18;
+                    x: parent.width * 0.03; y: parent.height * 0.71; width: parent.width * 0.17; height: parent.height * 0.14;
                     zone-color: root.d.rl.brake-color; alarm: root.d.rl.brake-pct > 0.88; label: "RL";
                 }
                 Zone {
-                    x: parent.width * 0.8; y: parent.height * 0.69; width: parent.width * 0.2; height: parent.height * 0.18;
+                    x: parent.width * 0.80; y: parent.height * 0.71; width: parent.width * 0.17; height: parent.height * 0.14;
                     zone-color: root.d.rr.brake-color; alarm: root.d.rr.brake-pct > 0.88; label: "RR";
                 }
                 Zone {
@@ -384,6 +395,8 @@ component WrcSplitsPage inherits FadePage {
 
 export component WrcDash inherits DashShell {
     waiting-art: Art.tile-wrc;
+    dock-texture: Art.dock-wrc;
+    dock-textured: Art.dock-wrc-custom;
     waiting-has-art: Art.tile-wrc-custom;
     waiting-emblem: Art.emblem-wrc;
     waiting-card: #1c1c1c;

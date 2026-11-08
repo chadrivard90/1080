@@ -6,6 +6,7 @@
 //!   utc_time,game,track,car,session,lap,lap_time,seconds,valid,position,fuel_used,personal_best
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -274,6 +275,96 @@ impl LapLog {
     }
 }
 
+/// One lap read back from the CSV.
+pub struct LoggedLap {
+    pub utc: String,
+    pub session: String,
+    pub secs: f32,
+    pub valid: bool,
+}
+
+/// Every logged lap for one game + track + car, oldest first.
+pub fn laps_for(game: &str, track: &str, car: &str) -> Vec<LoggedLap> {
+    let want = key(game, track, car);
+    let Some(path) = log_path() else { return Vec::new() };
+    let Ok(text) = std::fs::read_to_string(path) else { return Vec::new() };
+    text.lines()
+        .skip(1)
+        .filter_map(|line| {
+            let f: Vec<&str> = line.split(',').collect();
+            if f.len() < 9 || key(f[1], f[2], f[3]) != want {
+                return None;
+            }
+            let secs = f[7].trim().parse::<f32>().ok().filter(|s| s.is_finite() && *s > 0.0)?;
+            Some(LoggedLap {
+                utc: f[0].trim().to_string(),
+                session: f[4].trim().to_string(),
+                secs,
+                valid: f[8].trim() == "yes",
+            })
+        })
+        .collect()
+}
+
+/// "2026-11-08T14:03:22Z" -> "2026-11-08 14:03 UTC".
+pub fn fmt_utc(utc: &str) -> String {
+    if utc.len() >= 16 {
+        format!("{} {} UTC", &utc[..10], &utc[11..16])
+    } else {
+        utc.to_string()
+    }
+}
+
+/// A lap-time line chart in a 1000 x 300 view box: the fastest lap at the top, slow laps
+/// lower down (pit / outlier laps are clamped to the bottom). Uses the last 20 laps.
+pub struct Chart {
+    pub path: String,
+    pub best: f32,
+    pub worst: f32,
+    pub count: usize,
+}
+
+pub fn chart(times: &[f32]) -> Chart {
+    let all: Vec<f32> = times.iter().copied().filter(|t| t.is_finite() && *t > 5.0).collect();
+    let v: Vec<f32> = if all.len() > 20 { all[all.len() - 20..].to_vec() } else { all };
+    let best = v.iter().copied().fold(f32::MAX, f32::min);
+    let max = v.iter().copied().fold(f32::MIN, f32::max);
+    if v.len() < 2 {
+        let only = v.first().copied().unwrap_or(0.0);
+        return Chart { path: String::new(), best: only, worst: only, count: v.len() };
+    }
+    let worst = max.min(best * 1.15).max(best + 0.5);
+    let range = worst - best;
+    let mut path = String::with_capacity(v.len() * 12);
+    for (i, t) in v.iter().enumerate() {
+        let x = i as f32 * 1000.0 / (v.len() - 1) as f32;
+        let y = 20.0 + 260.0 * ((t.min(worst) - best) / range);
+        let _ = write!(path, "{}{:.0} {:.0} ", if i == 0 { "M " } else { "L " }, x, y);
+    }
+    Chart { path, best, worst, count: v.len() }
+}
+
+/// Small trend line in a 300 x 60 view box (oldest left). The vertical scale spans at least
+/// `min_span` so tiny wobbles stay flat.
+pub fn spark<'a>(values: impl Iterator<Item = &'a f32> + Clone, min_span: f32) -> String {
+    let v: Vec<f32> = values.filter(|x| x.is_finite()).copied().collect();
+    if v.len() < 2 {
+        return String::new();
+    }
+    let lo = v.iter().copied().fold(f32::MAX, f32::min);
+    let hi = v.iter().copied().fold(f32::MIN, f32::max);
+    let span = (hi - lo).max(min_span);
+    let mid = (hi + lo) / 2.0;
+    let bottom = mid - span / 2.0;
+    let mut path = String::with_capacity(v.len() * 10);
+    for (i, x) in v.iter().enumerate() {
+        let px = i as f32 * 300.0 / (v.len() - 1) as f32;
+        let py = 55.0 - 50.0 * ((x - bottom) / span);
+        let _ = write!(path, "{}{:.0} {:.0} ", if i == 0 { "M " } else { "L " }, px, py);
+    }
+    path
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +375,18 @@ mod tests {
         assert_eq!(fmt_diff(-0.12), "-0.120");
         assert_eq!(clean("Spa, Belgium"), "SPA  BELGIUM");
         assert_eq!(utc_now().len(), 20);
+    }
+
+    #[test]
+    fn chart_puts_best_lap_on_top() {
+        let c = chart(&[90.0, 88.0, 89.0]);
+        assert_eq!(c.count, 3);
+        assert!(c.path.starts_with("M 0 "));
+        assert!(c.path.contains("500 20"));
+        assert!(chart(&[90.0]).path.is_empty());
+        assert_eq!(fmt_utc("2026-11-08T14:03:22Z"), "2026-11-08 14:03 UTC");
+        let s = spark([80.0f32, 85.0, 90.0].iter(), 6.0);
+        assert!(s.starts_with("M 0 55") && s.contains("300 5"));
     }
 
     #[test]

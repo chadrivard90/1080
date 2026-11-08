@@ -46,6 +46,13 @@ committed or shipped to the Pi.
 | `car-f1` | 600 x 1200, *transparent* | Optional top-down F1 car, nose up (F1 tyre layout) |
 | `car-stock` | 600 x 1200, *transparent* | Optional top-down stock car, nose up (NASCAR spotter radar) |
 | `panel-f1` … `panel-fh6` | 1024 x 1024 | Optional subtle material texture inside each theme's panels |
+| `flag-yellow`, `-blue`, `-green`, `-white`, `-red`, `-black`, `-chequered` | 512 x 512, *transparent* | Optional waving flags (corner banner + bottom bar). Make on magenta |
+| `tyre-soft`, `-medium`, `-hard`, `-inter`, `-wet` | 256 x 256, *transparent* | Optional F1 tyre compound sidewalls. Make on magenta |
+| `pb-medal` | 512 x 512, *transparent* | Optional personal-best medal |
+| `dock-f1` … `dock-fh6` | 1080 x 100 | Optional bottom-bar texture per game |
+| `logo` | 1024 x 1024, *transparent* | Optional logo mark (title, splash, desktop icon) |
+| `wrc-gauge-face`, `fm-gauge-face` | 1024 x 1024 | Optional blank dial faces for WRC RPM and FM rev arc |
+| `weather-puddle`, `weather-wetline` | 512 x 512, *transparent* | Optional AMS2 wet-track icons |
 | `tile-f1` … `tile-fh6` | 800 x 450 (16:9) | Optional art filling each title-screen button |
 | `weather-clear`, `-cloud`, `-rain`, `-storm`, `-snow` | 512 x 512, *transparent* | Optional AMS2 weather desk icons |
 | `icon-app`, `icon-update` | 256 x 256, *transparent* | Optional desktop icons for Race Dash and Update Race Dash |

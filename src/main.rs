@@ -47,8 +47,46 @@ fn fuel_text(tenths: i32) -> String {
     format!("+{}.{} LAPS", tenths / 10, tenths % 10)
 }
 
-/// Fill the settings page for one game (title-screen index).
-fn load_settings_page(ui: &AppWindow, cfg: &config::Config, game: i32) {
+/// Fill the lap log detail view (trend chart + top five) for one listed track.
+fn load_log_detail(ui: &AppWindow, b: &laplog::Best) {
+    let app = ui.global::<AppState>();
+    let laps = laplog::laps_for(&b.game, &b.track, &b.car);
+    let valid: Vec<&laplog::LoggedLap> = laps.iter().filter(|l| l.valid).collect();
+    let times: Vec<f32> = valid.iter().map(|l| l.secs).collect();
+    let chart = laplog::chart(&times);
+    app.set_log_detail_title(b.track.clone().into());
+    app.set_log_detail_sub(
+        format!(
+            "{}{} LAPS LOGGED  ·  {} VALID",
+            if b.car.is_empty() { String::new() } else { format!("{}  ·  ", b.car) },
+            laps.len(),
+            valid.len()
+        )
+        .into(),
+    );
+    app.set_log_detail_chart(chart.path.into());
+    app.set_log_detail_count(chart.count as i32);
+    app.set_log_detail_best(laplog::fmt_lap(chart.best).into());
+    app.set_log_detail_worst(laplog::fmt_lap(chart.worst).into());
+    let mut sorted = valid;
+    sorted.sort_by(|a, b| a.secs.partial_cmp(&b.secs).unwrap_or(std::cmp::Ordering::Equal));
+    let top: Vec<BestRow> = sorted
+        .iter()
+        .take(5)
+        .enumerate()
+        .map(|(i, l)| BestRow {
+            track: format!("{}", i + 1).into(),
+            car: laplog::fmt_utc(&l.utc).into(),
+            time: laplog::fmt_lap(l.secs).into(),
+            laps: l.session.clone().into(),
+        })
+        .collect();
+    app.set_log_detail_top(ModelRc::new(VecModel::from(top)));
+    app.set_log_detail_open(true);
+}
+/// Fill the settings page for one game (title-screen index). `shown` remembers the track
+/// list on screen so a tapped row can be looked up.
+fn load_settings_page(ui: &AppWindow, cfg: &config::Config, game: i32, shown: &RefCell<Vec<laplog::Best>>) {
     let app = ui.global::<AppState>();
     let key = game_key(game);
     app.set_set_game(game);
@@ -63,17 +101,19 @@ fn load_settings_page(ui: &AppWindow, cfg: &config::Config, game: i32) {
     app.set_set_fuel_text(fuel_text(tenths).into());
 
     let log = laplog::LapLog::open();
-    let rows: Vec<BestRow> = log
-        .bests_for(key)
-        .into_iter()
+    let list = log.bests_for(key);
+    let rows: Vec<BestRow> = list
+        .iter()
         .map(|b| BestRow {
-            track: b.track.into(),
-            car: if b.car.is_empty() { "-".to_string() } else { b.car }.into(),
+            track: b.track.clone().into(),
+            car: if b.car.is_empty() { "-".to_string() } else { b.car.clone() }.into(),
             time: b.best_s.map_or_else(|| "NO VALID LAP".to_string(), laplog::fmt_lap).into(),
             laps: format!("{} LAPS", b.laps).into(),
         })
         .collect();
+    *shown.borrow_mut() = list;
     app.set_bests(ModelRc::new(VecModel::from(rows)));
+    app.set_log_detail_open(false);
     app.set_log_path(laplog::log_path().map_or_else(String::new, |p| p.display().to_string()).into());
     app.set_log_summary(format!("{} LAPS LOGGED ACROSS ALL GAMES", log.total_laps()).into());
 }
@@ -83,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Rc::new(RefCell::new(config::Config::load()));
     let current_game = Rc::new(Cell::new(-1i32));
     let map_orient = Rc::new(Cell::new(0u8));
+    let shown_bests: Rc<RefCell<Vec<laplog::Best>>> = Rc::new(RefCell::new(Vec::new()));
 
     {
         let app = ui.global::<AppState>();
@@ -193,19 +234,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.global::<AppState>().on_open_settings({
         let weak = ui.as_weak();
         let config = config.clone();
+        let shown = shown_bests.clone();
         move || {
             let Some(ui) = weak.upgrade() else { return };
             let game = ui.global::<AppState>().get_set_game().clamp(0, 7);
-            load_settings_page(&ui, &config.borrow(), game);
+            load_settings_page(&ui, &config.borrow(), game, &shown);
             ui.set_page(9);
         }
     });
     ui.global::<AppState>().on_settings_pick_game({
         let weak = ui.as_weak();
         let config = config.clone();
+        let shown = shown_bests.clone();
         move |game| {
             let Some(ui) = weak.upgrade() else { return };
-            load_settings_page(&ui, &config.borrow(), game.clamp(0, 7));
+            load_settings_page(&ui, &config.borrow(), game.clamp(0, 7), &shown);
+        }
+    });
+    ui.global::<AppState>().on_open_log_detail({
+        let weak = ui.as_weak();
+        let shown = shown_bests.clone();
+        move |index| {
+            let Some(ui) = weak.upgrade() else { return };
+            let list = shown.borrow();
+            if let Some(b) = usize::try_from(index).ok().and_then(|i| list.get(i)) {
+                load_log_detail(&ui, b);
+            }
         }
     });
     ui.global::<AppState>().on_game_settings_changed({
@@ -282,6 +336,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if ui.get_page() == 0 {
                 app.set_hero_shift((t * std::f32::consts::TAU / 24.0).sin());
                 app.set_sweep((t / 5.0).fract());
+            }
+        }
+    });
+
+    // Hide the start-up splash after a moment.
+    slint::Timer::single_shot(Duration::from_millis(2200), {
+        let weak = ui.as_weak();
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                ui.global::<AppState>().set_splash(false);
             }
         }
     });

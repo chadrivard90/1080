@@ -14,6 +14,8 @@ export struct Tyre {
     inner-color: color,
     brake-color: color,
     brake-pct: float,
+    // Last 30 s of core temperature as a 300 x 60 line (oldest left).
+    trend: string,
 }
 
 export struct Part {
@@ -193,6 +195,9 @@ export struct F1Data {
     banner-text: string,
     banner-color: color,
     banner-text-color: color,
+    // Flag out: 0 none, 1 yellow / caution / safety car, 2 blue, 3 green, 4 white, 5 red,
+    // 6 black, 7 chequered (picks the flag image).
+    flag-kind: int,
     event-text: string,
     event-color: color,
     event-text-color: color,
@@ -207,6 +212,12 @@ export struct F1Data {
     pb-lap: string,
     pb-gap: string,
     pb-gap-good: bool,
+
+    // Session lap-time chart (1000 x 300 view box; fastest at the top).
+    lap-chart: string,
+    lap-chart-best: string,
+    lap-chart-worst: string,
+    lap-chart-count: int,
 }
 
 export global F1 {

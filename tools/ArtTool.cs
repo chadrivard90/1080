@@ -156,6 +156,72 @@ public static class ArtTool
         return b;
     }
 
+    /// Key out a flat background colour (e.g. pure magenta): pixels within `tol` of it become
+    /// transparent, pixels up to 2 x `tol` are feathered. Used where the subject itself can be
+    /// black or white (flags, tyres).
+    public static Bitmap RemoveColor(Bitmap src, int r, int g, int bl, int tol) {
+        var b = To32(src);
+        BitmapData d; var buf = Bytes(b, out d);
+        for (int y = 0; y < b.Height; y++)
+            for (int x = 0; x < b.Width; x++) {
+                int i = y * d.Stride + x * 4;
+                int dist = Math.Max(Math.Abs(buf[i + 2] - r), Math.Max(Math.Abs(buf[i + 1] - g), Math.Abs(buf[i] - bl)));
+                if (dist <= tol) buf[i + 3] = 0;
+                else if (dist < tol * 2) buf[i + 3] = (byte)Math.Min(buf[i + 3], (dist - tol) * 255 / tol);
+            }
+        Put(b, d, buf);
+        return b;
+    }
+
+    /// Crop away solid bands of one colour along any edge (Gemini sometimes adds a beige strip).
+    /// A row / column counts as band when 90% of its pixels are within `tol` of the colour.
+    public static Bitmap TrimBands(Bitmap src, int r, int g, int bl, int tol) {
+        var b = To32(src);
+        BitmapData d; var buf = Bytes(b, out d);
+        int w = b.Width, h = b.Height;
+        Func<int, int, bool> near = (x, y) => {
+            int i = y * d.Stride + x * 4;
+            return Math.Abs(buf[i + 2] - r) <= tol && Math.Abs(buf[i + 1] - g) <= tol && Math.Abs(buf[i] - bl) <= tol;
+        };
+        Func<int, bool> rowBand = (y) => { int c = 0; for (int x = 0; x < w; x++) if (near(x, y)) c++; return c > w * 0.9; };
+        Func<int, bool> colBand = (x) => { int c = 0; for (int y = 0; y < h; y++) if (near(x, y)) c++; return c > h * 0.9; };
+        int top = 0, bottom = h - 1, left = 0, right = w - 1;
+        while (top < bottom && rowBand(top)) top++;
+        while (bottom > top && rowBand(bottom)) bottom--;
+        while (left < right && colBand(left)) left++;
+        while (right > left && colBand(right)) right--;
+        b.UnlockBits(d);
+        if (top == 0 && left == 0 && bottom == h - 1 && right == w - 1) return b;
+        // Shave a few extra pixels to lose the soft edge of the band.
+        int m = 4;
+        var rect = Rectangle.FromLTRB(Math.Min(left + (left > 0 ? m : 0), w - 1), Math.Min(top + (top > 0 ? m : 0), h - 1),
+                                      Math.Max(right - (right < w - 1 ? m : 0), 1) + 1, Math.Max(bottom - (bottom < h - 1 ? m : 0), 1) + 1);
+        var cut = b.Clone(rect, PixelFormat.Format32bppArgb);
+        b.Dispose();
+        return cut;
+    }
+
+    /// Mask for badge-style icons with dark insides: on each row, everything between the first and
+    /// last pixel brighter than `lum` (the frame) stays opaque; everything outside is transparent.
+    public static Bitmap RowSpanMask(Bitmap src, int lum) {
+        var b = To32(src);
+        BitmapData d; var buf = Bytes(b, out d);
+        int w = b.Width, h = b.Height;
+        for (int y = 0; y < h; y++) {
+            int first = -1, last = -1;
+            for (int x = 0; x < w; x++) {
+                int i = y * d.Stride + x * 4;
+                if (Math.Max(buf[i], Math.Max(buf[i + 1], buf[i + 2])) > lum) { if (first < 0) first = x; last = x; }
+            }
+            for (int x = 0; x < w; x++) {
+                int i = y * d.Stride + x * 4;
+                if (first < 0 || x < first || x > last) buf[i + 3] = 0;
+            }
+        }
+        Put(b, d, buf);
+        return b;
+    }
+
     /// Bounding box of pixels with alpha > 16.
     public static Rectangle OpaqueBox(Bitmap b) {
         BitmapData d; var buf = Bytes(b, out d);

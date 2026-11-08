@@ -77,9 +77,15 @@ export component Dock inherits Rectangle {
     in property <color> pill-text-color: #8d8da3;
     in property <bool> pill-alert;
     in property <bool> blink;
+    // Optional icon in the pill (flag or personal-best medal) and a texture for the bar.
+    in property <image> pill-icon;
+    in property <bool> pill-has-icon: false;
+    in property <image> texture;
+    in property <bool> textured: false;
     callback select(int);
 
     background: root.bg;
+    if root.textured : Image { width: parent.width; height: parent.height; source: root.texture; image-fit: cover; opacity: 0.55; }
     Rectangle { x: 0px; y: 0px; width: parent.width; height: 3px; background: root.accent; }
     HorizontalLayout {
         padding: 10px;
@@ -105,9 +111,17 @@ export component Dock inherits Rectangle {
             background: root.pill-color;
             opacity: root.pill-alert && !root.blink ? 0.7 : 1.0;
             clip: true;
+            if root.pill-has-icon : Image {
+                x: 8px;
+                y: 6px;
+                width: 64px;
+                height: parent.height - 12px;
+                source: root.pill-icon;
+                image-fit: contain;
+            }
             Text {
-                x: 12px;
-                width: parent.width - 24px;
+                x: root.pill-has-icon ? 76px : 12px;
+                width: parent.width - (root.pill-has-icon ? 88px : 24px);
                 height: parent.height;
                 text: root.pill-text;
                 color: root.pill-text-color;
@@ -148,6 +162,23 @@ export component FlagFrame inherits Rectangle {
     background: transparent;
     border-width: root.active ? 16px : 0px;
     border-color: root.active && root.blink ? root.flag-color : root.flag-color.transparentize(0.35);
+}
+
+// Corner banner on the dash: a waving flag (or the personal-best medal) while it's out.
+export component FlagBadge inherits Rectangle {
+    in property <image> source;
+    in property <bool> show;
+    width: 230px;
+    height: 170px;
+    visible: root.show;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.source;
+        image-fit: contain;
+        // Gentle wave in time with the pulse clock.
+        transform-rotation: (AppState.pulse - 0.5) * 8deg;
+    }
 }
 
 // Pulsing coloured frame while a pop-up (personal best, position change...) is showing.
@@ -256,9 +287,11 @@ export component StatStrip inherits Rectangle {
                     overflow: elide;
                 }
                 Text {
+                    // Placeholders ("NO TIME", "--") are shown smaller and dimmed so they don't shout.
+                    property <bool> empty: s.value == "NO TIME" || s.value == "NO REF" || s.value == "--" || s.value == "";
                     text: s.value;
-                    color: s.tint == transparent ? root.value-color : s.tint;
-                    font-size: root.value-size;
+                    color: self.empty ? root.label-color : (s.tint == transparent ? root.value-color : s.tint);
+                    font-size: self.empty ? root.value-size * 0.62 : root.value-size;
                     font-weight: 900;
                     font-italic: root.italic;
                     font-family: root.font;
@@ -267,6 +300,69 @@ export component StatStrip inherits Rectangle {
                 }
             }
         }
+    }
+}
+
+// Session lap-time chart. `path` is a 1000 x 300 polyline from Rust with the fastest lap at the
+// top; `best` / `worst` label the top and bottom of the scale.
+export component LapChart inherits Rectangle {
+    in property <string> path;
+    in property <int> count;
+    in property <string> best;
+    in property <string> worst;
+    in property <string> title: "SESSION LAP TIMES";
+    in property <color> line-color: #00d2be;
+    in property <color> grid-color: #ffffff1a;
+    in property <color> text-color: #9a9ca6;
+    in property <color> best-color: #2bff88;
+    in property <string> font: "";
+    in property <length> top-pad: 34px;
+    min-height: 0px;
+    preferred-height: 0px;
+    min-width: 0px;
+    preferred-width: 100px;
+    property <length> gx: 120px;
+    property <length> gy: root.top-pad;
+    property <length> gw: root.width - root.gx - 16px;
+    property <length> gh: root.height - root.top-pad - 12px;
+    if root.title != "" : Text {
+        x: 16px;
+        y: 6px;
+        text: root.title;
+        color: root.text-color;
+        font-family: root.font;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 2px;
+    }
+    for i in 3 : Rectangle { x: root.gx; y: root.gy + root.gh * i / 2; width: root.gw; height: 1px; background: root.grid-color; }
+    Text { x: 10px; y: root.gy - 10px; width: root.gx - 18px; text: root.count >= 2 ? root.best : ""; color: root.best-color; font-family: root.font; font-size: 18px; font-weight: 900; horizontal-alignment: right; }
+    Text { x: 10px; y: root.gy + root.gh - 14px; width: root.gx - 18px; text: root.count >= 2 ? root.worst : ""; color: root.text-color; font-family: root.font; font-size: 18px; font-weight: 800; horizontal-alignment: right; }
+    if root.path != "" : Path {
+        x: root.gx;
+        y: root.gy;
+        width: root.gw;
+        height: root.gh;
+        viewbox-width: 1000;
+        viewbox-height: 300;
+        commands: root.path;
+        stroke: root.line-color;
+        stroke-width: 4px;
+        fill: transparent;
+    }
+    if root.count < 2 : Text {
+        x: root.gx;
+        y: root.gy;
+        width: root.gw;
+        height: root.gh;
+        text: "THE CHART STARTS AFTER TWO COMPLETED LAPS";
+        color: root.text-color;
+        font-family: root.font;
+        font-size: 18px;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        wrap: word-wrap;
     }
 }
 

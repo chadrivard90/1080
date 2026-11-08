@@ -159,6 +159,10 @@ pub struct Renderer {
     last_lap_seen: i32,
     drift_score: f32,
     drift_idle: f32,
+    drift_best: f32,
+    /// Tyre temperature history (FL, FR, RL, RR), one sample a second.
+    temp_hist: [VecDeque<f32>; 4],
+    last_temp_sample: Instant,
     peak_lat: f32,
     stint_start: Instant,
     was_in_pit: bool,
@@ -201,6 +205,9 @@ impl Renderer {
             last_lap_seen: 0,
             drift_score: 0.0,
             drift_idle: 0.0,
+            drift_best: 0.0,
+            temp_hist: Default::default(),
+            last_temp_sample: Instant::now(),
             peak_lat: 0.0,
             stint_start: Instant::now(),
             was_in_pit: false,
@@ -394,6 +401,30 @@ impl Renderer {
             })
             .collect();
         sync(&self.laps, rows);
+        let times: Vec<f32> = self.lap_times.iter().map(|l| l.1).collect();
+        let c = laplog::chart(&times);
+        d.lap_chart = c.path.into();
+        d.lap_chart_best = fmt_lap(c.best).into();
+        d.lap_chart_worst = fmt_lap(c.worst).into();
+        d.lap_chart_count = c.count as i32;
+
+        // Tyre temperature trends: one sample a second, 30 s window.
+        if fresh && now.duration_since(self.last_temp_sample) >= Duration::from_secs(1) {
+            self.last_temp_sample = now;
+            for (i, h) in self.temp_hist.iter_mut().enumerate() {
+                let c = &st.corners[i];
+                if let Some(temp) = c.surface_c.or(c.inner_c) {
+                    h.push_back(temp);
+                    while h.len() > 30 {
+                        h.pop_front();
+                    }
+                }
+            }
+        }
+        d.fl.trend = laplog::spark(self.temp_hist[0].iter(), 6.0).into();
+        d.fr.trend = laplog::spark(self.temp_hist[1].iter(), 6.0).into();
+        d.rl.trend = laplog::spark(self.temp_hist[2].iter(), 6.0).into();
+        d.rr.trend = laplog::spark(self.temp_hist[3].iter(), 6.0).into();
 
         // Drift score: builds while sliding fast, banks after 2 s of grip.
         let sliding = st.drift_deg.abs() > 10.0 && st.speed_ms > 8.0;
@@ -406,8 +437,17 @@ impl Renderer {
                 self.drift_score = 0.0;
             }
         }
+        self.drift_best = self.drift_best.max(self.drift_score);
         d.drift_score = format!("{}", self.drift_score as u32).into();
         d.drifting = sliding;
+        d.drift_best = format!("{}", self.drift_best as u32).into();
+        d.drift_hold = if sliding {
+            1.0
+        } else if self.drift_score > 0.0 {
+            (1.0 - self.drift_idle / 2.0).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         self.peak_lat = self.peak_lat.max(st.g_lat.abs());
         d.peak_lat_g = format!("{:.2} G", self.peak_lat).into();
 
@@ -780,6 +820,15 @@ impl Renderer {
             Flag::Checkered => ("CHEQUERED FLAG", 0xF2F2F2, 0x000000),
             _ if st.pit_limiter => ("PIT LIMITER", 0x7A2CFF, 0xFFFFFF),
             _ => ("", 0, 0xFFFFFF),
+        };
+        d.flag_kind = match st.flag {
+            Flag::Yellow | Flag::Caution => 1,
+            Flag::Blue => 2,
+            Flag::White => 4,
+            Flag::Red => 5,
+            Flag::Black => 6,
+            Flag::Checkered => 7,
+            _ => 0,
         };
         d.banner_text = banner.into();
         d.banner_color = hex(bg);

@@ -554,6 +554,7 @@ impl F1State {
         let len = self.session.track_length as f32;
         let dist = self.laps[self.player].lap_distance;
         let pct = (len > 0.0 && dist >= 0.0).then(|| (dist / len).clamp(0.0, 1.0));
+        self.map.trail_delta = if self.delta.has_reference() { self.delta.delta } else { None };
         self.map.add(me.x, me.z, pct);
     }
 

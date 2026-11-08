@@ -3,7 +3,7 @@
 // (src/main.rs: load_settings_page / on_game_settings_changed).
 
 import { AppState, BestRow } from "globals.slint";
-import { Fonts, Texture } from "kit.slint";
+import { Fonts, Texture, LapChart } from "kit.slint";
 import { Art } from "art.slint";
 
 global SetTheme {
@@ -209,9 +209,9 @@ export component SettingsScreen inherits Rectangle {
             min-height: 0px;
             preferred-height: 0px;
             title: "LAP LOG  ·  ALL-TIME BESTS";
-            Text { text: AppState.log-summary; color: SetTheme.text; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; overflow: elide; }
-            Text { text: "CSV FILE  " + AppState.log-path; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 700; overflow: elide; }
-            HorizontalLayout {
+            if !AppState.log-detail-open : Text { text: AppState.log-summary + "  ·  TAP A TRACK FOR ITS HISTORY"; color: SetTheme.text; font-family: Fonts.titillium; font-size: 22px; font-weight: 800; overflow: elide; }
+            if !AppState.log-detail-open : Text { text: "CSV FILE  " + AppState.log-path; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 700; overflow: elide; }
+            if !AppState.log-detail-open : HorizontalLayout {
                 height: 34px;
                 spacing: 12px;
                 Text { horizontal-stretch: 3; text: "TRACK"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; }
@@ -219,7 +219,7 @@ export component SettingsScreen inherits Rectangle {
                 Text { width: 190px; text: "BEST VALID"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: right; }
                 Text { width: 120px; text: "LAPS"; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 900; horizontal-alignment: right; }
             }
-            Flickable {
+            if !AppState.log-detail-open : Flickable {
                 vertical-stretch: 1;
                 min-height: 0px;
                 preferred-height: 0px;
@@ -234,21 +234,83 @@ export component SettingsScreen inherits Rectangle {
                         font-weight: 700;
                         wrap: word-wrap;
                     }
-                    for b in AppState.bests : Rectangle {
+                    for b[i] in AppState.bests : Rectangle {
                         height: 50px;
                         border-radius: 10px;
-                        background: #ffffff0d;
+                        background: row-touch.pressed ? #ffffff26 : #ffffff0d;
                         HorizontalLayout {
                             padding-left: 12px;
                             padding-right: 12px;
                             spacing: 12px;
                             Text { horizontal-stretch: 3; text: b.track; color: #ffffff; font-family: Fonts.titillium; font-size: 24px; font-weight: 800; vertical-alignment: center; overflow: elide; }
                             Text { horizontal-stretch: 3; text: b.car; color: #c8cad2; font-family: Fonts.titillium; font-size: 22px; font-weight: 700; vertical-alignment: center; overflow: elide; }
+                            if Art.pb-medal-custom : Image { width: 40px; source: Art.pb-medal; image-fit: contain; }
                             Text { width: 190px; text: b.time; color: #c04bff; font-family: Fonts.russo; font-size: 26px; horizontal-alignment: right; vertical-alignment: center; }
                             Text { width: 120px; text: b.laps; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 800; horizontal-alignment: right; vertical-alignment: center; }
                         }
+                        row-touch := TouchArea { clicked => { AppState.open-log-detail(i); } }
                     }
                 }
+            }
+            // Detail: one track's trend chart and top five laps.
+            if AppState.log-detail-open : HorizontalLayout {
+                height: 64px;
+                spacing: 16px;
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Text { text: AppState.log-detail-title; color: #ffffff; font-family: Fonts.russo; font-size: 30px; overflow: elide; }
+                    Text { text: AppState.log-detail-sub; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 19px; font-weight: 800; overflow: elide; }
+                }
+                Rectangle {
+                    width: 180px;
+                    border-radius: 12px;
+                    background: back-touch.pressed ? SetTheme.accent.darker(0.3) : SetTheme.idle;
+                    border-width: 2px;
+                    border-color: SetTheme.accent;
+                    Text { width: parent.width; height: parent.height; text: "ALL TRACKS"; color: #ffffff; font-family: Fonts.titillium; font-size: 22px; font-weight: 900; horizontal-alignment: center; vertical-alignment: center; }
+                    back-touch := TouchArea { clicked => { AppState.log-detail-open = false; } }
+                }
+            }
+            if AppState.log-detail-open : Rectangle {
+                vertical-stretch: 1;
+                min-height: 0px;
+                preferred-height: 0px;
+                border-radius: 12px;
+                background: #00000066;
+                LapChart {
+                    width: parent.width;
+                    height: parent.height;
+                    title: "VALID LAP TREND  ·  LAST 20";
+                    path: AppState.log-detail-chart;
+                    count: AppState.log-detail-count;
+                    best: AppState.log-detail-best;
+                    worst: AppState.log-detail-worst;
+                    line-color: #c04bff;
+                    best-color: #2bff88;
+                    text-color: SetTheme.dim;
+                    font: Fonts.titillium;
+                }
+            }
+            if AppState.log-detail-open : Text { text: "TOP FIVE VALID LAPS"; color: SetTheme.accent; font-family: Fonts.russo; font-size: 22px; letter-spacing: 2px; }
+            if AppState.log-detail-open : VerticalLayout {
+                spacing: 6px;
+                for l in AppState.log-detail-top : Rectangle {
+                    height: 44px;
+                    border-radius: 10px;
+                    background: l.track == "1" ? #c04bff33 : #ffffff0d;
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 12px;
+                        if l.track == "1" && Art.pb-medal-custom : Image { width: 40px; source: Art.pb-medal; image-fit: contain; }
+                        if l.track != "1" || !Art.pb-medal-custom : Text { width: 40px; text: l.track; color: #ffffff; font-family: Fonts.russo; font-size: 24px; vertical-alignment: center; }
+                        Text { width: 190px; text: l.time; color: l.track == "1" ? #c04bff : #ffffff; font-family: Fonts.russo; font-size: 24px; vertical-alignment: center; }
+                        Text { horizontal-stretch: 1; text: l.car; color: #c8cad2; font-family: Fonts.titillium; font-size: 20px; font-weight: 700; vertical-alignment: center; overflow: elide; }
+                        Text { width: 160px; text: l.laps; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 18px; font-weight: 800; horizontal-alignment: right; vertical-alignment: center; overflow: elide; }
+                    }
+                }
+                if AppState.log-detail-top.length == 0 : Text { text: "No valid laps yet."; color: SetTheme.dim; font-family: Fonts.titillium; font-size: 20px; font-weight: 700; }
             }
         }
     }

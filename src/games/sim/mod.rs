@@ -430,6 +430,8 @@ impl SimState {
             self.max_speed_ms = self.speed_ms;
         }
         if let Some((x, _, z)) = self.world {
+            let delta = self.delta_s();
+            self.map.trail_delta = delta;
             self.map.add(x, z, self.lap_pct);
         }
         if self.native_delta_s.is_none() {

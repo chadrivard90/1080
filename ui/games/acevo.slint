@@ -5,7 +5,7 @@
 
 import { Sim, SimData, Corner, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip } from "../sim/sim_widgets.slint";
-import { Fonts, GhostText, StatStrip, Stat, FadePage } from "../kit.slint";
+import { Fonts, GhostText, StatStrip, Stat, FadePage, LapChart } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -152,7 +152,8 @@ component EvoDash inherits FadePage {
                 { label: "ALL-TIME", value: root.d.pb-lap, tint: #b04bff },
                 { label: "LAST VS PB", value: root.d.pb-gap == "" ? "--" : root.d.pb-gap, tint: root.d.pb-gap == "" ? EvoTheme.dim : (root.d.pb-gap-good ? #00c853 : EvoTheme.red) }
             ];
-        }        // TC / map / ABS
+        }
+        // TC / map / ABS
         HorizontalLayout {
             vertical-stretch: 4;
             min-height: 0px;
@@ -359,9 +360,26 @@ component EvoPitBox inherits FadePage {
                 { label: "FUEL/LAP", value: root.d.fuel-per-lap, tint: transparent }
             ];
         }
+        Cell {
+            vertical-stretch: 2.6;
+            caption: "LAP TIME TREND";
+            LapChart {
+                width: parent.width;
+                height: parent.height;
+                title: "";
+                path: root.d.lap-chart;
+                count: root.d.lap-chart-count;
+                best: root.d.lap-chart-best;
+                worst: root.d.lap-chart-worst;
+                line-color: EvoTheme.white;
+                best-color: #00c853;
+                text-color: EvoTheme.dim;
+                font: Fonts.mono;
+            }
+        }
         // Lap matrix: lap / time / gap to best, best lap on purple.
         Cell {
-            vertical-stretch: 7;
+            vertical-stretch: 5;
             caption: "LAP MATRIX";
             VerticalLayout {
                 padding: 14px;
@@ -441,6 +459,8 @@ component EvoPitBox inherits FadePage {
 
 export component AcEvoDash inherits DashShell {
     waiting-art: Art.tile-acevo;
+    dock-texture: Art.dock-acevo;
+    dock-textured: Art.dock-acevo-custom;
     waiting-has-art: Art.tile-acevo-custom;
     waiting-emblem: Art.emblem-acevo;
     waiting-card: #0a0a0a;

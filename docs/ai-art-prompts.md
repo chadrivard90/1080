@@ -246,6 +246,81 @@ NASCAR spotter radar when a car is alongside.
 >
 > **car-stock:** Top-down orthographic view of an American stock car, nose pointing straight up, bold blue, red and yellow livery, car fills the frame, on a solid pure black (#000000) background, no text, no logos, no numbers
 
+### Racing flags: `flag-yellow`, `flag-blue`, `flag-green`, `flag-white`, `flag-red`, `flag-black`, `flag-chequered` (square)
+Shown as a gently waving corner banner on any dash while that flag is out, and as an icon in
+the bottom bar. **Use a magenta background** (the black and white flags would vanish on black);
+`prep-art.ps1` keys the magenta out. Make all seven in one session so they match.
+
+> A single motorsport marshal's flag on a short pole, waving in the wind with soft cloth folds,
+> glossy realistic fabric with subtle stitching, dramatic rim light, flag fills most of the
+> square image, centred, on a solid flat pure magenta (#FF00FF) background with no shadow on the
+> background, square 1:1, no text, no logos.
+> Flag: **[solid yellow]** / **[solid blue]** / **[solid green]** / **[solid white]** /
+> **[solid red]** / **[solid black]** / **[black and white chequered]**
+
+### F1 tyre compounds: `tyre-soft`, `tyre-medium`, `tyre-hard`, `tyre-inter`, `tyre-wet` (square)
+Shown on the F1 tyre cards and in the standings rows. **Magenta background** (tyres are black).
+
+> Side view of a modern Formula 1 racing tyre, perfectly round and straight-on, glossy black
+> rubber with a bold coloured sidewall ring, rim light, tyre fills the square image, centred, on a
+> solid flat pure magenta (#FF00FF) background, square 1:1, no text, no logos, no lettering on
+> the sidewall.
+> Ring: **[red, slick tread]** (soft) / **[yellow, slick tread]** (medium) / **[white, slick
+> tread]** (hard) / **[green, grooved intermediate tread]** (inter) / **[blue, deep grooved wet
+> tread]** (wet)
+
+### Personal-best medal: `pb-medal` (square, *transparent*)
+Shown in the bottom bar and the corner when you set a new all-time best, and in the lap log.
+
+> Glossy purple and gold racing medal shaped like a stopwatch with a laurel wreath around it,
+> glowing purple rim light, premium 3D render, centred, on a solid pure black (#000000)
+> background, square 1:1, no text, no numbers, no letters
+
+### Bottom-bar textures: `dock-f1` … `dock-fh6` (very wide, about 11:1)
+A thin strip behind each dash's bottom navigation bar. Keep it dark so the buttons stand out.
+
+> **dock-f1:** Very wide thin strip of dark carbon fibre weave with a thin red light line along the top edge, dark, ultra-wide 11:1, no text
+>
+> **dock-nascar:** Very wide thin strip of navy blue brushed metal with a red and white racing stripe along the top edge, ultra-wide 11:1, no text
+>
+> **dock-acevo:** Very wide thin strip of matte black anodised aluminium with a hairline red edge, ultra-wide 11:1, no text
+>
+> **dock-ams2:** Very wide thin strip of deep navy HUD glass with faint cyan scan lines, ultra-wide 11:1, no text
+>
+> **dock-dr2:** Very wide thin strip of worn black painted steel with rivets at each end, ultra-wide 11:1, no text
+>
+> **dock-wrc:** Very wide thin strip of dark gravel-dusted metal with a magenta edge light, ultra-wide 11:1, no text
+>
+> **dock-fm:** Very wide thin strip of dark frosted glass with a magenta-to-cyan gradient glow along the top, ultra-wide 11:1, no text
+>
+> **dock-fh6:** Very wide thin strip of dark purple with soft neon pink and yellow festival light bokeh, ultra-wide 11:1, no text
+
+### Logo mark: `logo` (square, *transparent*)
+Shown beside SIDEPOD on the title screen, on the start-up splash, and (if you don't make a
+separate `icon-app`) as the desktop icon. Image only: the app draws the wordmark itself.
+
+> Bold emblem for a racing telemetry app called Sidepod: a stylised sleek race car sidepod air
+> intake shape merged with a glowing red tachometer arc, chrome and carbon fibre, red and white
+> accents, symmetrical badge composition, premium 3D render, centred, on a solid pure black
+> (#000000) background, square 1:1, no text, no letters, no logos
+
+### Gauge faces: `wrc-gauge-face`, `fm-gauge-face` (square)
+Blank printed dial faces behind the WRC RPM gauge and the Forza Motorsport rev arc. The app
+draws ticks, numbers and the arc on top, so keep the faces **blank** and dark.
+
+> **wrc-gauge-face:** Top-down straight-on modern rally car tachometer face, perfectly centred circle filling the whole square image, dark charcoal carbon texture with a thin magenta inner ring and subtle cyan glow at the rim, BLANK face with no numbers, no ticks, no needle, no text, black corners outside the circle, square 1:1
+>
+> **fm-gauge-face:** Top-down straight-on premium sports car gauge face, perfectly centred circle filling the whole square image, dark slate glass with a soft magenta-to-cyan gradient ring at the rim, BLANK face with no numbers, no ticks, no needle, no text, black corners outside the circle, square 1:1
+
+### AMS2 wet-track icons: `weather-puddle`, `weather-wetline` (square, *transparent*)
+Shown in the AMS2 water-on-track card when it's wet. Make them in the same session as the
+other weather icons so the style matches.
+
+> Flat glowing weather icon in a clean aerospace-HUD style, thin cyan and mint neon line-art with
+> a soft glow, centred, on a solid pure black (#000000) background, square 1:1, no text.
+> Subject: **[a puddle of standing water with ripples on a road surface]** /
+> **[a curved racing line on a road with water spray drying along it]**
+
 ### Desktop icons: `icon-app`, `icon-update` (square, *transparent*)
 > **icon-app:** App icon of an analog racing tachometer with a red needle in the redline and a small chequered-flag stripe across the top, glossy rounded-square badge, dark carbon background inside the badge, bold and readable at small size, centred on a solid pure black (#000000) background, square 1:1, no text
 >

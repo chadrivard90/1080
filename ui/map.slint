@@ -11,7 +11,7 @@ export struct MapDot {
     player: bool,
     label: string,
     color: color,
-    // 0 car, 1 trail point, 2 start / finish
+    // 0 car, 1 trail point, 2 start / finish, 3 trail point coloured by gain (green) / loss (red)
     kind: int,
     alpha: float,
 }
@@ -94,18 +94,18 @@ export component TrackMap inherits Rectangle {
     }
 
     for dot in root.dots : Rectangle {
-        property <length> size: dot.kind == 1 ? root.line-width * 0.9 : (dot.kind == 2 ? root.dot-size * 0.8 : (dot.player ? root.dot-size + 12px : root.dot-size));
+        property <length> size: dot.kind == 1 || dot.kind == 3 ? root.line-width * 0.9 : (dot.kind == 2 ? root.dot-size * 0.8 : (dot.player ? root.dot-size + 12px : root.dot-size));
         x: root.ox + root.side * dot.x / 1000 - self.size / 2;
         y: root.oy + root.side * dot.y / 1000 - self.size / 2;
         width: self.size;
         height: self.size;
 
         // Trail point
-        if dot.kind == 1 : Rectangle {
+        if dot.kind == 1 || dot.kind == 3 : Rectangle {
             width: parent.width;
             height: parent.height;
             border-radius: self.width / 2;
-            background: root.player-color.transparentize(1 - 0.75 * dot.alpha);
+            background: dot.kind == 3 ? dot.color.transparentize(1 - 0.9 * dot.alpha) : root.player-color.transparentize(1 - 0.75 * dot.alpha);
         }
         // Start / finish: small chequered flag tile
         if dot.kind == 2 : Rectangle {

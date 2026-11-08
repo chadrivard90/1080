@@ -2,6 +2,7 @@
 //! All text formatting and colour decisions live here so the .slint files stay declarative.
 
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -31,6 +32,9 @@ pub struct Models {
     laplog: RefCell<LapLog>,
     last_vs_pb: Cell<Option<f32>>,
     pb_event: RefCell<Option<(String, Instant)>>,
+    /// Core tyre temperature history (FL, FR, RL, RR), one sample a second.
+    tyre_hist: RefCell<[VecDeque<f32>; 4]>,
+    tyre_sample: Cell<Instant>,
 }
 
 impl Models {
@@ -49,6 +53,8 @@ impl Models {
             laplog: RefCell::new(LapLog::open()),
             last_vs_pb: Cell::new(None),
             pb_event: RefCell::new(None),
+            tyre_hist: RefCell::new(Default::default()),
+            tyre_sample: Cell::new(Instant::now()),
         }
     }
 }
@@ -157,6 +163,7 @@ pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) 
     let f1 = ui.global::<crate::F1>();
     let mut data = build_data(st, blink, models.fuel_margin);
     log_laps(st, models, &mut data);
+    tyre_trends(st, models, &mut data);
     let is_race = data.is_race;
     f1.set_data(data);
     let standings = build_standings(st, is_race);
@@ -169,6 +176,25 @@ pub fn apply(ui: &crate::AppWindow, st: &F1State, models: &Models, blink: bool) 
     sync_model(&models.laps, build_laps(st));
     sync_model(&models.forecast, build_forecast(st));
     apply_map(&f1, st, models);
+}
+
+/// 30-second core temperature trend for each tyre card.
+fn tyre_trends(st: &F1State, models: &Models, d: &mut F1Data) {
+    let mut hist = models.tyre_hist.borrow_mut();
+    if d.connected && models.tyre_sample.get().elapsed() >= Duration::from_secs(1) {
+        models.tyre_sample.set(Instant::now());
+        let tel = &st.telemetry[st.player];
+        for (slot, wheel) in [FL, FR, RL, RR].into_iter().enumerate() {
+            hist[slot].push_back(tel.tyre_inner_temp[wheel] as f32);
+            while hist[slot].len() > 30 {
+                hist[slot].pop_front();
+            }
+        }
+    }
+    d.fl.trend = laplog::spark(hist[0].iter(), 6.0).into();
+    d.fr.trend = laplog::spark(hist[1].iter(), 6.0).into();
+    d.rl.trend = laplog::spark(hist[2].iter(), 6.0).into();
+    d.rr.trend = laplog::spark(hist[3].iter(), 6.0).into();
 }
 
 /// Append finished laps to the CSV log and show the all-time personal best for the track.
@@ -449,6 +475,14 @@ fn build_data(st: &F1State, blink: bool, fuel_margin: f32) -> F1Data {
     let ideal = if pb_sectors.iter().all(|&s| s > 0) { pb_sectors.iter().sum() } else { 0 };
     d.ideal_lap = fmt_lap(ideal).into();
     d.session_best = fmt_lap(st.session_best().map_or(0, |(_, t)| t)).into();
+    // Session lap-time chart from completed laps (the last entry is the lap in progress).
+    let done = (hist.num_laps as usize).saturating_sub(1).min(hist.laps.len());
+    let times: Vec<f32> = hist.laps[..done].iter().filter(|l| l.time_ms > 0).map(|l| l.time_ms as f32 / 1000.0).collect();
+    let chart = laplog::chart(&times);
+    d.lap_chart = chart.path.into();
+    d.lap_chart_best = fmt_lap_secs(chart.best).into();
+    d.lap_chart_worst = fmt_lap_secs(chart.worst).into();
+    d.lap_chart_count = chart.count as i32;
 
     match st.delta.delta {
         Some(delta) if st.delta.has_reference() => {
@@ -577,6 +611,15 @@ fn build_data(st: &F1State, blink: bool, fuel_margin: f32) -> F1Data {
         ("ENGINE FAILURE", 0xE10600, 0xFFFFFF)
     } else {
         ("", 0x000000, 0xFFFFFF)
+    };
+    d.flag_kind = if red_flag {
+        5
+    } else if ses.safety_car == 1 || ses.safety_car == 2 || sta.fia_flag == 3 {
+        1
+    } else if sta.fia_flag == 2 {
+        2
+    } else {
+        0
     };
     d.banner_text = banner.into();
     d.banner_color = hex(bg);

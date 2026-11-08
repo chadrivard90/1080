@@ -36,15 +36,16 @@ pub struct Dot {
     pub player: bool,
     pub label: String,
     pub color: Option<u32>,
-    /// 0 = car, 1 = trail point behind the player, 2 = start / finish marker.
+    /// 0 = car, 1 = trail point, 2 = start / finish marker, 3 = trail point coloured by delta
+    /// (green where time was gained against the best lap, red where it was lost).
     pub kind: u8,
     /// Fade for trail points (1 = newest).
     pub alpha: f32,
 }
 
 /// Trail points kept behind the player, and their minimum spacing in metres.
-const TRAIL_LEN: usize = 14;
-const TRAIL_SPACING: f32 = 6.0;
+const TRAIL_LEN: usize = 60;
+const TRAIL_SPACING: f32 = 8.0;
 
 impl Default for MapRecorder {
     fn default() -> Self {
@@ -61,7 +62,10 @@ pub struct MapRecorder {
     last_pct: Option<f32>,
     path_len: f32,
     /// The player's most recent positions (kept even after the outline is frozen).
-    recent: VecDeque<(f32, f32)>,
+    recent: VecDeque<(f32, f32, Option<f32>)>,
+    /// Current delta to the best lap (seconds), set by the caller before each dd, so the
+    /// trail can show where time is gained or lost.
+    pub trail_delta: Option<f32>,
     /// Bumped whenever the outline changes, so the SVG path is only rebuilt when needed.
     pub version: u64,
 }
@@ -80,6 +84,7 @@ impl MapRecorder {
             last_pct: None,
             path_len: 0.0,
             recent: VecDeque::with_capacity(TRAIL_LEN + 1),
+            trail_delta: None,
             version: 0,
         }
     }
@@ -106,9 +111,9 @@ impl MapRecorder {
         let far_enough = self
             .recent
             .back()
-            .map_or(true, |&(lx, lz)| ((x - lx).powi(2) + (z - lz).powi(2)).sqrt() >= TRAIL_SPACING);
+            .map_or(true, |&(lx, lz, _)| ((x - lx).powi(2) + (z - lz).powi(2)).sqrt() >= TRAIL_SPACING);
         if far_enough {
-            self.recent.push_back((x, z));
+            self.recent.push_back((x, z, self.trail_delta));
             while self.recent.len() > TRAIL_LEN {
                 self.recent.pop_front();
             }
@@ -307,11 +312,19 @@ impl MapRecorder {
         }
         // Fading trail behind the player (newest last; the newest sits under the player dot).
         let n = self.recent.len();
-        for (i, &(wx, wz)) in self.recent.iter().enumerate().take(n.saturating_sub(1)) {
+        let mut prev_delta: Option<f32> = None;
+        for (i, &(wx, wz, delta)) in self.recent.iter().enumerate().take(n.saturating_sub(1)) {
+            // Green where the delta fell (time gained) since the previous point, red where it rose.
+            let color = match (prev_delta, delta) {
+                (Some(p), Some(d)) if (d - p).abs() > 0.0005 => Some(if d < p { 0x22C55E } else { 0xFF3B3B }),
+                _ => None,
+            };
+            prev_delta = delta;
             let (x, y) = to_view(wx, wz);
             if (0.0..=VIEW).contains(&x) && (0.0..=VIEW).contains(&y) {
-                let alpha = (i + 1) as f32 / n as f32;
-                dots.push(Dot { x, y, player: false, label: String::new(), color: None, kind: 1, alpha });
+                let alpha = 0.25 + 0.75 * (i + 1) as f32 / n as f32;
+                let kind = if color.is_some() { 3 } else { 1 };
+                dots.push(Dot { x, y, player: false, label: String::new(), color, kind, alpha });
             }
         }
         // Markers and trail first, then cars, with the player on top.

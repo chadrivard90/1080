@@ -5,7 +5,8 @@
 
 import { Sim, SimData, Corner, SimRow, DialLabel, TrailDot } from "sim_state.slint";
 import { AppState } from "../globals.slint";
-import { Dock, FlagFrame, PulseFrame, TabDef, Fonts } from "../kit.slint";
+import { Dock, FlagFrame, PulseFrame, FlagBadge, TabDef, Fonts } from "../kit.slint";
+import { Art } from "../art.slint";
 import { HBar, VBar } from "../common.slint";
 
 // Caption + big value (+ optional sub line).
@@ -555,7 +556,14 @@ export component DashShell inherits Rectangle {
     in property <bool> waiting-has-art: false;
     in property <image> waiting-emblem;
     in property <color> waiting-card: #15161a;
-    // Height of the dashboard area above the dock. Children of a DashShell resolve parent to
+    // Optional bottom-bar texture (Art.dock-<game>).
+    in property <image> dock-texture;
+    in property <bool> dock-textured: false;
+    // Flag image for the flag that's out, and the personal-best medal while a purple pop-up shows.
+    property <int> fk: Sim.data.flag-kind;
+    property <image> flag-img: root.fk == 1 ? Art.flag-yellow : (root.fk == 2 ? Art.flag-blue : (root.fk == 3 ? Art.flag-green : (root.fk == 4 ? Art.flag-white : (root.fk == 5 ? Art.flag-red : (root.fk == 6 ? Art.flag-black : Art.flag-chequered)))));
+    property <bool> flag-has: root.fk == 1 ? Art.flag-yellow-custom : (root.fk == 2 ? Art.flag-blue-custom : (root.fk == 3 ? Art.flag-green-custom : (root.fk == 4 ? Art.flag-white-custom : (root.fk == 5 ? Art.flag-red-custom : (root.fk == 6 ? Art.flag-black-custom : (root.fk == 7 ? Art.flag-chequered-custom : false))))));
+    property <bool> medal: Sim.data.event-text != "" && Sim.data.event-color == #b545ff && Art.pb-medal-custom;    // Height of the dashboard area above the dock. Children of a DashShell resolve parent to
     // the shell itself, so pages must size with root.page-height, not parent.height.
     out property <length> page-height: content.height;
 
@@ -575,8 +583,15 @@ export component DashShell inherits Rectangle {
             PulseFrame {
                 width: parent.width;
                 height: parent.height;
-                active: Sim.data.banner-text == "" && Sim.data.event-text != "";
+                // Only celebrate: purple (records) and green (gains) pop-ups.
+                active: Sim.data.banner-text == "" && Sim.data.event-text != "" && (Sim.data.event-color == #b545ff || Sim.data.event-color == #22c55e);
                 tint: Sim.data.event-color;
+            }
+            FlagBadge {
+                x: parent.width - self.width - 24px;
+                y: 24px;
+                source: root.flag-has ? root.flag-img : Art.pb-medal;
+                show: root.flag-has || root.medal;
             }
             if !Sim.data.connected : SimWaiting {
                 width: parent.width;
@@ -601,6 +616,10 @@ export component DashShell inherits Rectangle {
             font: root.font;
             radius: root.radius;
             blink: Sim.data.blink;
+            pill-icon: root.flag-has ? root.flag-img : Art.pb-medal;
+            pill-has-icon: root.flag-has || root.medal;
+            texture: root.dock-texture;
+            textured: root.dock-textured;
             pill-alert: Sim.data.banner-text != "" || Sim.data.event-text != "";
             pill-text: Sim.data.banner-text != "" ? Sim.data.banner-text
                 : (Sim.data.event-text != "" ? Sim.data.event-text

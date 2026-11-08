@@ -4,7 +4,7 @@
 
 import { Sim, SimData, Corner } from "../sim/sim_state.slint";
 import { DashShell, ShiftLights, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, StatStrip, Stat, FadePage } from "../kit.slint";
+import { Fonts, StatStrip, Stat, FadePage, LapChart } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -145,9 +145,7 @@ component PackPage inherits FadePage {
                 stats: [
                     { label: "LAST", value: root.d.last-lap, tint: transparent },
                     { label: "BEST", value: root.d.best-lap, tint: transparent },
-                    { label: "ALL-TIME", value: root.d.pb-lap, tint: #7a2cff },
                     { label: "AHEAD", value: root.d.gap-ahead, tint: transparent },
-                    { label: "BEHIND", value: root.d.gap-behind, tint: transparent },
                     { label: "FUEL LAPS", value: root.d.fuel-laps, tint: root.d.fuel-laps-num >= 0 && root.d.fuel-laps-num < 2 ? NascarTheme.red : transparent }
                 ];
             }
@@ -249,6 +247,16 @@ component DraftPage inherits FadePage {
             drop-shadow-offset-x: 8px;
             drop-shadow-offset-y: 10px;
             drop-shadow-color: NascarTheme.shadow;
+            // Waving flag art at the left of the panel, when it exists.
+            if (root.caution && Art.flag-yellow-custom) || (!root.caution && Art.flag-green-custom) : Image {
+                x: 20px;
+                y: 10px;
+                width: parent.height * 1.3;
+                height: parent.height - 20px;
+                source: root.caution ? Art.flag-yellow : Art.flag-green;
+                image-fit: contain;
+                transform-rotation: (AppState.pulse - 0.5) * 8deg;
+            }
             Text {
                 width: parent.width;
                 height: parent.height;
@@ -329,8 +337,24 @@ component PitPage inherits FadePage {
                 WearBar { vertical-stretch: 1; label: "RR"; c: root.d.rr; }
             }
         }
+        Banner {
+            vertical-stretch: 2.4;
+            LapChart {
+                width: parent.width;
+                height: parent.height;
+                path: root.d.lap-chart;
+                count: root.d.lap-chart-count;
+                best: root.d.lap-chart-best;
+                worst: root.d.lap-chart-worst;
+                line-color: NascarTheme.blue;
+                best-color: NascarTheme.blue;
+                text-color: NascarTheme.red;
+                grid-color: #0b143033;
+                font: Fonts.bebas;
+            }
+        }
         HorizontalLayout {
-            vertical-stretch: 3;
+            vertical-stretch: 2.4;
             min-height: 0px;
             preferred-height: 0px;
             spacing: 24px;
@@ -355,6 +379,8 @@ component PitPage inherits FadePage {
 
 export component NascarDash inherits DashShell {
     waiting-art: Art.tile-nascar;
+    dock-texture: Art.dock-nascar;
+    dock-textured: Art.dock-nascar-custom;
     waiting-has-art: Art.tile-nascar-custom;
     waiting-emblem: Art.emblem-nascar;
     waiting-card: #0b1838;

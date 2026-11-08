@@ -261,6 +261,7 @@ pub fn run(shared: Arc<Mutex<F1State>>, stop: Arc<AtomicBool>) {
             st.motion[i].z = 500.0 * a.sin() + 150.0 * (3.0 * a).cos();
         }
         let me = st.motion[PLAYER];
+        st.map.trail_delta = if st.delta.has_reference() { st.delta.delta } else { None };
         st.map.add(me.x, me.z, Some(frac));
         st.session.time_left_s = (5400.0 - t).max(0.0) as u16;
         st.session.safety_car = if (40.0..47.0).contains(&(t % 60.0)) { 2 } else { 0 };

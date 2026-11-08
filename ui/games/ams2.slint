@@ -6,7 +6,7 @@
 
 import { Sim, SimData, SimRow } from "../sim/sim_state.slint";
 import { DashShell, DeltaStrip, RowItem } from "../sim/sim_widgets.slint";
-import { Fonts, Texture, StatStrip, Stat, FadePage } from "../kit.slint";
+import { Fonts, Texture, StatStrip, Stat, FadePage, LapChart } from "../kit.slint";
 import { AppState } from "../globals.slint";
 import { TrackMap } from "../map.slint";
 import { Art } from "../art.slint";
@@ -74,7 +74,8 @@ component HudStrip inherits StatStrip {
 // Flag status square.
 component FlagSquare inherits Rectangle {
     property <bool> active: Sim.data.banner-text != "" && !Sim.data.pit-limiter;
-    background: self.active ? Sim.data.banner-color : HudTheme.cell;
+    // Filled flag colour: green when the track is clear.
+    background: self.active ? Sim.data.banner-color : #1f9e6acc;
     border-width: 4px;
     border-color: self.active ? #ffffff : HudTheme.line;
     drop-shadow-blur: self.active ? 40px : 0px;
@@ -84,7 +85,7 @@ component FlagSquare inherits Rectangle {
         width: parent.width;
         height: parent.height;
         text: root.active ? Sim.data.banner-text : "GREEN";
-        color: root.active ? Sim.data.banner-text-color : #2bd47a;
+        color: root.active ? Sim.data.banner-text-color : #ffffff;
         font-family: Fonts.mono;
         font-size: 24px;
         wrap: word-wrap;
@@ -259,9 +260,36 @@ component HudWeather inherits FadePage {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;
-                    if root.has-icon : Image { height: 150px; source: root.icon; image-fit: contain; }
+                    HorizontalLayout {
+                        spacing: 16px;
+                        alignment: start;
+                        if root.has-icon : Image { width: 150px; height: 150px; source: root.icon; image-fit: contain; }
+                        // Puddle / wet-line icons once it's wet (optional art).
+                        if root.d.rain-pct > 20 && Art.weather-puddle-custom : Image { width: 110px; height: 150px; source: Art.weather-puddle; image-fit: contain; }
+                        if root.d.rain-pct > 2 && root.d.rain-pct <= 40 && Art.weather-wetline-custom : Image { width: 110px; height: 150px; source: Art.weather-wetline; image-fit: contain; }
+                    }
                     Text { text: "\{root.d.rain-pct}%"; color: root.d.rain-pct > 40 ? HudTheme.cyan : HudTheme.text; font-family: Fonts.russo; font-size: 100px; }
                     Text { text: root.d.rain-pct > 40 ? "WETS ADVISED" : (root.d.rain-pct > 10 ? "MONITOR" : "DRY RUNNING"); color: root.d.rain-pct > 40 ? #ffb000 : HudTheme.mint; font-family: Fonts.mono; font-size: 30px; }
+                    Rectangle { height: 14px; }
+                    GridLayout {
+                        spacing: 8px;
+                        Row {
+                            Text { text: "GRIP"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 20px; }
+                            Text { text: root.d.rain-pct > 40 ? "LOW" : (root.d.rain-pct > 10 ? "REDUCED" : "OPTIMAL"); color: root.d.rain-pct > 40 ? #ff4d4d : (root.d.rain-pct > 10 ? #ffb000 : HudTheme.mint); font-family: Fonts.mono; font-size: 24px; }
+                        }
+                        Row {
+                            Text { text: "RACING LINE"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 20px; }
+                            Text { text: root.d.rain-pct > 20 ? "STANDING WATER" : (root.d.rain-pct > 2 ? "DRYING LINE" : "DRY"); color: HudTheme.text; font-family: Fonts.mono; font-size: 24px; }
+                        }
+                        Row {
+                            Text { text: "TRACK / AIR"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 20px; }
+                            Text { text: root.d.track-temp + " / " + root.d.air-temp; color: HudTheme.text; font-family: Fonts.mono; font-size: 24px; }
+                        }
+                        Row {
+                            Text { text: "TYRES"; color: HudTheme.dim; font-family: Fonts.mono; font-size: 20px; }
+                            Text { text: root.d.fl.temp + " " + root.d.fr.temp + " " + root.d.rl.temp + " " + root.d.rr.temp; color: HudTheme.text; font-family: Fonts.mono; font-size: 24px; overflow: elide; }
+                        }
+                    }
                 }
             }
         }
@@ -315,7 +343,8 @@ component HudWeather inherits FadePage {
                 { label: "POSITION", value: root.d.pos-text, tint: transparent },
                 { label: "LAST", value: root.d.last-lap, tint: transparent }
             ];
-        }    }
+        }
+    }
 }
 
 component HudStrategy inherits FadePage {
@@ -361,9 +390,27 @@ component HudStrategy inherits FadePage {
                 }
             }
         }
+        Tech {
+            vertical-stretch: 2.6;
+            title: "LAP TIME TREND";
+            LapChart {
+                width: parent.width;
+                height: parent.height;
+                title: "";
+                top-pad: 44px;
+                path: root.d.lap-chart;
+                count: root.d.lap-chart-count;
+                best: root.d.lap-chart-best;
+                worst: root.d.lap-chart-worst;
+                line-color: HudTheme.cyan;
+                best-color: HudTheme.mint;
+                text-color: HudTheme.dim;
+                font: Fonts.mono;
+            }
+        }
         // Leaderboard
         Tech {
-            vertical-stretch: 7;
+            vertical-stretch: 5.4;
             title: "LEADERBOARD";
             VerticalLayout {
                 padding: 14px;
@@ -420,6 +467,8 @@ component HudStrategy inherits FadePage {
 
 export component Ams2Dash inherits DashShell {
     waiting-art: Art.tile-ams2;
+    dock-texture: Art.dock-ams2;
+    dock-textured: Art.dock-ams2-custom;
     waiting-has-art: Art.tile-ams2-custom;
     waiting-emblem: Art.emblem-ams2;
     waiting-card: #0a192f;

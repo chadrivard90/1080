@@ -21,6 +21,8 @@ export struct Corner {
     has-brake: bool,
     slip-color: color,
     brake-pct: float,
+    // Last 30 s of tyre temperature as a 300 x 60 line (oldest left).
+    trend: string,
 }
 
 export struct TrailDot {
@@ -156,6 +158,9 @@ export struct SimData {
     banner-text: string,
     banner-color: color,
     banner-text-color: color,
+    // Flag out: 0 none, 1 yellow / caution / safety car, 2 blue, 3 green, 4 white, 5 red,
+    // 6 black, 7 chequered (picks the flag image).
+    flag-kind: int,
     event-text: string,
     event-color: color,
     event-text-color: color,
@@ -182,6 +187,9 @@ export struct SimData {
     fuel-laps-num: float,
     drift-score: string,
     drifting: bool,
+    // Best drift score this session, and 0..1 time left before the current drift resets.
+    drift-best: string,
+    drift-hold: float,
     peak-lat-g: string,
     stint-time: string,
     stint-pct: float,
@@ -197,6 +205,12 @@ export struct SimData {
     // Last lap compared with the all-time best before it ("" until a lap is logged).
     pb-gap: string,
     pb-gap-good: bool,
+
+    // Session lap-time chart (1000 x 300 view box; fastest at the top).
+    lap-chart: string,
+    lap-chart-best: string,
+    lap-chart-worst: string,
+    lap-chart-count: int,
 }
 
 export global Sim {
