@@ -165,26 +165,6 @@ component WaitingOverlay inherits Rectangle {
     }
 }
 
-component EventToast inherits Rectangle {
-    property <F1Data> d: F1.data;
-    border-radius: 18px;
-    background: root.d.event-color;
-    drop-shadow-blur: 20px;
-    drop-shadow-color: #000000a0;
-    Text {
-        width: parent.width;
-        height: parent.height;
-        text: root.d.event-text;
-        color: root.d.event-text-color;
-        font-size: 48px;
-        font-weight: 900;
-        font-italic: true;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
 export component F1Dash inherits Rectangle {
     background: F1Theme.bg;
 

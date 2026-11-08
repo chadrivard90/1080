@@ -220,7 +220,8 @@ pub fn run(shared: Arc<Mutex<F1State>>, stop: Arc<AtomicBool>) {
             wear_tc: 12,
             ..Default::default()
         };
-        st.motion[PLAYER] = CarMotion { g_lat: lateral, g_long: -accel / 45.0, g_vert: 1.0 };
+        // x / z are filled in below with the rest of the field.
+        st.motion[PLAYER] = CarMotion { g_lat: lateral, g_long: -accel / 45.0, g_vert: 1.0, ..Default::default() };
 
         // --- field / timing --------------------------------------------------------------
         let mut leader_gap = 0u32;
