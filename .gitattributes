@@ -1,0 +1,4 @@
+# Shell scripts and desktop files must keep Unix line endings to run on the Pi.
+*.sh text eol=lf
+*.desktop text eol=lf
+*.svg text eol=lf

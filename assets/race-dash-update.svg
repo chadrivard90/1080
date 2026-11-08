@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect x="8" y="8" width="240" height="240" rx="44" fill="#0d0d13"/>
+  <path d="M 196 112 A 70 70 0 0 0 66 92" fill="none" stroke="#00d26a" stroke-width="20" stroke-linecap="round"/>
+  <polygon points="44,70 92,72 64,112" fill="#00d26a"/>
+  <path d="M 60 144 A 70 70 0 0 0 190 164" fill="none" stroke="#e10600" stroke-width="20" stroke-linecap="round"/>
+  <polygon points="212,186 164,184 192,144" fill="#e10600"/>
+  <path d="M 128 98 L 128 158 M 104 136 L 128 160 L 152 136" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="128" y="234" font-family="DejaVu Sans, Arial, sans-serif" font-size="28" font-weight="900" fill="#ffffff" text-anchor="middle">UPDATE</text>
+</svg>

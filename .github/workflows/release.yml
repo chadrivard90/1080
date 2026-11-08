@@ -1,0 +1,82 @@
+# Builds Race Dash for 64-bit Raspberry Pi OS on every push to main and publishes
+# race-dash-aarch64.tar.gz as the latest GitHub Release. The Pi installer/updater download it.
+name: Build Pi release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Native ARM64 runner, building inside Debian Bookworm so the binary links against the
+    # same glibc as Raspberry Pi OS Bookworm (and runs on newer releases too).
+    runs-on: ubuntu-24.04-arm
+    container: debian:bookworm
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential pkg-config curl ca-certificates git \
+            libfontconfig1-dev libxkbcommon-dev
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust paths
+        run: |
+          echo "CARGO_HOME=$PWD/.cargo-home" >> "$GITHUB_ENV"
+          echo "RUSTUP_HOME=$PWD/.rustup-home" >> "$GITHUB_ENV"
+          echo "$PWD/.cargo-home/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Rust toolchain and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cargo-home
+            .rustup-home
+            target
+          key: arm64-bookworm-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            arm64-bookworm-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}-
+            arm64-bookworm-
+
+      - name: Install Rust
+        run: |
+          if ! command -v cargo >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
+          fi
+          cargo --version
+
+      - name: Test
+        run: cargo test --release
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Package
+        run: |
+          mkdir -p dist/race-dash
+          cp target/release/race-dash dist/race-dash/
+          cp -r scripts assets README.md dist/race-dash/
+          echo "${GITHUB_SHA}" > dist/race-dash/VERSION
+          echo "${GITHUB_REPOSITORY}" > dist/race-dash/REPO
+          tar -C dist/race-dash -czf race-dash-aarch64.tar.gz .
+          ls -lh race-dash-aarch64.tar.gz
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Race Dash build ${{ github.run_number }}
+          body: "Built from ${{ github.sha }}"
+          target_commitish: ${{ github.sha }}
+          files: race-dash-aarch64.tar.gz
+          make_latest: true

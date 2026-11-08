@@ -1,0 +1,220 @@
+// Data pushed from Rust (src/games/f1_25/view.rs) for the F1 25 dash.
+
+export struct Tyre {
+    surface: int,
+    inner: int,
+    brake: int,
+    pressure: string,
+    wear: int,
+    damage: int,
+    blister: int,
+    surface-color: color,
+    inner-color: color,
+    brake-color: color,
+}
+
+export struct Part {
+    pct: int,
+    color: color,
+}
+
+export struct SectorInfo {
+    time: string,
+    color: color,
+    text-color: color,
+}
+
+export struct StandingRow {
+    pos: int,
+    name: string,
+    team-color: color,
+    gap: string,
+    interval: string,
+    tyre: string,
+    tyre-color: color,
+    tyre-age: int,
+    pits: int,
+    player: bool,
+    retired: bool,
+    status: string,
+    fastest: bool,
+}
+
+export struct LapRow {
+    lap: int,
+    time: string,
+    s1: string,
+    s2: string,
+    s3: string,
+    valid: bool,
+    best: bool,
+    delta: string,
+}
+
+export struct ForecastRow {
+    minutes: string,
+    weather: string,
+    weather-color: color,
+    rain: int,
+    track-temp: string,
+}
+
+export struct F1Data {
+    connected: bool,
+    status-text: string,
+    blink: bool,
+
+    // Driving
+    speed: int,
+    speed-unit: string,
+    gear: string,
+    suggested-gear: string,
+    shift-hint: bool,
+    rpm: int,
+    rpm-pct: float,
+    rev-count: int,
+    rev-max: bool,
+    throttle: float,
+    brake: float,
+    steer: float,
+
+    drs-open: bool,
+    drs-allowed: bool,
+    drs-distance: int,
+
+    ers-pct: float,
+    ers-text: string,
+    ers-mode: string,
+    ers-mode-color: color,
+    ers-deployed-pct: float,
+    ers-harvested-pct: float,
+
+    fuel-kg: string,
+    fuel-laps: string,
+    fuel-ok: bool,
+    fuel-mix: string,
+
+    brake-bias: int,
+    diff: int,
+    engine-braking: int,
+    tc: string,
+    abs-on: bool,
+    pit-limiter: bool,
+    engine-temp: string,
+
+    // Tyres
+    tyre-compound: string,
+    tyre-color: color,
+    tyre-age: int,
+    tyre-wear-avg: int,
+    fl: Tyre,
+    fr: Tyre,
+    rl: Tyre,
+    rr: Tyre,
+    temp-unit: string,
+
+    // Damage / wear (percent + colour)
+    wing-fl: Part,
+    wing-fr: Part,
+    wing-rear: Part,
+    floor-dmg: Part,
+    diffuser: Part,
+    sidepod: Part,
+    gearbox: Part,
+    engine: Part,
+    drs-fault: bool,
+    ers-fault: bool,
+    engine-failed: bool,
+    wear-ice: Part,
+    wear-mguh: Part,
+    wear-mguk: Part,
+    wear-es: Part,
+    wear-ce: Part,
+    wear-tc: Part,
+
+    // Timing
+    is-race: bool,
+    position: int,
+    num-cars: int,
+    lap: int,
+    total-laps: int,
+    lap-text: string,
+    current-lap: string,
+    last-lap: string,
+    best-lap: string,
+    ideal-lap: string,
+    session-best: string,
+    has-delta: bool,
+    delta: float,
+    delta-text: string,
+    s1: SectorInfo,
+    s2: SectorInfo,
+    s3: SectorInfo,
+    sector: int,
+    lap-invalid: bool,
+    gap-ahead: string,
+    gap-behind: string,
+    gap-ahead-s: float,
+    gap-behind-s: float,
+    ahead-name: string,
+    behind-name: string,
+    gap-leader: string,
+    in-pit: bool,
+    pit-stops: int,
+    penalties: int,
+    warnings: int,
+    cc-warnings: int,
+    unserved: string,
+
+    // Session
+    session-name: string,
+    track-name: string,
+    time-left: string,
+    weather: string,
+    weather-color: color,
+    track-temp: string,
+    air-temp: string,
+    rain-next: int,
+    pit-window: string,
+    pit-rejoin: int,
+    pit-speed: int,
+
+    // Alerts
+    banner-text: string,
+    banner-color: color,
+    banner-text-color: color,
+    event-text: string,
+    event-color: color,
+    event-text-color: color,
+
+    // Motion
+    g-lat: float,
+    g-long: float,
+    speed-trap: string,
+}
+
+export global F1 {
+    in property <F1Data> data;
+    in property <[StandingRow]> standings;
+    in property <[LapRow]> laps;
+    in property <[ForecastRow]> forecast;
+    // Selected layout tab: 0 race, 1 timing, 2 car, 3 tower, 4 strategy.
+    in-out property <int> layout: 0;
+}
+
+// F1 25 visual theme: dark carbon, F1 red, broadcast-style accents.
+export global F1Theme {
+    out property <color> bg: #0d0d13;
+    out property <color> panel: #1a1a24;
+    out property <color> panel-hi: #24243a;
+    out property <color> line: #34344a;
+    out property <color> red: #e10600;
+    out property <color> text: #ffffff;
+    out property <color> dim: #8d8da3;
+    out property <color> green: #00d26a;
+    out property <color> yellow: #ffd400;
+    out property <color> purple: #b545ff;
+    out property <color> blue: #2f7bff;
+    out property <color> orange: #ff8a00;
+    out property <color> ers: #ffd400;
+}

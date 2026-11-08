@@ -1,0 +1,270 @@
+// Racing-themed title screen: game picker, telemetry target info, demo toggle, exit.
+
+import { AppState, GameInfo } from "globals.slint";
+import { TouchButton, Caption } from "common.slint";
+
+// Two-row chequered flag strip.
+component CheckerBand inherits Rectangle {
+    background: #000000;
+    HorizontalLayout {
+        for i in 14 : HorizontalLayout {
+            VerticalLayout {
+                Rectangle { background: #f2f2f2; }
+                Rectangle { background: #101010; }
+            }
+            VerticalLayout {
+                Rectangle { background: #101010; }
+                Rectangle { background: #f2f2f2; }
+            }
+        }
+    }
+}
+
+component TitleHeader inherits Rectangle {
+    clip: true;
+    background: @linear-gradient(160deg, #1d1d26 0%, #0a0a0e 75%);
+
+    // Angled speed stripes on the right.
+    Path {
+        x: parent.width - 600px;
+        y: 0px;
+        width: 600px;
+        height: parent.height;
+        viewbox-width: 600;
+        viewbox-height: 500;
+        commands: "M 330 0 L 420 0 L 170 500 L 80 500 Z";
+        fill: #e10600;
+    }
+    Path {
+        x: parent.width - 600px;
+        y: 0px;
+        width: 600px;
+        height: parent.height;
+        viewbox-width: 600;
+        viewbox-height: 500;
+        commands: "M 450 0 L 490 0 L 240 500 L 200 500 Z";
+        fill: #f2f2f2;
+    }
+    Path {
+        x: parent.width - 600px;
+        y: 0px;
+        width: 600px;
+        height: parent.height;
+        viewbox-width: 600;
+        viewbox-height: 500;
+        commands: "M 520 0 L 600 0 L 600 40 L 370 500 L 270 500 Z";
+        fill: #e10600;
+    }
+
+    VerticalLayout {
+        padding-left: 60px;
+        padding-top: 40px;
+        spacing: 0px;
+        alignment: start;
+        Text {
+            text: "RACE";
+            font-size: 170px;
+            font-weight: 900;
+            font-italic: true;
+            color: #ffffff;
+        }
+        Text {
+            text: "DASH";
+            font-size: 170px;
+            font-weight: 900;
+            font-italic: true;
+            color: #e10600;
+        }
+        HorizontalLayout {
+            alignment: start;
+            padding-top: 6px;
+            Rectangle { width: 430px; height: 8px; background: #e10600; }
+        }
+        Text {
+            text: "SIM RACING TELEMETRY";
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: 8px;
+            color: #b8b8c8;
+        }
+    }
+
+    Rectangle { x: 0px; y: parent.height - 6px; width: parent.width; height: 6px; background: #e10600; }
+}
+
+component GameTile inherits Rectangle {
+    in property <GameInfo> game;
+    in property <int> index;
+
+    border-radius: 18px;
+    clip: true;
+    border-width: 3px;
+    border-color: root.game.enabled ? root.game.accent : #2c2c34;
+    background: touch.pressed ? root.game.accent.darker(0.5) : (root.game.enabled ? #17171e : #111115);
+
+    // Accent stripe on the left edge.
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 16px;
+        height: parent.height;
+        background: root.game.enabled ? root.game.accent : root.game.accent.darker(0.6);
+    }
+    // Angled accent flash in the corner.
+    Path {
+        x: parent.width - 150px;
+        y: 0px;
+        width: 150px;
+        height: parent.height;
+        viewbox-width: 150;
+        viewbox-height: 220;
+        commands: "M 90 0 L 150 0 L 150 0 L 60 220 L 0 220 Z";
+        fill: root.game.enabled ? root.game.accent.transparentize(0.75) : #ffffff08;
+    }
+
+    VerticalLayout {
+        padding-left: 42px;
+        padding-right: 24px;
+        padding-top: 18px;
+        padding-bottom: 18px;
+        spacing: 6px;
+        alignment: center;
+        Text {
+            text: root.game.subtitle;
+            color: root.game.enabled ? root.game.accent : #5f5f6b;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 3px;
+        }
+        Text {
+            text: root.game.name;
+            color: root.game.enabled ? #ffffff : #6c6c78;
+            font-size: 52px;
+            font-weight: 900;
+            font-italic: true;
+            wrap: word-wrap;
+        }
+        Text {
+            text: root.game.enabled ? "TAP TO START" : "COMING SOON";
+            color: root.game.enabled ? #d0d0dc : #4c4c58;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.game.enabled;
+        clicked => { AppState.select-game(root.index); }
+    }
+}
+
+export component TitleScreen inherits Rectangle {
+    background: #07070a;
+
+    property <[GameInfo]> games: [
+        { name: "F1 25", subtitle: "FORMULA 1", accent: #e10600, enabled: true },
+        { name: "NASCAR 26", subtitle: "STOCK CAR", accent: #ffc400, enabled: false },
+        { name: "ASSETTO CORSA EVO", subtitle: "GT / ROAD", accent: #d7263d, enabled: false },
+        { name: "AUTOMOBILISTA 2", subtitle: "MULTI-CLASS", accent: #00b140, enabled: false },
+        { name: "DIRT RALLY 2.0", subtitle: "RALLY", accent: #ff6a00, enabled: false },
+        { name: "EA SPORTS WRC", subtitle: "RALLY", accent: #00c2c7, enabled: false },
+        { name: "FORZA MOTORSPORT", subtitle: "CIRCUIT", accent: #2f7bff, enabled: false },
+        { name: "FORZA HORIZON 6", subtitle: "OPEN WORLD", accent: #ff2d87, enabled: false }
+    ];
+
+    VerticalLayout {
+        CheckerBand { height: 76px; }
+        TitleHeader { height: 500px; }
+
+        HorizontalLayout {
+            height: 74px;
+            padding-left: 40px;
+            padding-right: 40px;
+            Caption {
+                text: "SELECT GAME";
+                font-size: 30px;
+                color: #ffffff;
+                vertical-alignment: center;
+            }
+            Caption {
+                text: "v" + AppState.version;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+        }
+
+        VerticalLayout {
+            vertical-stretch: 1;
+            padding-left: 30px;
+            padding-right: 30px;
+            spacing: 22px;
+            HorizontalLayout {
+                spacing: 22px;
+                GameTile { game: root.games[0]; index: 0; }
+                GameTile { game: root.games[1]; index: 1; }
+            }
+            HorizontalLayout {
+                spacing: 22px;
+                GameTile { game: root.games[2]; index: 2; }
+                GameTile { game: root.games[3]; index: 3; }
+            }
+            HorizontalLayout {
+                spacing: 22px;
+                GameTile { game: root.games[4]; index: 4; }
+                GameTile { game: root.games[5]; index: 5; }
+            }
+            HorizontalLayout {
+                spacing: 22px;
+                GameTile { game: root.games[6]; index: 6; }
+                GameTile { game: root.games[7]; index: 7; }
+            }
+        }
+
+        // Footer: where to send telemetry, demo toggle, exit.
+        HorizontalLayout {
+            height: 230px;
+            padding: 30px;
+            spacing: 20px;
+            Rectangle {
+                horizontal-stretch: 1;
+                background: #15151b;
+                border-radius: 16px;
+                VerticalLayout {
+                    padding: 22px;
+                    spacing: 4px;
+                    alignment: center;
+                    Caption { text: "SEND GAME TELEMETRY TO"; }
+                    Text {
+                        text: AppState.ip-address;
+                        color: #ffffff;
+                        font-size: 56px;
+                        font-weight: 900;
+                    }
+                    Caption { text: "F1 25  UDP PORT \{AppState.f1-port}"; color: #b8b8c8; }
+                }
+            }
+            TouchButton {
+                width: 210px;
+                text: AppState.demo-mode ? "DEMO\nON" : "DEMO\nOFF";
+                accent: #2f7bff;
+                active: AppState.demo-mode;
+                font-size: 34px;
+                clicked => {
+                    AppState.demo-mode = !AppState.demo-mode;
+                    AppState.settings-changed();
+                }
+            }
+            TouchButton {
+                width: 210px;
+                text: "EXIT";
+                accent: #e10600;
+                idle-color: #3a0805;
+                font-size: 46px;
+                clicked => { AppState.exit-app(); }
+            }
+        }
+
+        CheckerBand { height: 76px; }
+    }
+}

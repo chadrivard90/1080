@@ -1,0 +1,182 @@
+// STRATEGY layout — weather forecast, pit window, tyre/fuel state, penalties, lap history.
+// A between-corners / under-safety-car screen rather than a flat-out one.
+
+import { F1, F1Theme, F1Data, ForecastRow, LapRow } from "f1_state.slint";
+import { Panel, ValuePanel } from "f1_widgets.slint";
+import { Caption } from "../common.slint";
+
+component ForecastCard inherits Rectangle {
+    in property <ForecastRow> f;
+    border-radius: 14px;
+    background: F1Theme.panel-hi;
+    VerticalLayout {
+        padding: 10px;
+        spacing: 4px;
+        alignment: center;
+        Text { text: root.f.minutes; color: #ffffff; font-size: 30px; font-weight: 900; horizontal-alignment: center; }
+        Rectangle {
+            height: 10px;
+            border-radius: 5px;
+            background: root.f.weather-color;
+        }
+        Text {
+            text: root.f.weather;
+            color: root.f.weather-color;
+            font-size: 18px;
+            font-weight: 900;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        Text {
+            text: "\{root.f.rain}%";
+            color: root.f.rain >= 50 ? F1Theme.blue : #d0d0dc;
+            font-size: 34px;
+            font-weight: 900;
+            horizontal-alignment: center;
+        }
+        Caption { text: "RAIN"; font-size: 16px; horizontal-alignment: center; }
+        Text { text: root.f.track-temp; color: #b8b8c8; font-size: 22px; font-weight: 800; horizontal-alignment: center; }
+    }
+}
+
+component LapHistoryRow inherits Rectangle {
+    in property <LapRow> l;
+    border-radius: 8px;
+    background: root.l.best ? #b545ff33 : F1Theme.panel-hi;
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 12px;
+        Text { width: 80px; text: "L\{root.l.lap}"; color: F1Theme.dim; font-size: 28px; font-weight: 800; vertical-alignment: center; }
+        Text {
+            width: 200px;
+            text: root.l.time;
+            color: !root.l.valid ? #ff5a5a : (root.l.best ? F1Theme.purple : #ffffff);
+            font-size: 32px;
+            font-weight: 900;
+            vertical-alignment: center;
+        }
+        Text { width: 140px; text: root.l.delta; color: F1Theme.dim; font-size: 26px; font-weight: 700; vertical-alignment: center; }
+        Text { horizontal-stretch: 1; text: root.l.s1; color: #d0d0dc; font-size: 26px; font-weight: 700; horizontal-alignment: right; vertical-alignment: center; }
+        Text { horizontal-stretch: 1; text: root.l.s2; color: #d0d0dc; font-size: 26px; font-weight: 700; horizontal-alignment: right; vertical-alignment: center; }
+        Text { horizontal-stretch: 1; text: root.l.s3; color: #d0d0dc; font-size: 26px; font-weight: 700; horizontal-alignment: right; vertical-alignment: center; }
+        Text { width: 40px; text: root.l.valid ? "" : "X"; color: #ff5a5a; font-size: 28px; font-weight: 900; horizontal-alignment: right; vertical-alignment: center; }
+    }
+}
+
+export component StrategyLayout inherits Rectangle {
+    property <F1Data> d: F1.data;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        // Weather now
+        HorizontalLayout {
+            height: 170px;
+            spacing: 14px;
+            Rectangle {
+                horizontal-stretch: 2;
+                background: F1Theme.panel;
+                border-radius: 18px;
+                HorizontalLayout {
+                    padding: 18px;
+                    spacing: 18px;
+                    Rectangle { width: 16px; border-radius: 8px; background: root.d.weather-color; }
+                    VerticalLayout {
+                        alignment: center;
+                        Caption { text: "WEATHER NOW"; }
+                        Text { text: root.d.weather; color: root.d.weather-color; font-size: 54px; font-weight: 900; }
+                    }
+                }
+            }
+            ValuePanel { title: "TRACK"; value: root.d.track-temp; value-size: 60px; }
+            ValuePanel { title: "AIR"; value: root.d.air-temp; value-size: 60px; }
+        }
+
+        // Forecast
+        Panel {
+            height: 300px;
+            title: "FORECAST";
+            HorizontalLayout {
+                vertical-stretch: 1;
+                spacing: 10px;
+                for sample in F1.forecast : ForecastCard { f: sample; }
+            }
+        }
+
+        // Pit window / tyres / fuel
+        HorizontalLayout {
+            height: 200px;
+            spacing: 14px;
+            ValuePanel {
+                title: "PIT WINDOW";
+                value: root.d.pit-window;
+                value-size: 52px;
+                value-color: root.d.pit-window == "--" ? F1Theme.dim : F1Theme.yellow;
+                sub: root.d.pit-rejoin > 0 ? "REJOIN P\{root.d.pit-rejoin}" : "";
+            }
+            ValuePanel {
+                title: "TYRE " + root.d.tyre-compound;
+                value: "\{root.d.tyre-age} LAPS";
+                value-size: 48px;
+                value-color: root.d.tyre-color;
+                sub: "WEAR \{root.d.tyre-wear-avg}%";
+            }
+            ValuePanel {
+                title: "FUEL";
+                value: root.d.fuel-laps;
+                value-size: 56px;
+                value-color: root.d.fuel-ok ? F1Theme.green : #ff4a4a;
+                sub: root.d.fuel-kg;
+            }
+        }
+
+        // Penalties
+        HorizontalLayout {
+            height: 150px;
+            spacing: 14px;
+            ValuePanel {
+                title: "PENALTIES";
+                value: "\{root.d.penalties}s";
+                value-size: 54px;
+                value-color: root.d.penalties > 0 ? F1Theme.red : #ffffff;
+                sub: root.d.unserved;
+            }
+            ValuePanel {
+                title: "WARNINGS";
+                value: "\{root.d.warnings}";
+                value-size: 54px;
+                value-color: root.d.warnings >= 2 ? F1Theme.yellow : #ffffff;
+            }
+            ValuePanel {
+                title: "TRACK LIMITS";
+                value: "\{root.d.cc-warnings}";
+                value-size: 54px;
+                value-color: root.d.cc-warnings >= 2 ? F1Theme.yellow : #ffffff;
+            }
+            ValuePanel { title: "PIT STOPS"; value: "\{root.d.pit-stops}"; value-size: 54px; }
+        }
+
+        // Lap history
+        Panel {
+            vertical-stretch: 1;
+            title: "LAP HISTORY";
+            HorizontalLayout {
+                height: 34px;
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 12px;
+                Caption { width: 80px; text: "LAP"; }
+                Caption { width: 200px; text: "TIME"; }
+                Caption { width: 140px; text: "+BEST"; }
+                Caption { horizontal-stretch: 1; text: "S1"; horizontal-alignment: right; }
+                Caption { horizontal-stretch: 1; text: "S2"; horizontal-alignment: right; }
+                Caption { horizontal-stretch: 1; text: "S3"; horizontal-alignment: right; }
+                Caption { width: 40px; text: ""; }
+            }
+            for entry in F1.laps : LapHistoryRow { height: 50px; l: entry; }
+            Rectangle { vertical-stretch: 1; }
+        }
+    }
+}

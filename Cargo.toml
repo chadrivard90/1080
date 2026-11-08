@@ -1,0 +1,17 @@
+[package]
+name = "race-dash"
+version = "0.1.0"
+edition = "2021"
+description = "Sim racing telemetry dashboard for a 1080x1920 Raspberry Pi touch screen"
+license = "MIT"
+
+[dependencies]
+slint = "1.8"
+
+[build-dependencies]
+slint-build = "1.8"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

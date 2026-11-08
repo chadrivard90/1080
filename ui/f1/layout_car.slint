@@ -1,0 +1,178 @@
+// CAR layout — race engineer view: tyre/brake temperatures, wear, damage, PU wear, ERS.
+// Tyre cards sit at the four corners of a top-down car so wheel position is instant.
+
+import { F1, F1Theme, F1Data } from "f1_state.slint";
+import { Panel, TyreCard, PartBlock, WearRow } from "f1_widgets.slint";
+import { Caption, HBar, VBar } from "../common.slint";
+
+export component CarLayout inherits Rectangle {
+    property <F1Data> d: F1.data;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        // Top-down car with tyre cards at the corners
+        Rectangle {
+            height: 960px;
+            property <length> tyre-w: 340px;
+            property <length> tyre-h: 420px;
+            property <length> mid-x: self.tyre-w + 14px;
+            property <length> mid-w: self.width - 2 * (self.tyre-w + 14px);
+
+            TyreCard { x: 0px; y: 40px; width: parent.tyre-w; height: parent.tyre-h; t: root.d.fl; label: "FL"; }
+            TyreCard { x: parent.width - parent.tyre-w; y: 40px; width: parent.tyre-w; height: parent.tyre-h; t: root.d.fr; label: "FR"; }
+            TyreCard { x: 0px; y: parent.height - parent.tyre-h; width: parent.tyre-w; height: parent.tyre-h; t: root.d.rl; label: "RL"; }
+            TyreCard { x: parent.width - parent.tyre-w; y: parent.height - parent.tyre-h; width: parent.tyre-w; height: parent.tyre-h; t: root.d.rr; label: "RR"; }
+
+            // Front wing halves
+            PartBlock {
+                x: parent.mid-x;
+                y: 0px;
+                width: parent.mid-w / 2 - 4px;
+                height: 110px;
+                label: "FW LEFT";
+                p: root.d.wing-fl;
+            }
+            PartBlock {
+                x: parent.mid-x + parent.mid-w / 2 + 4px;
+                y: 0px;
+                width: parent.mid-w / 2 - 4px;
+                height: 110px;
+                label: "FW RIGHT";
+                p: root.d.wing-fr;
+            }
+
+            // Chassis
+            VerticalLayout {
+                x: parent.mid-x + 40px;
+                y: 124px;
+                width: parent.mid-w - 80px;
+                height: parent.height - 124px - 124px;
+                spacing: 10px;
+                PartBlock { label: "SIDEPODS"; p: root.d.sidepod; }
+                PartBlock { label: "FLOOR"; p: root.d.floor-dmg; }
+                PartBlock { label: "ENGINE"; p: root.d.engine; }
+                PartBlock { label: "GEARBOX"; p: root.d.gearbox; }
+                PartBlock { label: "DIFFUSER"; p: root.d.diffuser; }
+            }
+
+            // Rear wing
+            PartBlock {
+                x: parent.mid-x;
+                y: parent.height - 110px;
+                width: parent.mid-w;
+                height: 110px;
+                label: "REAR WING";
+                p: root.d.wing-rear;
+            }
+        }
+
+        // Power unit wear
+        Panel {
+            height: 290px;
+            title: root.d.engine-failed ? "POWER UNIT WEAR  ·  ENGINE FAILURE" : "POWER UNIT WEAR";
+            HorizontalLayout {
+                vertical-stretch: 1;
+                spacing: 30px;
+                VerticalLayout {
+                    spacing: 6px;
+                    WearRow { label: "ICE"; p: root.d.wear-ice; }
+                    WearRow { label: "MGU-H"; p: root.d.wear-mguh; }
+                    WearRow { label: "MGU-K"; p: root.d.wear-mguk; }
+                }
+                VerticalLayout {
+                    spacing: 6px;
+                    WearRow { label: "ES"; p: root.d.wear-es; }
+                    WearRow { label: "CE"; p: root.d.wear-ce; }
+                    WearRow { label: "TC"; p: root.d.wear-tc; }
+                }
+            }
+        }
+
+        // ERS / fuel & temps / G-force
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+
+            Panel {
+                title: "ERS";
+                HorizontalLayout {
+                    vertical-stretch: 1;
+                    spacing: 14px;
+                    VBar { width: 50px; value: root.d.ers-pct; fill: F1Theme.ers; }
+                    VerticalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        Text {
+                            text: root.d.ers-text + "  " + root.d.ers-mode;
+                            color: root.d.ers-mode-color;
+                            font-size: 34px;
+                            font-weight: 900;
+                        }
+                        Caption { text: "DEPLOYED THIS LAP"; font-size: 18px; }
+                        HBar { height: 14px; value: root.d.ers-deployed-pct; fill: F1Theme.ers; }
+                        Caption { text: "HARVESTED THIS LAP"; font-size: 18px; }
+                        HBar { height: 14px; value: root.d.ers-harvested-pct; fill: F1Theme.green; }
+                        if root.d.ers-fault : Text { text: "ERS FAULT"; color: F1Theme.red; font-size: 24px; font-weight: 900; }
+                    }
+                }
+            }
+
+            Panel {
+                width: 280px;
+                title: "FUEL / ENGINE";
+                VerticalLayout {
+                    vertical-stretch: 1;
+                    alignment: space-around;
+                    Text {
+                        text: root.d.fuel-laps + " LAPS";
+                        color: root.d.fuel-ok ? F1Theme.green : #ff4a4a;
+                        font-size: 40px;
+                        font-weight: 900;
+                    }
+                    Text { text: root.d.fuel-kg; color: #d0d0dc; font-size: 28px; font-weight: 800; }
+                    Text { text: "ENGINE " + root.d.engine-temp; color: #d0d0dc; font-size: 28px; font-weight: 800; }
+                    Text { text: "BB \{root.d.brake-bias}%  DIFF \{root.d.diff}%"; color: F1Theme.dim; font-size: 22px; font-weight: 800; }
+                }
+            }
+
+            // G-force dot
+            Panel {
+                width: 250px;
+                title: "G-FORCE";
+                Rectangle {
+                    vertical-stretch: 1;
+                    property <length> r: min(self.width, self.height) / 2;
+                    Rectangle {
+                        x: parent.width / 2 - parent.r;
+                        y: parent.height / 2 - parent.r;
+                        width: parent.r * 2;
+                        height: parent.r * 2;
+                        border-radius: parent.r;
+                        border-width: 3px;
+                        border-color: F1Theme.line;
+                        background: #00000040;
+                    }
+                    Rectangle {
+                        x: parent.width / 2 - parent.r / 2;
+                        y: parent.height / 2 - parent.r / 2;
+                        width: parent.r;
+                        height: parent.r;
+                        border-radius: parent.r / 2;
+                        border-width: 2px;
+                        border-color: #34344a80;
+                    }
+                    Rectangle {
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 14px;
+                        background: F1Theme.red;
+                        x: parent.width / 2 + parent.r * (root.d.g-lat / 5.0) - 14px;
+                        y: parent.height / 2 - parent.r * (root.d.g-long / 5.0) - 14px;
+                    }
+                }
+            }
+        }
+    }
+}

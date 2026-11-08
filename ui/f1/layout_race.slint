@@ -1,0 +1,336 @@
+// RACE layout — the default in-race glance screen.
+//
+// Designed for peripheral vision: the gear and the gaps are huge, and everything that needs
+// attention changes colour (gaps inside DRS range, delta, fuel, tyre temps) so it can be read
+// without looking directly at the screen. The most important info sits top-left, closest to
+// the main monitor.
+
+import { F1, F1Theme, F1Data } from "f1_state.slint";
+import { Panel, ValuePanel, DeltaBar, GapPanel, MiniTyre } from "f1_widgets.slint";
+import { Caption, VBar, HBar } from "../common.slint";
+
+export component RaceLayout inherits Rectangle {
+    property <F1Data> d: F1.data;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 14px;
+
+        // Gear / speed / position / pedals
+        HorizontalLayout {
+            height: 500px;
+            spacing: 14px;
+
+            Rectangle {
+                width: 420px;
+                background: F1Theme.panel;
+                border-radius: 20px;
+                border-width: root.d.shift-hint ? 6px : 0px;
+                border-color: F1Theme.blue;
+                Caption {
+                    x: 0px;
+                    y: 16px;
+                    width: parent.width;
+                    text: "GEAR";
+                    horizontal-alignment: center;
+                }
+                Text {
+                    width: parent.width;
+                    height: parent.height;
+                    text: root.d.gear;
+                    font-size: 400px;
+                    font-weight: 900;
+                    color: root.d.rev-max && root.d.blink ? F1Theme.blue : #ffffff;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                if root.d.shift-hint : Text {
+                    x: 0px;
+                    y: parent.height - 64px;
+                    width: parent.width;
+                    text: "SUGGESTED " + root.d.suggested-gear;
+                    color: F1Theme.blue;
+                    font-size: 30px;
+                    font-weight: 900;
+                    horizontal-alignment: center;
+                }
+            }
+
+            VerticalLayout {
+                spacing: 14px;
+                Rectangle {
+                    vertical-stretch: 1;
+                    background: F1Theme.panel;
+                    border-radius: 20px;
+                    VerticalLayout {
+                        padding: 14px;
+                        alignment: center;
+                        Text {
+                            text: "\{root.d.speed}";
+                            color: #ffffff;
+                            font-size: 160px;
+                            font-weight: 900;
+                            horizontal-alignment: center;
+                        }
+                        Caption { text: root.d.speed-unit; horizontal-alignment: center; }
+                        HBar {
+                            height: 16px;
+                            value: root.d.rpm-pct;
+                            fill: root.d.rpm-pct > 0.95 ? F1Theme.blue : (root.d.rpm-pct > 0.85 ? F1Theme.red : F1Theme.green);
+                        }
+                    }
+                }
+                Rectangle {
+                    height: 190px;
+                    background: F1Theme.panel;
+                    border-radius: 20px;
+                    HorizontalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        VerticalLayout {
+                            alignment: center;
+                            Caption { text: "POSITION"; }
+                            HorizontalLayout {
+                                alignment: start;
+                                Text {
+                                    text: "P\{root.d.position}";
+                                    color: #ffffff;
+                                    font-size: 104px;
+                                    font-weight: 900;
+                                }
+                                Text {
+                                    text: "/\{root.d.num-cars}";
+                                    color: F1Theme.dim;
+                                    font-size: 40px;
+                                    font-weight: 800;
+                                    vertical-alignment: bottom;
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            Caption { text: root.d.is-race ? "LAP" : "TIME"; horizontal-alignment: right; }
+                            Text {
+                                text: root.d.is-race ? "\{root.d.lap}/\{root.d.total-laps}" : root.d.time-left;
+                                color: #ffffff;
+                                font-size: 60px;
+                                font-weight: 900;
+                                horizontal-alignment: right;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Throttle / brake
+            HorizontalLayout {
+                width: 104px;
+                spacing: 10px;
+                VBar { value: root.d.throttle; fill: F1Theme.green; }
+                VBar { value: root.d.brake; fill: F1Theme.red; }
+            }
+        }
+
+        // Gaps — green ahead when inside DRS range, red behind when under attack.
+        HorizontalLayout {
+            height: 250px;
+            spacing: 14px;
+            GapPanel {
+                title: "AHEAD";
+                name: root.d.ahead-name;
+                value: root.d.gap-ahead;
+                value-color: root.d.gap-ahead-s >= 0 && root.d.gap-ahead-s < 1.0 ? F1Theme.green : #ffffff;
+                accent: root.d.gap-ahead-s >= 0 && root.d.gap-ahead-s < 1.0 ? F1Theme.green : F1Theme.line;
+            }
+            GapPanel {
+                title: "BEHIND";
+                name: root.d.behind-name;
+                value: root.d.gap-behind;
+                value-color: root.d.gap-behind-s >= 0 && root.d.gap-behind-s < 1.0 ? #ff4a4a : #ffffff;
+                accent: root.d.gap-behind-s >= 0 && root.d.gap-behind-s < 1.0 ? F1Theme.red : F1Theme.line;
+            }
+        }
+
+        // Live delta to best lap
+        DeltaBar {
+            height: 170px;
+            title: "DELTA TO BEST";
+            delta: root.d.delta;
+            valid: root.d.has-delta;
+            text: root.d.delta-text;
+            range: 1.0;
+            font-size: 104px;
+        }
+
+        // Lap times + DRS
+        HorizontalLayout {
+            height: 180px;
+            spacing: 14px;
+            ValuePanel { title: "LAST LAP"; value: root.d.last-lap; value-size: 64px; }
+            ValuePanel { title: "BEST LAP"; value: root.d.best-lap; value-size: 64px; value-color: F1Theme.purple; }
+            Rectangle {
+                width: 220px;
+                border-radius: 18px;
+                border-width: 4px;
+                border-color: root.d.drs-open ? F1Theme.green : (root.d.drs-allowed ? F1Theme.green : F1Theme.line);
+                background: root.d.drs-open ? F1Theme.green : F1Theme.panel;
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: "DRS";
+                        color: root.d.drs-open ? #000000 : (root.d.drs-allowed ? F1Theme.green : #4a4a5c);
+                        font-size: 76px;
+                        font-weight: 900;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: root.d.drs-fault ? "FAULT" : (root.d.drs-open ? "OPEN" : (root.d.drs-allowed ? "AVAILABLE" : ""));
+                        color: root.d.drs-open ? #000000 : (root.d.drs-fault ? F1Theme.red : F1Theme.green);
+                        font-size: 22px;
+                        font-weight: 900;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // ERS / fuel / tyres / settings
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 14px;
+
+            Panel {
+                title: "ERS";
+                HorizontalLayout {
+                    vertical-stretch: 1;
+                    spacing: 12px;
+                    VBar { width: 56px; value: root.d.ers-pct; fill: F1Theme.ers; }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 6px;
+                        Text {
+                            text: root.d.ers-text;
+                            color: #ffffff;
+                            font-size: 54px;
+                            font-weight: 900;
+                        }
+                        Text {
+                            text: root.d.ers-mode;
+                            color: root.d.ers-mode-color;
+                            font-size: 26px;
+                            font-weight: 900;
+                        }
+                        Caption { text: "DEPLOYED"; font-size: 18px; }
+                        HBar { height: 12px; value: root.d.ers-deployed-pct; fill: F1Theme.ers; }
+                    }
+                }
+            }
+
+            Panel {
+                title: "FUEL";
+                VerticalLayout {
+                    vertical-stretch: 1;
+                    alignment: center;
+                    Text {
+                        text: root.d.fuel-laps;
+                        color: root.d.fuel-ok ? F1Theme.green : #ff4a4a;
+                        font-size: 66px;
+                        font-weight: 900;
+                        horizontal-alignment: center;
+                    }
+                    Caption { text: "LAPS"; horizontal-alignment: center; }
+                    Text {
+                        text: root.d.fuel-kg;
+                        color: #d0d0dc;
+                        font-size: 28px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: root.d.fuel-mix;
+                        color: F1Theme.dim;
+                        font-size: 22px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+
+            Panel {
+                title: "TYRES";
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle {
+                        width: 46px;
+                        height: 46px;
+                        border-radius: 23px;
+                        border-width: 6px;
+                        border-color: root.d.tyre-color;
+                        background: #000000;
+                        Text {
+                            width: parent.width;
+                            height: parent.height;
+                            text: root.d.tyre-compound;
+                            color: #ffffff;
+                            font-size: 22px;
+                            font-weight: 900;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Text {
+                        text: "\{root.d.tyre-age} LAPS";
+                        color: #d0d0dc;
+                        font-size: 24px;
+                        font-weight: 800;
+                        vertical-alignment: center;
+                    }
+                }
+                GridLayout {
+                    vertical-stretch: 1;
+                    spacing: 8px;
+                    Row {
+                        MiniTyre { t: root.d.fl; }
+                        MiniTyre { t: root.d.fr; }
+                    }
+                    Row {
+                        MiniTyre { t: root.d.rl; }
+                        MiniTyre { t: root.d.rr; }
+                    }
+                }
+            }
+
+            Panel {
+                title: "SETUP";
+                VerticalLayout {
+                    vertical-stretch: 1;
+                    alignment: space-around;
+                    VerticalLayout {
+                        Caption { text: "BRAKE BIAS"; font-size: 18px; }
+                        Text {
+                            text: "\{root.d.brake-bias}%";
+                            color: #ffffff;
+                            font-size: 50px;
+                            font-weight: 900;
+                        }
+                    }
+                    VerticalLayout {
+                        Caption { text: "DIFF"; font-size: 18px; }
+                        Text {
+                            text: "\{root.d.diff}%";
+                            color: #ffffff;
+                            font-size: 40px;
+                            font-weight: 900;
+                        }
+                    }
+                    Text {
+                        text: "TC " + root.d.tc + (root.d.abs-on ? "  ABS" : "");
+                        color: F1Theme.dim;
+                        font-size: 22px;
+                        font-weight: 800;
+                    }
+                }
+            }
+        }
+    }
+}

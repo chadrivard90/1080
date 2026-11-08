@@ -1,0 +1,24 @@
+// App-wide state and callbacks shared by every page.
+
+export struct GameInfo {
+    name: string,
+    subtitle: string,
+    accent: color,
+    enabled: bool,
+}
+
+export global AppState {
+    in property <string> ip-address: "--";
+    in property <string> version: "";
+    in property <int> f1-port: 20777;
+    in-out property <bool> demo-mode: false;
+
+    // Title screen tile tapped (index into the title screen's game list).
+    callback select-game(int);
+    // Return from a game dash to the title screen.
+    callback go-home();
+    // Close the app.
+    callback exit-app();
+    // A persisted setting changed (demo toggle, selected layout).
+    callback settings-changed();
+}

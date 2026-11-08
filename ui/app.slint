@@ -1,0 +1,19 @@
+// Root window. page 0 = title screen, page N = game N-1's dash.
+
+import { TitleScreen } from "title.slint";
+import { F1Dash } from "f1/f1_dash.slint";
+
+export { AppState, GameInfo } from "globals.slint";
+export { F1, F1Data, Tyre, Part, SectorInfo, StandingRow, LapRow, ForecastRow } from "f1/f1_state.slint";
+
+export component AppWindow inherits Window {
+    in-out property <int> page: 0;
+
+    title: "Race Dash";
+    background: #000000;
+    preferred-width: 1080px;
+    preferred-height: 1920px;
+
+    if root.page == 0 : TitleScreen { width: root.width; height: root.height; }
+    if root.page == 1 : F1Dash { width: root.width; height: root.height; }
+}

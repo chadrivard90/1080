@@ -1,0 +1,78 @@
+// Small reusable widgets. Everything is sized for a 1080x1920 touch screen.
+
+export component Caption inherits Text {
+    color: #8d8da3;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+export component TouchButton inherits Rectangle {
+    in property <string> text;
+    in property <color> accent: #e10600;
+    in property <color> text-color: #ffffff;
+    in property <color> idle-color: #1c1c24;
+    in property <length> font-size: 38px;
+    in property <bool> active: false;
+    in property <bool> enabled: true;
+    callback clicked;
+
+    border-radius: 14px;
+    border-width: 3px;
+    border-color: root.enabled ? root.accent : #3a3a44;
+    background: !root.enabled ? #202026
+        : (touch.pressed ? root.accent.darker(0.35) : (root.active ? root.accent : root.idle-color));
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        color: root.enabled ? root.text-color : #5a5a66;
+        font-size: root.font-size;
+        font-weight: 800;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Horizontal fill bar, value 0..1.
+export component HBar inherits Rectangle {
+    in property <float> value;
+    in property <color> fill: #00d26a;
+    in property <color> track: #2a2a36;
+    background: root.track;
+    border-radius: 6px;
+    clip: true;
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        height: parent.height;
+        width: parent.width * max(0.0, min(1.0, root.value));
+        background: root.fill;
+        border-radius: root.border-radius;
+        animate width { duration: 60ms; }
+    }
+}
+
+// Vertical fill bar (fills from the bottom), value 0..1.
+export component VBar inherits Rectangle {
+    in property <float> value;
+    in property <color> fill: #00d26a;
+    in property <color> track: #2a2a36;
+    background: root.track;
+    border-radius: 10px;
+    clip: true;
+    Rectangle {
+        x: 0px;
+        width: parent.width;
+        height: parent.height * max(0.0, min(1.0, root.value));
+        y: parent.height - self.height;
+        background: root.fill;
+        border-radius: root.border-radius;
+    }
+}

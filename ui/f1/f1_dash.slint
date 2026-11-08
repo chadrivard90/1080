@@ -1,0 +1,214 @@
+// F1 25 dash shell: shift lights + flag/status bar on top, selected layout in the middle,
+// layout nav bar (with HOME) at the bottom. Shared across all five layouts.
+
+import { F1, F1Theme, F1Data } from "f1_state.slint";
+import { AppState } from "../globals.slint";
+import { TouchButton, Caption } from "../common.slint";
+import { RaceLayout } from "layout_race.slint";
+import { TimingLayout } from "layout_timing.slint";
+import { CarLayout } from "layout_car.slint";
+import { TowerLayout } from "layout_tower.slint";
+import { StrategyLayout } from "layout_strategy.slint";
+
+// 15 LED shift lights: 5 green, 5 red, 5 purple; all flash blue at the limiter.
+component RevStrip inherits Rectangle {
+    property <F1Data> d: F1.data;
+    background: #050508;
+    HorizontalLayout {
+        padding: 10px;
+        spacing: 8px;
+        for i in 15 : Rectangle {
+            border-radius: 10px;
+            background: root.d.rev-max
+                ? (root.d.blink ? #2f7bff : #0c1430)
+                : (i < root.d.rev-count
+                    ? (i < 5 ? #00d26a : (i < 10 ? #ff1e1e : #b545ff))
+                    : #191922);
+        }
+    }
+}
+
+// Session info strip that turns into a full-colour flag / alert banner when needed.
+component StatusBar inherits Rectangle {
+    property <F1Data> d: F1.data;
+    background: root.d.banner-text != "" ? root.d.banner-color : #101018;
+
+    if root.d.banner-text == "" : HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 16px;
+        padding-right: 20px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 16px;
+        Rectangle {
+            width: 200px;
+            border-radius: 8px;
+            background: F1Theme.red;
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.d.session-name;
+                color: #ffffff;
+                font-size: 30px;
+                font-weight: 900;
+                font-italic: true;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.d.track-name;
+            color: #ffffff;
+            font-size: 30px;
+            font-weight: 800;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            text: root.d.lap-text;
+            color: #ffffff;
+            font-size: 34px;
+            font-weight: 900;
+            vertical-alignment: center;
+        }
+    }
+
+    if root.d.banner-text != "" : Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.d.banner-text;
+        color: root.d.banner-text-color;
+        font-size: 56px;
+        font-weight: 900;
+        font-italic: true;
+        letter-spacing: 6px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        opacity: root.d.blink ? 1.0 : 0.75;
+    }
+}
+
+component F1NavBar inherits Rectangle {
+    background: #050508;
+    Rectangle { x: 0px; y: 0px; width: parent.width; height: 4px; background: F1Theme.red; }
+    HorizontalLayout {
+        padding: 14px;
+        padding-top: 18px;
+        spacing: 10px;
+        TouchButton {
+            width: 170px;
+            text: "HOME";
+            accent: #8d8da3;
+            idle-color: #22222c;
+            font-size: 36px;
+            clicked => { AppState.go-home(); }
+        }
+        for name[i] in ["RACE", "TIMING", "CAR", "TOWER", "STRAT"] : TouchButton {
+            text: name;
+            font-size: 32px;
+            accent: F1Theme.red;
+            active: F1.layout == i;
+            clicked => {
+                F1.layout = i;
+                AppState.settings-changed();
+            }
+        }
+    }
+}
+
+// Shown over the layout area until telemetry arrives.
+component WaitingOverlay inherits Rectangle {
+    property <F1Data> d: F1.data;
+    background: #000000c8;
+    Rectangle {
+        x: 60px;
+        y: (parent.height - self.height) / 2;
+        width: parent.width - 120px;
+        height: 760px;
+        background: F1Theme.panel;
+        border-radius: 24px;
+        border-width: 4px;
+        border-color: F1Theme.red;
+        VerticalLayout {
+            padding: 40px;
+            spacing: 14px;
+            Text {
+                text: "WAITING FOR F1 25";
+                color: #ffffff;
+                font-size: 56px;
+                font-weight: 900;
+                font-italic: true;
+            }
+            Text {
+                text: root.d.status-text;
+                color: F1Theme.yellow;
+                font-size: 28px;
+                font-weight: 800;
+                wrap: word-wrap;
+            }
+            Rectangle { height: 10px; }
+            Caption { text: "IN GAME: SETTINGS > TELEMETRY SETTINGS"; font-size: 26px; color: #ffffff; }
+            Text { text: "UDP Telemetry:  On"; color: #d0d0dc; font-size: 34px; font-weight: 700; }
+            Text { text: "UDP Broadcast Mode:  Off"; color: #d0d0dc; font-size: 34px; font-weight: 700; }
+            Text { text: "UDP IP Address:  " + AppState.ip-address; color: #ffffff; font-size: 34px; font-weight: 900; }
+            Text { text: "UDP Port:  \{AppState.f1-port}"; color: #ffffff; font-size: 34px; font-weight: 900; }
+            Text { text: "UDP Send Rate:  60Hz"; color: #d0d0dc; font-size: 34px; font-weight: 700; }
+            Text { text: "UDP Format:  2025"; color: #d0d0dc; font-size: 34px; font-weight: 700; }
+            Rectangle { vertical-stretch: 1; }
+            Caption { text: "TIP: TURN ON DEMO ON THE TITLE SCREEN TO PREVIEW THE DASH"; font-size: 20px; }
+        }
+    }
+}
+
+component EventToast inherits Rectangle {
+    property <F1Data> d: F1.data;
+    border-radius: 18px;
+    background: root.d.event-color;
+    drop-shadow-blur: 20px;
+    drop-shadow-color: #000000a0;
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.d.event-text;
+        color: root.d.event-text-color;
+        font-size: 48px;
+        font-weight: 900;
+        font-italic: true;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+export component F1Dash inherits Rectangle {
+    background: F1Theme.bg;
+
+    VerticalLayout {
+        RevStrip { height: 76px; }
+        StatusBar { height: 86px; }
+
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            if F1.layout == 0 : RaceLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 1 : TimingLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 2 : CarLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 3 : TowerLayout { width: parent.width; height: parent.height; }
+            if F1.layout == 4 : StrategyLayout { width: parent.width; height: parent.height; }
+
+            if F1.data.event-text != "" && F1.data.connected : EventToast {
+                x: 40px;
+                y: parent.height - 170px;
+                width: parent.width - 80px;
+                height: 130px;
+            }
+
+            if !F1.data.connected : WaitingOverlay { width: parent.width; height: parent.height; }
+        }
+
+        F1NavBar { height: 150px; }
+    }
+}
