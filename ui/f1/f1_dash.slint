@@ -230,7 +230,7 @@ export component F1Dash inherits Rectangle {
         ToastStrip {
             height: 96px;
             text: F1.data.connected ? F1.data.event-text : "";
-            color: F1.data.event-color;
+            strip-color: F1.data.event-color;
             text-color: F1.data.event-text-color;
             idle-text: F1.data.connected ? "P\{F1.data.position}/\{F1.data.num-cars}      " + F1.data.lap-text : "";
             idle-color: #08080b;

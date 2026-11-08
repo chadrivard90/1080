@@ -44,13 +44,13 @@ export component TouchButton inherits Rectangle {
 // cover data. Shows the idle text when there is no event.
 export component ToastStrip inherits Rectangle {
     in property <string> text;
-    in property <color> color: #ffffff;
+    in property <color> strip-color: #ffffff;
     in property <color> text-color: #000000;
     in property <string> idle-text;
     in property <color> idle-color: #101014;
     in property <color> idle-text-color: #6c6e78;
     in property <bool> italic: true;
-    background: root.text != "" ? root.color : root.idle-color;
+    background: root.text != "" ? root.strip-color : root.idle-color;
     clip: true;
     Text {
         x: 24px;
